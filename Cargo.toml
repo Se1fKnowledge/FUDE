@@ -1,0 +1,20 @@
+# FUDE's own Rust code. The editor in photocraft/ is a separate workspace with its own
+# Cargo.lock and build rules, so it stays out of this one.
+[workspace]
+resolver = "3"
+members = ["core"]
+exclude = ["photocraft"]
+
+[workspace.package]
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/Se1fKnowledge/FUDE"
+rust-version = "1.85"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
