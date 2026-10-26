@@ -1,0 +1,79 @@
+format = 1
+id = "light.reflected-light"
+title = "Рефлекс и отражённый свет"
+summary = "Свет, отражённый от пола, подсвечивает теневую сторону — но всегда слабее прямого."
+difficulty = 4
+minutes = 20
+order = 4
+skills = ["light", "color"]
+requires = ["light.cast-shadow"]
+author = "FUDE"
+
+[theory]
+file = "theory.md"
+
+[guide]
+script = "guide.json"
+
+[[quiz]]
+question = "Рефлекс на теневой стороне может быть светлее освещённой стороны?"
+options = ["Да, если пол белый", "Нет, рефлекс всегда темнее света", "Да, в солнечный день"]
+answer = 1
+
+[[quiz]]
+question = "Какого цвета рефлекс от тёплого оранжевого пола?"
+options = ["Холодный голубой", "Тёплый, с оттенком пола", "Чисто серый"]
+answer = 1
+
+[task]
+brief = "Шар стоит на тёплом полу. Добавьте рефлекс — отражённый свет у нижнего правого края в тени."
+open = "assets/task.png"
+reference = "assets/reference.png"
+
+[[task.steps]]
+id = "layer"
+text = "Создайте слой «Рефлекс»."
+  [task.steps.hint]
+  text = "Ctrl+Shift+N и двойной щелчок по имени слоя."
+  target = "panel:Layers"
+  [[task.steps.checks]]
+  kind = "layer"
+  name = "рефлекс"
+  message = "Нет слоя с именем «Рефлекс»."
+
+[[task.steps]]
+id = "soft-brush"
+text = "Возьмите мягкую кисть: жёсткость не больше 40%, непрозрачность не больше 50%."
+  [task.steps.hint]
+  text = "Рефлекс наращивается очень мягко, иначе он «выскочит» из тени."
+  target = "option:opacity"
+  [[task.steps.checks]]
+  kind = "brush"
+  hardness = { max = 0.4 }
+  opacity = { max = 0.5 }
+
+[[task.steps]]
+id = "reflex"
+text = "Проведите по краю шара внутри тени, справа снизу, тоном чуть светлее тени, но темнее света."
+  [task.steps.hint]
+  text = "Дуга вдоль края, но не по самому контуру: рефлекс лежит внутри формы."
+  [[task.steps.hint.shapes]]
+  kind = "path"
+  points = [[0.64, 0.5], [0.625, 0.57], [0.6, 0.62], [0.56, 0.66]]
+  [[task.steps.checks]]
+  kind = "coverage"
+  region = [0.595, 0.595, 0.02, 0.025]
+  changed = { min = 0.3 }
+  message = "У нижнего правого края шара пока нет рефлекса."
+  [[task.steps.checks]]
+  kind = "darker"
+  region = [0.565, 0.545, 0.03, 0.05]
+  than = [0.595, 0.595, 0.02, 0.025]
+  by = 0.1
+  message = "Рефлекс должен быть заметно светлее самой тёмной части тени."
+  [[task.steps.checks]]
+  kind = "darker"
+  region = [0.595, 0.595, 0.02, 0.025]
+  than = [0.41, 0.32, 0.035, 0.05]
+  by = 0.15
+  message = "Рефлекс слишком яркий: он должен оставаться частью тени."

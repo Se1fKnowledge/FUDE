@@ -1,0 +1,153 @@
+{
+  "format": 1,
+  "open": "assets/task.png",
+  "steps": [
+    {
+      "calls": [
+        {
+          "method": "ui.set",
+          "params": {
+            "tool": "Eraser"
+          }
+        }
+      ],
+      "caption": "Инструмент «Ластик» — клавиша E",
+      "highlight": "tool:Eraser",
+      "pause": 1200
+    },
+    {
+      "calls": [
+        {
+          "method": "engine.execute",
+          "params": {
+            "command": "tools.setBrush",
+            "params": {
+              "flow": 1.0,
+              "hardness": 0.6000000238418579,
+              "opacity": 1.0,
+              "size": 90.0
+            }
+          }
+        }
+      ],
+      "caption": "Крупный ластик: размер 90",
+      "highlight": "option:brushSize",
+      "pause": 1000
+    },
+    {
+      "calls": [
+        {
+          "method": "engine.execute",
+          "params": {
+            "command": "paint.stroke",
+            "params": {
+              "erase": true,
+              "points": [
+                [
+                  780.0,
+                  325.0,
+                  1.0
+                ],
+                [
+                  803.0,
+                  435.0,
+                  1.0
+                ],
+                [
+                  826.0,
+                  325.0,
+                  1.0
+                ],
+                [
+                  849.0,
+                  435.0,
+                  1.0
+                ],
+                [
+                  872.0,
+                  325.0,
+                  1.0
+                ],
+                [
+                  895.0,
+                  435.0,
+                  1.0
+                ],
+                [
+                  918.0,
+                  325.0,
+                  1.0
+                ]
+              ],
+              "size": 90
+            }
+          }
+        }
+      ],
+      "caption": "Стираем кляксу зигзагом",
+      "pause": 1200
+    },
+    {
+      "calls": [
+        {
+          "method": "ui.set",
+          "params": {
+            "tool": "Brush"
+          }
+        },
+        {
+          "method": "engine.execute",
+          "params": {
+            "command": "tools.setBrush",
+            "params": {
+              "flow": 1.0,
+              "hardness": 1.0,
+              "opacity": 1.0,
+              "size": 12.0
+            }
+          }
+        },
+        {
+          "method": "engine.execute",
+          "params": {
+            "command": "paint.stroke",
+            "params": {
+              "color": "#16161A",
+              "points": [
+                [
+                  300.0,
+                  300.0,
+                  1.0
+                ],
+                [
+                  520.0,
+                  520.0,
+                  1.0
+                ]
+              ],
+              "size": 12.0
+            }
+          }
+        }
+      ],
+      "caption": "Случайный штрих кистью…",
+      "highlight": "tool:Brush",
+      "pause": 1200
+    },
+    {
+      "calls": [
+        {
+          "method": "engine.execute",
+          "params": {
+            "command": "edit.undo",
+            "params": {}
+          }
+        }
+      ],
+      "caption": "…и отмена: Ctrl+Z. Ctrl+Shift+Z возвращает отменённое",
+      "highlight": "menu:edit.undo",
+      "pause": 1600
+    }
+  ],
+  "title": "Ластик и отмена"
+}

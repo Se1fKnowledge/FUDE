@@ -1,0 +1,107 @@
+format = 1
+id = "basics.brush"
+title = "Кисть: размер, жёсткость, цвет"
+summary = "Три главных параметра кисти и как они меняют мазок."
+difficulty = 1
+minutes = 12
+order = 2
+skills = ["tools", "line"]
+requires = ["basics.canvas"]
+author = "FUDE"
+
+[theory]
+file = "theory.md"
+
+[guide]
+script = "guide.json"
+
+[[quiz]]
+question = "Какая кисть даёт размытый, тающий край?"
+options = ["Жёсткость 100%", "Жёсткость 0%", "Размер 1 пиксель"]
+answer = 1
+
+[[quiz]]
+question = "Какие клавиши меняют размер кисти на ходу?"
+options = ["[ и ]", "Ctrl+Z и Ctrl+Y", "+ и −"]
+answer = 0
+
+[task]
+brief = "Проведите три мягких мазка тушью в верхней половине листа и один мазок киноварью внизу."
+reference = "assets/reference.png"
+
+[task.canvas]
+width = 1200
+height = 800
+background = "#FFFFFF"
+
+[[task.steps]]
+id = "brush"
+text = "Выберите «Кисть» (B)."
+  [task.steps.hint]
+  text = "Значок кисти на панели инструментов."
+  target = "tool:Brush"
+  [[task.steps.checks]]
+  kind = "tool"
+  tool = "Brush"
+
+[[task.steps]]
+id = "size"
+text = "Сделайте размер кисти от 30 до 80 пикселей."
+  [task.steps.hint]
+  text = "Клавиши [ и ] уменьшают и увеличивают кисть. Размер виден на панели параметров сверху."
+  target = "option:brushSize"
+  [[task.steps.checks]]
+  kind = "brush"
+  size = { min = 30, max = 80 }
+
+[[task.steps]]
+id = "soft"
+text = "Сделайте кисть мягкой: жёсткость не больше 20%."
+  [task.steps.hint]
+  text = "Shift+[ снижает жёсткость. Можно задать её в окне «Параметры кисти»."
+  target = "option:hardness"
+  [[task.steps.checks]]
+  kind = "brush"
+  hardness = { max = 0.2 }
+
+[[task.steps]]
+id = "strokes"
+text = "Проведите три горизонтальных мазка в верхней половине листа."
+  [task.steps.hint]
+  text = "Ведите мышь ровно и не спеша, от левого края к правому."
+  [[task.steps.hint.shapes]]
+  kind = "line"
+  from = [0.17, 0.19]
+  to = [0.83, 0.19]
+  [[task.steps.hint.shapes]]
+  kind = "line"
+  from = [0.17, 0.29]
+  to = [0.83, 0.29]
+  [[task.steps.hint.shapes]]
+  kind = "line"
+  from = [0.17, 0.39]
+  to = [0.83, 0.39]
+  [[task.steps.checks]]
+  kind = "coverage"
+  region = [0.1, 0.12, 0.8, 0.33]
+  changed = { min = 0.15 }
+  message = "Мазков пока мало. Проведите три длинных мазка в верхней половине."
+
+[[task.steps]]
+id = "color"
+text = "Смените основной цвет на киноварь (#BC3823) и проведите мазок внизу."
+  [task.steps.hint]
+  text = "Щёлкните по верхнему квадрату цвета на панели инструментов и введите BC3823."
+  target = "panel:Color"
+  [[task.steps.hint.shapes]]
+  kind = "line"
+  from = [0.17, 0.7]
+  to = [0.83, 0.7]
+  [[task.steps.checks]]
+  kind = "foreground"
+  color = "#BC3823"
+  tolerance = 0.12
+  [[task.steps.checks]]
+  kind = "coverage"
+  region = [0.1, 0.6, 0.8, 0.25]
+  changed = { min = 0.05 }

@@ -1,0 +1,78 @@
+format = 1
+id = "light.cast-shadow"
+title = "Падающая тень от сферы"
+summary = "Тень на полу: где она начинается, куда ложится и почему темнее у основания."
+difficulty = 3
+minutes = 20
+order = 3
+skills = ["light", "form"]
+requires = ["light.core-shadow"]
+author = "FUDE"
+
+[theory]
+file = "theory.md"
+
+[guide]
+script = "guide.json"
+
+[[quiz]]
+question = "Где падающая тень темнее всего?"
+options = ["У дальнего края", "У точки касания предмета и пола", "Везде одинаково"]
+answer = 1
+explain = "Под самым шаром свет не попадает на пол ни с какой стороны."
+
+[[quiz]]
+question = "Солнце слева сверху. Куда ложится тень шара?"
+options = ["Влево", "Вправо", "Прямо вверх"]
+answer = 1
+
+[task]
+brief = "Шар уже вылеплен светом. Нарисуйте его падающую тень на полу."
+open = "assets/task.png"
+reference = "assets/reference.png"
+
+[[task.steps]]
+id = "layer"
+text = "Создайте слой «Тень»."
+  [task.steps.hint]
+  text = "Ctrl+Shift+N и двойной щелчок по имени, чтобы переименовать."
+  target = "panel:Layers"
+  [[task.steps.checks]]
+  kind = "layer"
+  name = "тень"
+  message = "Нет слоя с именем «Тень»."
+
+[[task.steps]]
+id = "cast"
+text = "Мягкой тёмной кистью проложите тень на полу вправо от шара."
+  [task.steps.hint]
+  text = "Тень — сплющенный овал, который начинается в точке касания и уходит от света."
+  target = "tool:Brush"
+  [[task.steps.hint.shapes]]
+  kind = "ellipse"
+  rect = [0.44, 0.675, 0.35, 0.065]
+  [[task.steps.checks]]
+  kind = "coverage"
+  region = [0.56, 0.69, 0.2, 0.03]
+  changed = { min = 0.5 }
+  message = "Тени на полу справа от шара пока мало."
+  [[task.steps.checks]]
+  kind = "coverage"
+  region = [0.08, 0.69, 0.2, 0.03]
+  changed = { max = 0.05 }
+  message = "Тень легла и слева от шара, со стороны света. Сотрите её там."
+
+[[task.steps]]
+id = "contact"
+text = "Сделайте тень темнее всего у самого шара и светлее к дальнему краю."
+  [task.steps.hint]
+  text = "Маленькой мягкой кистью добавьте тёмный тон у точки касания."
+  [[task.steps.hint.shapes]]
+  kind = "ellipse"
+  rect = [0.5, 0.685, 0.09, 0.03]
+  [[task.steps.checks]]
+  kind = "darker"
+  region = [0.52, 0.7, 0.06, 0.02]
+  than = [0.72, 0.7, 0.06, 0.02]
+  by = 0.05
+  message = "У точки касания тень должна быть темнее, чем у дальнего края."

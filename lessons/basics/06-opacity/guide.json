@@ -1,0 +1,111 @@
+{
+  "format": 1,
+  "open": "assets/task.png",
+  "steps": [
+    {
+      "calls": [
+        {
+          "method": "engine.execute",
+          "params": {
+            "command": "layer.new.layer",
+            "params": {
+              "name": "Мазок"
+            }
+          }
+        }
+      ],
+      "caption": "Новый слой для мазка",
+      "highlight": "panel:Layers",
+      "pause": 1200
+    },
+    {
+      "calls": [
+        {
+          "method": "ui.set",
+          "params": {
+            "tool": "Brush"
+          }
+        },
+        {
+          "method": "engine.execute",
+          "params": {
+            "command": "tools.setBrush",
+            "params": {
+              "flow": 1.0,
+              "hardness": 0.699999988079071,
+              "opacity": 1.0,
+              "size": 120.0
+            }
+          }
+        },
+        {
+          "method": "engine.execute",
+          "params": {
+            "command": "tools.setColors",
+            "params": {
+              "foreground": "#2F5D8C"
+            }
+          }
+        },
+        {
+          "method": "engine.execute",
+          "params": {
+            "command": "paint.stroke",
+            "params": {
+              "color": "#2F5D8C",
+              "points": [
+                [
+                  130.0,
+                  400.0,
+                  1.0
+                ],
+                [
+                  1070.0,
+                  400.0,
+                  1.0
+                ]
+              ],
+              "size": 120.0
+            }
+          }
+        }
+      ],
+      "caption": "Широкая кисть индиго поверх камня",
+      "highlight": "tool:Brush",
+      "pause": 1400
+    },
+    {
+      "calls": [
+        {
+          "method": "engine.execute",
+          "params": {
+            "command": "layer.setProps",
+            "params": {
+              "opacity": 0.45
+            }
+          }
+        }
+      ],
+      "caption": "Непрозрачность слоя 45%: камень проступает сквозь мазок",
+      "highlight": "option:layerOpacity",
+      "pause": 1800
+    },
+    {
+      "calls": [
+        {
+          "method": "engine.execute",
+          "params": {
+            "command": "layer.setProps",
+            "params": {
+              "visible": false
+            }
+          }
+        }
+      ],
+      "caption": "Глаз выключает слой целиком, не стирая его",
+      "highlight": "panel:Layers",
+      "pause": 1400
+    }
+  ],
+  "title": "Непрозрачность и видимость слоя"
+}

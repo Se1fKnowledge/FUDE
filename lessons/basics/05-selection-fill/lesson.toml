@@ -1,0 +1,107 @@
+format = 1
+id = "basics.selection-fill"
+title = "Выделение и заливка"
+summary = "Ограничить область работы и залить её цветом одним действием."
+difficulty = 2
+minutes = 15
+order = 5
+skills = ["tools", "composition"]
+requires = ["basics.layers"]
+author = "FUDE"
+
+[theory]
+file = "theory.md"
+
+[guide]
+script = "guide.json"
+
+[[quiz]]
+question = "Что происходит с мазком кисти, если есть выделение?"
+options = ["Он ложится только внутри выделения", "Он ложится только снаружи", "Выделение ни на что не влияет"]
+answer = 0
+
+[[quiz]]
+question = "Как снять выделение?"
+options = ["Ctrl+D", "Ctrl+A", "Delete"]
+answer = 0
+explain = "Ctrl+A выделяет всё, а Delete стирает содержимое выделения."
+
+[task]
+brief = "Соберите простую композицию: прямоугольник индиго слева и круг киновари справа."
+reference = "assets/reference.png"
+
+[task.canvas]
+width = 1200
+height = 800
+background = "#FFFFFF"
+
+[[task.steps]]
+id = "rect-tool"
+text = "Выберите «Прямоугольную область» (M)."
+  [task.steps.hint]
+  text = "Значок пунктирного прямоугольника вверху панели инструментов."
+  target = "tool:RectMarquee"
+  [[task.steps.checks]]
+  kind = "tool"
+  tool = "RectMarquee"
+
+[[task.steps]]
+id = "rect-select"
+text = "Выделите высокий прямоугольник в левой части холста."
+  [task.steps.hint]
+  text = "Нажмите и протяните мышь от левого верхнего угла к правому нижнему."
+  [[task.steps.hint.shapes]]
+  kind = "rect"
+  rect = [0.1, 0.2, 0.35, 0.6]
+  [[task.steps.checks]]
+  kind = "selection"
+  width = { min = 0.2, max = 0.5 }
+  height = { min = 0.4, max = 0.8 }
+
+[[task.steps]]
+id = "rect-fill"
+text = "Залейте выделение цветом индиго (#2F5D8C)."
+  [task.steps.hint]
+  text = "Редактирование › Выполнить заливку (Shift+F5), «Цвет», код 2F5D8C."
+  target = "menu:edit.fill"
+  [[task.steps.checks]]
+  kind = "color"
+  region = [0.15, 0.3, 0.25, 0.4]
+  color = "#2F5D8C"
+  tolerance = 0.15
+  message = "Прямоугольник слева пока не индиго."
+
+[[task.steps]]
+id = "ellipse-tool"
+text = "Выберите «Овальную область»."
+  [task.steps.hint]
+  text = "Долгий щелчок по значку прямоугольной области откроет соседние инструменты. Или Shift+M."
+  target = "tool:EllipseMarquee"
+  [[task.steps.checks]]
+  kind = "tool"
+  tool = "EllipseMarquee"
+
+[[task.steps]]
+id = "circle-fill"
+text = "Выделите круг справа (держите Shift) и залейте его киноварью (#BC3823)."
+  [task.steps.hint]
+  text = "Shift во время выделения делает ровный круг."
+  [[task.steps.hint.shapes]]
+  kind = "ellipse"
+  rect = [0.58, 0.25, 0.3, 0.45]
+  [[task.steps.checks]]
+  kind = "color"
+  region = [0.66, 0.38, 0.14, 0.2]
+  color = "#BC3823"
+  tolerance = 0.15
+  message = "Круг справа пока не киноварный."
+
+[[task.steps]]
+id = "deselect"
+text = "Снимите выделение: Ctrl+D."
+  [task.steps.hint]
+  text = "Выделение › Отменить выделение."
+  target = "menu:select.deselect"
+  [[task.steps.checks]]
+  kind = "selection"
+  present = false

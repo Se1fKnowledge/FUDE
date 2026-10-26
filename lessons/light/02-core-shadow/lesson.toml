@@ -1,0 +1,83 @@
+format = 1
+id = "light.core-shadow"
+title = "Собственная тень и полутон"
+summary = "Плавный переход от света к тени: полутон, терминатор и самое тёмное место формы."
+difficulty = 3
+minutes = 20
+order = 2
+skills = ["light", "form"]
+requires = ["light.light-source"]
+author = "FUDE"
+
+[theory]
+file = "theory.md"
+
+[guide]
+script = "guide.json"
+
+[[quiz]]
+question = "Где на шаре самая тёмная часть собственной тени?"
+options = ["У самого края шара", "Сразу за терминатором", "В центре"]
+answer = 1
+explain = "У края шара тень высветляет отражённый свет — рефлекс. Ему посвящён урок 4."
+
+[[quiz]]
+question = "Полутон — это"
+options = ["Тень на полу", "Переход между светом и тенью на освещённой стороне", "Белый блик"]
+answer = 1
+
+[task]
+brief = "Шар залит средним тоном. Мягкой кистью проложите собственную тень и полутон, не трогая освещённую сторону."
+open = "assets/task.png"
+reference = "assets/reference.png"
+
+[[task.steps]]
+id = "soft-brush"
+text = "Настройте мягкую кисть: жёсткость не больше 30%, непрозрачность не больше 60%."
+  [task.steps.hint]
+  text = "Мягкая кисть с низкой непрозрачностью позволяет наращивать тень постепенно."
+  target = "option:hardness"
+  [[task.steps.checks]]
+  kind = "brush"
+  hardness = { max = 0.3 }
+  opacity = { max = 0.6 }
+
+[[task.steps]]
+id = "core"
+text = "Затемните собственную тень справа снизу, сразу за границей света."
+  [task.steps.hint]
+  text = "Терминатор на шаре — дуга. Ведите кисть вдоль неё несколькими слоями."
+  [[task.steps.hint.shapes]]
+  kind = "path"
+  points = [[0.62, 0.3], [0.62, 0.42], [0.59, 0.54], [0.53, 0.62], [0.45, 0.66]]
+  [[task.steps.checks]]
+  kind = "luminance"
+  region = [0.565, 0.545, 0.03, 0.05]
+  value = { max = 0.45 }
+  message = "Собственная тень пока слишком светлая."
+
+[[task.steps]]
+id = "halftone"
+text = "Проложите полутон: переход от света к тени через середину шара."
+  [task.steps.hint]
+  text = "Ещё мягче и прозрачнее: непрозрачность 15–20%, широкая кисть."
+  [[task.steps.hint.shapes]]
+  kind = "path"
+  points = [[0.56, 0.32], [0.55, 0.45], [0.5, 0.55], [0.43, 0.58]]
+  [[task.steps.checks]]
+  kind = "darker"
+  region = [0.515, 0.47, 0.035, 0.05]
+  than = [0.41, 0.32, 0.035, 0.05]
+  by = 0.05
+  message = "Между светом и серединой шара нет перехода."
+  [[task.steps.checks]]
+  kind = "darker"
+  region = [0.565, 0.545, 0.03, 0.05]
+  than = [0.515, 0.47, 0.035, 0.05]
+  by = 0.05
+  message = "Полутон должен быть светлее собственной тени."
+  [[task.steps.checks]]
+  kind = "luminance"
+  region = [0.41, 0.32, 0.035, 0.05]
+  value = { min = 0.55 }
+  message = "Освещённая сторона потемнела — верните ей свет."

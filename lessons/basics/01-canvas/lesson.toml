@@ -1,0 +1,73 @@
+format = 1
+id = "basics.canvas"
+title = "Холст и масштаб"
+summary = "Приближать, отдалять и двигать холст, не меняя рисунок."
+difficulty = 1
+minutes = 8
+order = 1
+skills = ["tools"]
+author = "FUDE"
+
+[theory]
+file = "theory.md"
+
+[guide]
+script = "guide.json"
+
+[[quiz]]
+question = "Что меняет масштаб 200%?"
+options = ["Размер картинки в пикселях", "Только то, насколько крупно вы её видите", "Качество рисунка"]
+answer = 1
+explain = "Масштаб — это лупа. Сам документ остаётся того же размера."
+
+[[quiz]]
+question = "Как быстро показать холст целиком?"
+options = ["Ctrl+0", "Ctrl+Z", "Ctrl+D"]
+answer = 0
+
+[task]
+brief = "В правом нижнем углу картины спрятана маленькая печать. Найдите её с лупой, рассмотрите и верните холст целиком."
+open = "assets/task.png"
+
+[[task.steps]]
+id = "zoom-tool"
+text = "Выберите инструмент «Масштаб» (Z)."
+  [task.steps.hint]
+  text = "Значок лупы на панели инструментов слева, внизу."
+  target = "tool:Zoom"
+  [[task.steps.checks]]
+  kind = "tool"
+  tool = "Zoom"
+
+[[task.steps]]
+id = "zoom-in"
+text = "Приблизьте печать в правом нижнем углу до 200% или больше."
+  [task.steps.hint]
+  text = "Щёлкните по печати несколько раз. Масштаб виден в строке состояния внизу."
+  [[task.steps.hint.shapes]]
+  kind = "ellipse"
+  rect = [0.9, 0.88, 0.08, 0.1]
+  [[task.steps.checks]]
+  kind = "zoom"
+  zoom = { min = 2 }
+
+[[task.steps]]
+id = "hand"
+text = "Возьмите «Руку» (H) и подвигайте приближенный холст."
+  [task.steps.hint]
+  text = "Пока держите пробел, любой инструмент работает как «Рука»."
+  target = "tool:Hand"
+  [[task.steps.checks]]
+  kind = "tool"
+  tool = "Hand"
+
+[[task.steps]]
+id = "fit"
+text = "Покажите холст целиком: Ctrl+0."
+  [task.steps.hint]
+  text = "Просмотр › Показать во весь экран, или Ctrl+0."
+  target = "menu:view.fitOnScreen"
+  [[task.steps.checks]]
+  kind = "zoom"
+  zoom = { max = 1 }
+  message = "Холст ещё приближен. Нажмите Ctrl+0, чтобы увидеть его целиком."

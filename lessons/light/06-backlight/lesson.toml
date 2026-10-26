@@ -1,0 +1,76 @@
+format = 1
+id = "light.backlight"
+title = "Контровой свет и атмосфера"
+summary = "Источник за предметом: тёмный силуэт, светящийся контур и ореол в воздухе."
+difficulty = 5
+minutes = 30
+order = 6
+skills = ["light", "color", "composition"]
+requires = ["light.drapery"]
+author = "FUDE"
+
+[theory]
+file = "theory.md"
+
+[guide]
+script = "guide.json"
+
+[[quiz]]
+question = "Источник света прямо за шаром. Как выглядит шар?"
+options = ["Ярко освещённым спереди", "Тёмным силуэтом со светлым контуром", "Невидимым"]
+answer = 1
+
+[[quiz]]
+question = "Почему вокруг предмета в контровом свете виден ореол?"
+options = ["Свет рассеивается в воздухе: дымка, пыль, туман", "Это ошибка художника", "Так светится сам предмет"]
+answer = 0
+
+[task]
+brief = "Ночь, за шаром спрятан тёплый источник. Нарисуйте ореол вокруг силуэта и светящийся контур по его верхнему краю."
+open = "assets/task.png"
+reference = "assets/reference.png"
+
+[[task.steps]]
+id = "layer"
+text = "Создайте новый слой для свечения."
+  [task.steps.hint]
+  text = "Свет удобно держать отдельно, чтобы потом подобрать его силу непрозрачностью слоя."
+  target = "panel:Layers"
+  [[task.steps.checks]]
+  kind = "layers"
+  count = { min = 2 }
+
+[[task.steps]]
+id = "glow"
+text = "Большой мягкой кистью тёплого цвета нарисуйте ореол вокруг шара, ярче всего сверху."
+  [task.steps.hint]
+  text = "Размер 200 и больше, жёсткость 0%, непрозрачность 20–30%. Несколько проходов вокруг силуэта."
+  target = "tool:Brush"
+  [[task.steps.hint.shapes]]
+  kind = "ellipse"
+  rect = [0.31, 0.1, 0.38, 0.6]
+  [[task.steps.checks]]
+  kind = "darker"
+  region = [0.02, 0.03, 0.1, 0.12]
+  than = [0.45, 0.12, 0.1, 0.06]
+  by = 0.08
+  message = "Над шаром пока нет свечения: воздух там такой же тёмный, как в углу."
+
+[[task.steps]]
+id = "rim"
+text = "Тонкой кистью проведите светлый контур по верхнему краю силуэта."
+  [task.steps.hint]
+  text = "Размер 10–20, светлый тёплый цвет. Линия идёт внутри силуэта, у самого края."
+  [[task.steps.hint.shapes]]
+  kind = "path"
+  points = [[0.43, 0.3], [0.46, 0.235], [0.5, 0.215], [0.54, 0.235], [0.57, 0.3]]
+  [[task.steps.checks]]
+  kind = "luminance"
+  region = [0.475, 0.205, 0.05, 0.02]
+  value = { min = 0.3 }
+  message = "Верхний край силуэта ещё тёмный: нужен светящийся контур."
+  [[task.steps.checks]]
+  kind = "luminance"
+  region = [0.46, 0.42, 0.08, 0.1]
+  value = { max = 0.25 }
+  message = "Середина шара посветлела. В контровом свете она остаётся тёмным силуэтом."

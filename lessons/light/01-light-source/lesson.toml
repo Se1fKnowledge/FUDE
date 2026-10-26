@@ -1,0 +1,72 @@
+format = 1
+id = "light.light-source"
+title = "Источник света и форма"
+summary = "Откуда свет — оттуда и форма. Делим шар на освещённую и теневую стороны."
+difficulty = 2
+minutes = 15
+order = 1
+skills = ["light", "form"]
+requires = ["basics.opacity"]
+author = "FUDE"
+
+[theory]
+file = "theory.md"
+
+[guide]
+script = "guide.json"
+
+[[quiz]]
+question = "Свет падает слева сверху. Какая часть шара светлее всего?"
+options = ["Правая нижняя", "Левая верхняя", "Середина"]
+answer = 1
+
+[[quiz]]
+question = "Что такое терминатор?"
+options = ["Граница освещённой и теневой стороны", "Самое светлое место", "Тень на полу"]
+answer = 0
+
+[task]
+brief = "Солнце слева сверху. Залейте шар средним тоном и высветлите сторону, обращённую к свету."
+open = "assets/task.png"
+reference = "assets/reference.png"
+
+[[task.steps]]
+id = "layer"
+text = "Создайте новый слой поверх линий."
+  [task.steps.hint]
+  text = "Ctrl+Shift+N. Назовите слой «Тон»."
+  target = "panel:Layers"
+  [[task.steps.checks]]
+  kind = "layers"
+  count = { min = 2 }
+
+[[task.steps]]
+id = "tone"
+text = "Залейте шар ровным средним серым тоном."
+  [task.steps.hint]
+  text = "Овальной областью с Shift выделите шар по контуру, затем Shift+F5 и средний серый."
+  target = "tool:EllipseMarquee"
+  [[task.steps.hint.shapes]]
+  kind = "ellipse"
+  rect = [0.333, 0.2, 0.333, 0.5]
+  [[task.steps.checks]]
+  kind = "coverage"
+  region = [0.42, 0.33, 0.16, 0.24]
+  changed = { min = 0.85 }
+  message = "Шар закрашен не целиком."
+
+[[task.steps]]
+id = "light"
+text = "Мягкой светлой кистью высветлите левую верхнюю часть шара — сторону к солнцу."
+  [task.steps.hint]
+  text = "Жёсткость 0%, непрозрачность 30–50%, светлый тон. Несколько мазков дугой у левого верхнего края."
+  target = "tool:Brush"
+  [[task.steps.hint.shapes]]
+  kind = "ellipse"
+  rect = [0.37, 0.24, 0.13, 0.17]
+  [[task.steps.checks]]
+  kind = "darker"
+  region = [0.54, 0.5, 0.05, 0.08]
+  than = [0.41, 0.3, 0.05, 0.08]
+  by = 0.1
+  message = "Освещённая сторона пока не светлее теневой. Высветлите левую верхнюю часть шара."

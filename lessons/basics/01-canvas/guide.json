@@ -1,0 +1,86 @@
+{
+  "format": 1,
+  "open": "assets/task.png",
+  "steps": [
+    {
+      "calls": [
+        {
+          "method": "ui.set",
+          "params": {
+            "tool": "Zoom"
+          }
+        }
+      ],
+      "caption": "Инструмент «Масштаб» — лупа на панели инструментов, клавиша Z",
+      "highlight": "tool:Zoom",
+      "pause": 1400
+    },
+    {
+      "calls": [
+        {
+          "method": "ui.set",
+          "params": {
+            "center": [
+              1130,
+              744
+            ],
+            "zoom": 2.0
+          }
+        }
+      ],
+      "caption": "Щелчок приближает, Alt+щелчок отдаляет. В углу — печать",
+      "pause": 1600
+    },
+    {
+      "calls": [
+        {
+          "method": "ui.set",
+          "params": {
+            "center": [
+              1130,
+              744
+            ],
+            "zoom": 4.0
+          }
+        }
+      ],
+      "caption": "Ещё ближе: 400%",
+      "pause": 1600
+    },
+    {
+      "calls": [
+        {
+          "method": "ui.set",
+          "params": {
+            "tool": "Hand"
+          }
+        },
+        {
+          "method": "ui.set",
+          "params": {
+            "center": [
+              900,
+              600
+            ]
+          }
+        }
+      ],
+      "caption": "«Рука» (H или зажатый пробел) двигает приближенный холст",
+      "highlight": "tool:Hand",
+      "pause": 1400
+    },
+    {
+      "calls": [
+        {
+          "method": "ui.set",
+          "params": {
+            "fit": true
+          }
+        }
+      ],
+      "caption": "Ctrl+0 — показать холст целиком",
+      "pause": 1400
+    }
+  ],
+  "title": "Холст и масштаб"
+}

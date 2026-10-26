@@ -1,0 +1,85 @@
+format = 1
+id = "basics.opacity"
+title = "Непрозрачность и видимость слоя"
+summary = "Сделать слой полупрозрачным, чтобы видеть нижние, и прятать слои без удаления."
+difficulty = 2
+minutes = 12
+order = 6
+skills = ["tools", "light"]
+requires = ["basics.selection-fill"]
+author = "FUDE"
+
+[theory]
+file = "theory.md"
+
+[guide]
+script = "guide.json"
+
+[[quiz]]
+question = "Чем непрозрачность слоя отличается от непрозрачности кисти?"
+options = ["Ничем", "Она меняет весь слой разом, и её можно поправить потом", "Она работает только на фоне"]
+answer = 1
+
+[[quiz]]
+question = "Слой с непрозрачностью 0% —"
+options = ["удалён", "полностью невидим, но цел", "залит белым"]
+answer = 1
+
+[task]
+brief = "Проведите широкий мазок индиго поверх чёрного камня и сделайте его полупрозрачным, чтобы камень проступал сквозь цвет."
+open = "assets/task.png"
+reference = "assets/reference.png"
+
+[[task.steps]]
+id = "new-layer"
+text = "Создайте новый слой для мазка."
+  [task.steps.hint]
+  text = "Ctrl+Shift+N или «+» внизу панели «Слои»."
+  target = "panel:Layers"
+  [[task.steps.checks]]
+  kind = "layers"
+  count = { min = 2 }
+
+[[task.steps]]
+id = "band"
+text = "Широкой кистью проведите полосу индиго через весь холст поверх камня."
+  [task.steps.hint]
+  text = "Размер кисти около 120 пикселей. Shift при щелчке в конце рисует прямую линию."
+  target = "tool:Brush"
+  [[task.steps.hint.shapes]]
+  kind = "line"
+  from = [0.1, 0.5]
+  to = [0.9, 0.5]
+  [[task.steps.checks]]
+  kind = "coverage"
+  region = [0.1, 0.42, 0.8, 0.16]
+  changed = { min = 0.4 }
+  message = "Полоса пока узкая или короткая: проведите её через весь холст."
+
+[[task.steps]]
+id = "opacity"
+text = "Уменьшите непрозрачность слоя до 30–60%: камень должен проступить сквозь полосу."
+  [task.steps.hint]
+  text = "Поле «Непрозрачность» вверху панели «Слои». При выбранном «Перемещении» цифры 3, 4, 5 задают 30%, 40%, 50%."
+  target = "option:layerOpacity"
+  [[task.steps.checks]]
+  kind = "layer"
+  opacity = { min = 0.3, max = 0.6 }
+  message = "Ни у одного слоя нет непрозрачности 30–60%."
+  [[task.steps.checks]]
+  kind = "darker"
+  region = [0.33, 0.45, 0.1, 0.1]
+  than = [0.7, 0.45, 0.1, 0.1]
+  by = 0.1
+  message = "Камень не проступает сквозь полосу. Непрозрачность нужно уменьшить именно у слоя с полосой."
+
+[[task.steps]]
+id = "hide"
+text = "Выключите видимость слоя с полосой."
+  [task.steps.hint]
+  text = "Значок глаза слева от слоя."
+  target = "panel:Layers"
+  [[task.steps.checks]]
+  kind = "layer"
+  visible = false
+  message = "Все слои видимы. Выключите глаз у слоя с полосой."

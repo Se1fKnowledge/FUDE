@@ -1,0 +1,83 @@
+format = 1
+id = "basics.layers"
+title = "Слои"
+summary = "Прозрачные листы друг над другом: рисуйте части картины отдельно."
+difficulty = 2
+minutes = 15
+order = 4
+skills = ["tools", "composition"]
+requires = ["basics.eraser-undo"]
+author = "FUDE"
+
+[theory]
+file = "theory.md"
+
+[guide]
+script = "guide.json"
+
+[[quiz]]
+question = "Что видно сквозь пустые места слоя?"
+options = ["Белый цвет", "Слои под ним", "Ничего"]
+answer = 1
+
+[[quiz]]
+question = "Как спрятать слой, не удаляя его?"
+options = ["Стереть ластиком", "Выключить глаз слева от слоя", "Сделать его меньше"]
+answer = 1
+
+[task]
+brief = "Нарисуйте солнце над пейзажем на отдельном слое, чтобы пейзаж остался нетронутым."
+open = "assets/task.png"
+reference = "assets/reference.png"
+
+[[task.steps]]
+id = "new-layer"
+text = "Создайте новый слой."
+  [task.steps.hint]
+  text = "Кнопка «+» внизу панели «Слои» или Ctrl+Shift+N."
+  target = "panel:Layers"
+  [[task.steps.checks]]
+  kind = "layers"
+  count = { min = 2 }
+
+[[task.steps]]
+id = "rename"
+text = "Назовите слой «Солнце»."
+  [task.steps.hint]
+  text = "Дважды щёлкните по имени слоя в панели «Слои» и введите новое."
+  target = "panel:Layers"
+  [[task.steps.checks]]
+  kind = "layer"
+  name = "солнце"
+  message = "Нет слоя с именем «Солнце»."
+
+[[task.steps]]
+id = "sun"
+text = "На слое «Солнце» нарисуйте круглое солнце в правой части неба."
+  [task.steps.hint]
+  text = "Проверьте, что в панели «Слои» выделен слой «Солнце». Подойдёт оранжевый цвет."
+  target = "tool:Brush"
+  [[task.steps.hint.shapes]]
+  kind = "ellipse"
+  rect = [0.625, 0.2, 0.15, 0.225]
+  [[task.steps.checks]]
+  kind = "coverage"
+  region = [0.63, 0.2, 0.14, 0.22]
+  changed = { min = 0.4 }
+  message = "Солнце пока маленькое или не на месте: закрасьте круг в правой части неба."
+
+[[task.steps]]
+id = "hide"
+text = "Скройте фоновый слой, чтобы увидеть солнце отдельно."
+  [task.steps.hint]
+  text = "Щёлкните по значку глаза слева от нижнего слоя."
+  target = "panel:Layers"
+  [[task.steps.checks]]
+  kind = "layer"
+  visible = false
+  message = "Все слои видимы. Выключите глаз у фонового слоя."
+  [[task.steps.checks]]
+  kind = "layer"
+  name = "солнце"
+  visible = true
+  message = "Слой «Солнце» должен остаться видимым."

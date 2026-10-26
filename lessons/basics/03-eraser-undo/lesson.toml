@@ -1,0 +1,73 @@
+format = 1
+id = "basics.eraser-undo"
+title = "Ластик и отмена"
+summary = "Стирать лишнее и не бояться ошибок: история действий помнит всё."
+difficulty = 1
+minutes = 10
+order = 3
+skills = ["tools"]
+requires = ["basics.brush"]
+author = "FUDE"
+
+[theory]
+file = "theory.md"
+
+[guide]
+script = "guide.json"
+
+[[quiz]]
+question = "Что делает Ctrl+Z?"
+options = ["Сохраняет файл", "Отменяет последнее действие", "Стирает весь холст"]
+answer = 1
+
+[[quiz]]
+question = "Чем ластик похож на кисть?"
+options = ["У него тоже есть размер и жёсткость", "Ничем", "Он рисует фоновым цветом на любом слое"]
+answer = 0
+explain = "Ластик — это кисть наоборот: те же размер, жёсткость и непрозрачность."
+
+[task]
+brief = "На листе с аккуратным кругом посадили кляксу. Сотрите её, не задев круг, а потом проверьте, как работает отмена."
+open = "assets/task.png"
+reference = "assets/reference.png"
+
+[[task.steps]]
+id = "eraser"
+text = "Выберите «Ластик» (E)."
+  [task.steps.hint]
+  text = "Значок ластика на панели инструментов."
+  target = "tool:Eraser"
+  [[task.steps.checks]]
+  kind = "tool"
+  tool = "Eraser"
+
+[[task.steps]]
+id = "erase"
+text = "Сотрите кляксу справа. Круг слева должен остаться."
+  [task.steps.hint]
+  text = "Сделайте ластик крупным клавишей ] и проведите зигзагом."
+  target = "option:brushSize"
+  [[task.steps.hint.shapes]]
+  kind = "ellipse"
+  rect = [0.63, 0.36, 0.15, 0.24]
+  [[task.steps.checks]]
+  kind = "luminance"
+  region = [0.65, 0.39, 0.117, 0.17]
+  value = { min = 0.9 }
+  message = "На месте кляксы ещё осталась тушь."
+  [[task.steps.checks]]
+  kind = "coverage"
+  region = [0.2, 0.3, 0.27, 0.4]
+  changed = { max = 0.05 }
+  message = "Круг слева задет. Отмените лишнее: Ctrl+Z."
+
+[[task.steps]]
+id = "undo"
+text = "Возьмите кисть, проведите случайный штрих и отмените его: Ctrl+Z."
+  [task.steps.hint]
+  text = "Редактирование › Отменить, или Ctrl+Z. Отменённое можно вернуть: Ctrl+Shift+Z."
+  target = "menu:edit.undo"
+  [[task.steps.checks]]
+  kind = "history"
+  can_redo = true
+  message = "Сначала проведите штрих, а затем отмените его: Ctrl+Z."

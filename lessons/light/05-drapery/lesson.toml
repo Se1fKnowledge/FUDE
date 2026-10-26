@@ -1,0 +1,86 @@
+format = 1
+id = "light.drapery"
+title = "Свет на сложной форме: драпировка"
+summary = "Складки ткани — ряд цилиндров. Тот же свет и тень, повторённые ритмом."
+difficulty = 4
+minutes = 30
+order = 5
+skills = ["light", "form", "composition"]
+requires = ["light.reflected-light"]
+author = "FUDE"
+
+[theory]
+file = "theory.md"
+
+[guide]
+script = "guide.json"
+
+[[quiz]]
+question = "Свет слева. Где на вертикальной складке тень?"
+options = ["На левом склоне", "На правом склоне и в глубине", "На гребне"]
+answer = 1
+
+[[quiz]]
+question = "На какую простую форму похожа одна складка?"
+options = ["Куб", "Цилиндр", "Конус"]
+answer = 1
+
+[task]
+brief = "Ткань висит на перекладине, свет слева. Вылепите складки светом и тенью."
+open = "assets/task.png"
+reference = "assets/reference.png"
+
+[[task.steps]]
+id = "soft-brush"
+text = "Возьмите мягкую кисть: жёсткость не больше 40%."
+  [task.steps.hint]
+  text = "Складки ткани мягкие — их тени без резких краёв."
+  target = "option:hardness"
+  [[task.steps.checks]]
+  kind = "brush"
+  hardness = { max = 0.4 }
+
+[[task.steps]]
+id = "tone"
+text = "Покройте ткань общим средним тоном."
+  [task.steps.hint]
+  text = "Новый слой, прямоугольное выделение по ткани, заливка средним серым."
+  target = "panel:Layers"
+  [[task.steps.hint.shapes]]
+  kind = "rect"
+  rect = [0.2, 0.15, 0.6, 0.725]
+  [[task.steps.checks]]
+  kind = "coverage"
+  region = [0.21, 0.16, 0.58, 0.7]
+  changed = { min = 0.4 }
+  message = "Ткань покрыта тоном меньше чем наполовину."
+
+[[task.steps]]
+id = "first-fold"
+text = "Затемните глубину левой складки — вдоль левой линии сгиба."
+  [task.steps.hint]
+  text = "Самое тёмное — в глубине, где ткань уходит от света."
+  [[task.steps.hint.shapes]]
+  kind = "path"
+  points = [[0.4, 0.17], [0.41, 0.5], [0.4, 0.85]]
+  [[task.steps.checks]]
+  kind = "darker"
+  region = [0.395, 0.35, 0.025, 0.25]
+  than = [0.295, 0.35, 0.025, 0.25]
+  by = 0.15
+  message = "Глубина левой складки пока не темнее её гребня."
+
+[[task.steps]]
+id = "second-fold"
+text = "Так же затемните глубину правой складки."
+  [task.steps.hint]
+  text = "Повторите ритм: свет на гребне, тень в глубине."
+  [[task.steps.hint.shapes]]
+  kind = "path"
+  points = [[0.6, 0.17], [0.61, 0.5], [0.6, 0.85]]
+  [[task.steps.checks]]
+  kind = "darker"
+  region = [0.595, 0.35, 0.025, 0.25]
+  than = [0.495, 0.35, 0.025, 0.25]
+  by = 0.15
+  message = "Глубина правой складки пока не темнее её гребня."

@@ -1,0 +1,140 @@
+{
+  "format": 1,
+  "open": "assets/task.png",
+  "steps": [
+    {
+      "calls": [],
+      "caption": "Тень ложится в сторону от света: вправо и назад",
+      "pause": 1800
+    },
+    {
+      "calls": [
+        {
+          "method": "engine.execute",
+          "params": {
+            "command": "layer.new.layer",
+            "params": {
+              "name": "Тень"
+            }
+          }
+        }
+      ],
+      "caption": "Новый слой «Тень» — под шаром удобно править отдельно",
+      "highlight": "panel:Layers",
+      "pause": 1200
+    },
+    {
+      "calls": [
+        {
+          "method": "ui.set",
+          "params": {
+            "tool": "Brush"
+          }
+        },
+        {
+          "method": "engine.execute",
+          "params": {
+            "command": "tools.setBrush",
+            "params": {
+              "flow": 1.0,
+              "hardness": 0.0,
+              "opacity": 0.4000000059604645,
+              "size": 60.0
+            }
+          }
+        },
+        {
+          "method": "engine.execute",
+          "params": {
+            "command": "tools.setColors",
+            "params": {
+              "foreground": "#434246"
+            }
+          }
+        }
+      ],
+      "caption": "Мягкая кисть, тёмный тон, непрозрачность 40%",
+      "highlight": "tool:Brush",
+      "pause": 1200
+    },
+    {
+      "calls": [
+        {
+          "method": "engine.execute",
+          "params": {
+            "command": "paint.stroke",
+            "params": {
+              "color": "#434246",
+              "points": [
+                [
+                  600.0,
+                  566.0,
+                  1.0
+                ],
+                [
+                  700.0,
+                  568.0,
+                  1.0
+                ],
+                [
+                  850.0,
+                  570.0,
+                  1.0
+                ],
+                [
+                  930.0,
+                  571.0,
+                  1.0
+                ]
+              ],
+              "size": 60.0
+            }
+          }
+        }
+      ],
+      "caption": "Тень начинается в точке касания…",
+      "pause": 1200
+    },
+    {
+      "calls": [
+        {
+          "method": "engine.execute",
+          "params": {
+            "command": "tools.setBrush",
+            "params": {
+              "flow": 1.0,
+              "hardness": 0.0,
+              "opacity": 0.6000000238418579,
+              "size": 36.0
+            }
+          }
+        },
+        {
+          "method": "engine.execute",
+          "params": {
+            "command": "paint.stroke",
+            "params": {
+              "color": "#3B3A3E",
+              "points": [
+                [
+                  605.0,
+                  566.0,
+                  1.0
+                ],
+                [
+                  690.0,
+                  568.0,
+                  1.0
+                ]
+              ],
+              "size": 36.0
+            }
+          }
+        }
+      ],
+      "caption": "…и темнее всего у самого шара: туда свет не попадает совсем",
+      "pause": 1600
+    }
+  ],
+  "title": "Падающая тень от сферы"
+}

@@ -1,0 +1,122 @@
+{
+  "canvas": {
+    "background": "#FFFFFF",
+    "height": 800,
+    "width": 1200
+  },
+  "format": 1,
+  "steps": [
+    {
+      "calls": [
+        {
+          "method": "ui.set",
+          "params": {
+            "tool": "RectMarquee"
+          }
+        }
+      ],
+      "caption": "«Прямоугольная область» — клавиша M",
+      "highlight": "tool:RectMarquee",
+      "pause": 1200
+    },
+    {
+      "calls": [
+        {
+          "method": "engine.execute",
+          "params": {
+            "command": "select.rect",
+            "params": {
+              "height": 480.0,
+              "width": 420.0,
+              "x": 120.0,
+              "y": 160.0
+            }
+          }
+        }
+      ],
+      "caption": "Тянем рамку: бегущие муравьи показывают границу",
+      "pause": 1400
+    },
+    {
+      "calls": [
+        {
+          "method": "engine.execute",
+          "params": {
+            "command": "edit.fill",
+            "params": {
+              "color": "#2F5D8C",
+              "contents": "color"
+            }
+          }
+        }
+      ],
+      "caption": "Редактирование › Выполнить заливку: индиго #2F5D8C",
+      "highlight": "menu:edit.fill",
+      "pause": 1400
+    },
+    {
+      "calls": [
+        {
+          "method": "ui.set",
+          "params": {
+            "tool": "EllipseMarquee"
+          }
+        }
+      ],
+      "caption": "«Овальная область»: Shift+M или долгий щелчок по значку",
+      "highlight": "tool:EllipseMarquee",
+      "pause": 1200
+    },
+    {
+      "calls": [
+        {
+          "method": "engine.execute",
+          "params": {
+            "command": "select.rect",
+            "params": {
+              "ellipse": true,
+              "height": 360.0,
+              "width": 360.0,
+              "x": 696.0,
+              "y": 200.0
+            }
+          }
+        }
+      ],
+      "caption": "Shift при выделении делает круг",
+      "pause": 1400
+    },
+    {
+      "calls": [
+        {
+          "method": "engine.execute",
+          "params": {
+            "command": "edit.fill",
+            "params": {
+              "color": "#BC3823",
+              "contents": "color"
+            }
+          }
+        }
+      ],
+      "caption": "Заливка киноварью #BC3823",
+      "highlight": "menu:edit.fill",
+      "pause": 1400
+    },
+    {
+      "calls": [
+        {
+          "method": "engine.execute",
+          "params": {
+            "command": "select.deselect",
+            "params": {}
+          }
+        }
+      ],
+      "caption": "Ctrl+D — снять выделение",
+      "highlight": "menu:select.deselect",
+      "pause": 1200
+    }
+  ],
+  "title": "Выделение и заливка"
+}
