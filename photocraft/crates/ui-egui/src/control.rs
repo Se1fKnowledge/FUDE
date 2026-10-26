@@ -134,7 +134,7 @@ pub enum Outcome {
 /// bad value or a bad nested key can't reply with success while nothing — or only half of it —
 /// changed (#412).
 pub const UI_SET_FIELDS: [&str; 39] = [
-    "updatesOpen",
+    "hostEmbedded",
     "tool",
     "strokeTrace",
     "panels",
@@ -589,7 +589,7 @@ fn dispatch(app: &mut PhotocraftApp, ctx: &egui::Context, req: &ControlRequest) 
                 }
                 let panels = merged_object(&app.ui.panels, p.get("panels"), "panels")?;
                 let mask_target = bool_field(p, "maskTarget")?;
-                let updates_open = bool_field(p, "updatesOpen")?;
+                let host_embedded = bool_field(p, "hostEmbedded")?;
                 let vector_mask_target = bool_field(p, "vectorMaskTarget")?;
                 let selection_mode = uint_field(p, "selectionMode")?;
                 let dock_tabs = merged_object(&app.ui.dock_tabs, p.get("dockTabs"), "dockTabs")?;
@@ -759,8 +759,8 @@ fn dispatch(app: &mut PhotocraftApp, ctx: &egui::Context, req: &ControlRequest) 
                     app.ui.vector_mask_target &= !m;
                     app.sync_mask_targets();
                 }
-                if let Some(open) = updates_open {
-                    app.ui.updates_open = open;
+                if let Some(embedded) = host_embedded {
+                    app.host_embedded = embedded;
                 }
                 if let Some(m) = vector_mask_target {
                     app.ui.vector_mask_target = m;
@@ -1406,11 +1406,10 @@ pub fn inspect(app: &PhotocraftApp, ctx: &egui::Context) -> Value {
         "dialogs": dialogs,
         "windows": app.ui.windows,
         "theme": app.ui.theme,
+        "hostEmbedded": app.host_embedded,
         "status": app.ui.status,
         "statusError": app.ui.status_error,
         "notices": app.ui.notices,
-        "updatesOpen": app.ui.updates_open,
-        "updates": {"supported": app.session.updates.check.is_some(), "currentVersion": photocraft_engine::build_info::VERSION, "result": app.session.updates.status},
         "gpuFallbackNotice": app.ui.gpu_fallback_notice,
         "kysOffer": app.ui.kys_offer,
         "frame": app.frame,
@@ -2004,6 +2003,23 @@ mod tests {
         let dialog = chosen["result"]["dialog"].as_u64().unwrap();
         assert_eq!(call(&mut app, &ctx, "ui.dialog.confirm", json!({"dialog":dialog}))["ok"], true);
         assert!(app.session.active().unwrap().doc.selection.is_some());
+    }
+
+    /// FUDE build: inside the FUDE window the editor draws no caption buttons and reserves no
+    /// room for them; detached again, they come back.
+    #[test]
+    fn host_embedding_hides_the_window_controls() {
+        let ctx = egui::Context::default();
+        let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), Default::default());
+        app.custom_titlebar = true;
+        assert!(crate::titlebar::reserved(&app, &ctx).1 > 0.0, "a standalone window has caption buttons");
+        assert_eq!(call(&mut app, &ctx, "ui.set", json!({"hostEmbedded": true}))["ok"], true);
+        assert!(app.host_embedded);
+        assert_eq!(crate::titlebar::reserved(&app, &ctx), (0.0, 0.0));
+        assert_eq!(inspect(&app, &ctx)["hostEmbedded"], true);
+        assert_eq!(call(&mut app, &ctx, "ui.set", json!({"hostEmbedded": false}))["ok"], true);
+        assert!(crate::titlebar::reserved(&app, &ctx).1 > 0.0);
+        assert_eq!(call(&mut app, &ctx, "ui.set", json!({"hostEmbedded": "yes"}))["ok"], false, "not a boolean");
     }
 
     #[test]

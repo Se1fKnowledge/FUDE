@@ -199,7 +199,7 @@ pub fn bar_height(app: &PhotocraftApp, ctx: &egui::Context, base: f32) -> f32 {
 /// The width the caption buttons take at the bar's (left, right) end: zero for a side without
 /// buttons, and for both without the custom title bar.
 pub fn reserved(app: &PhotocraftApp, ctx: &egui::Context) -> (f32, f32) {
-    if !app.custom_titlebar {
+    if !app.custom_titlebar || app.host_embedded {
         return (0.0, 0.0);
     }
     let s = style(app, ctx);

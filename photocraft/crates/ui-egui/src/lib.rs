@@ -247,7 +247,6 @@ mod type_font_preview;
 pub mod type_panels_ui;
 pub mod type_tool;
 mod type_transform;
-pub mod updates_ui;
 mod variables_ui;
 pub mod vector_ui;
 pub mod view_cmds;
@@ -607,8 +606,6 @@ pub struct Services {
     /// Preferences ▸ General ▸ Beep When Done: the platform's default beep, played when a
     /// background job finishes successfully. `None` in the web build (and in tests).
     pub beep: Option<fn()>,
-    /// Starts a background check for published releases (desktop, outside Flatpak).
-    pub check_updates: Option<photocraft_engine::updates_cmds::CheckFn>,
     /// Files delivered asynchronously (web drag-and-drop): drained every frame and opened as
     /// documents.
     pub inbox: Option<Inbox>,
@@ -803,6 +800,9 @@ pub struct PhotocraftApp {
     /// Windows and Linux: the window has no OS decorations and the app's top bar is the title bar
     /// (caption buttons, window dragging and edge resizing, `titlebar`).
     pub custom_titlebar: bool,
+    /// FUDE build: the window sits inside the FUDE window (`ui.set {"hostEmbedded": true}`), so
+    /// it draws no caption buttons and neither drags, maximizes nor resizes itself: FUDE places it.
+    pub host_embedded: bool,
     /// Last window title sent to the OS (`ViewportCommand::Title`, see `panels::sync_window_title`):
     /// sent again only when it changes, so idle frames don't spam the backend.
     last_window_title: String,
@@ -975,7 +975,6 @@ pub struct PhotocraftApp {
     pub stroke_trace: stroke_trace::StrokeTrace,
     /// Preferences, autosave and snapping runtime state (see `prefs_ui`, `snap_ui`).
     pub(crate) prefs_rt: prefs_ui::Runtime,
-    pub(crate) updates_rt: updates_ui::Runtime,
     /// Close, Revert or Exit parked behind the unsaved-changes prompt (see `discard_ui`).
     pub(crate) discard: Option<discard_ui::Prompt>,
     /// The Open or Save dialog in progress, and the action waiting on it (see `file_dialog`).
@@ -1019,8 +1018,7 @@ pub struct PhotocraftApp {
 }
 
 impl PhotocraftApp {
-    pub fn new(mut session: Session, mut services: Services) -> Self {
-        session.updates.check = services.check_updates.take();
+    pub fn new(session: Session, services: Services) -> Self {
         let mut app = Self {
             session,
             ui: UiState::default(),
@@ -1075,6 +1073,7 @@ impl PhotocraftApp {
             styled: false,
             integrated_titlebar: false,
             custom_titlebar: false,
+            host_embedded: false,
             last_window_title: String::new(),
             fonts_ready: false,
             last_canvas_rect: egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(800.0, 600.0)),
@@ -1155,7 +1154,6 @@ impl PhotocraftApp {
             perf: Default::default(),
             stroke_trace: stroke_trace::StrokeTrace::from_env(),
             prefs_rt: Default::default(),
-            updates_rt: Default::default(),
             discard: None,
             file_dialog: None,
             tiff_options: None,
@@ -2311,7 +2309,6 @@ impl eframe::App for PhotocraftApp {
         self.collect_screenshots(ctx);
         self.issue_screenshots(ctx);
         prefs_ui::tick(self, ctx);
-        updates_ui::tick(self, ctx);
         monitor_status::poll_frame(self, ctx, frame);
         // Control requests and persisted preferences can change the language in this frame.
         i18n::sync_context(ctx, &self.session.prefs().interface.language);
@@ -2496,13 +2493,12 @@ impl eframe::App for PhotocraftApp {
         wide_angle_ui::show(self, &ctx);
         canvas::extra_windows(self, &ctx);
         notices::show(self, &ctx);
-        updates_ui::show(self, &ctx);
         gpu_status::show_fallback(self, &ctx);
         kys_import::show_offer(self, &ctx);
         if self.titlebar_modal_drag(chrome) {
             titlebar::modal_drag_overlay(&ctx);
         }
-        if self.custom_titlebar {
+        if self.custom_titlebar && !self.host_embedded {
             titlebar::resize_zones(ui);
         }
         // A device lost while drawing this frame: switch to the CPU canvas before the next one.

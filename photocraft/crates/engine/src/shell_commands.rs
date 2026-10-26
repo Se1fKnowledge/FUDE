@@ -86,7 +86,7 @@ pub const SHELL_COMMANDS: &[(&str, &str, &[&str], Option<&str>)] = &[
     ("window.theme.system", "Sync with system", &["Window", "Theme"], None),
     ("edit.search", "Search…", &["Edit"], Some("Cmd+F")),
     // FUDE build: the ArtCraft Discord and website items are removed (trademark terms for forks).
-    ("help.github", "PhotoCraft on GitHub", &["Help"], None),
+    ("help.fude", "FUDE on GitHub", &["Help"], None),
     ("help.reportIssue", "Report an Issue…", &["Help"], None),
     ("help.systemInfo", "System Info…", &["Help"], None),
     ("help.about", "About PhotoCraft", &["Help"], None),
@@ -218,9 +218,9 @@ mod tests {
             let lower = label.to_ascii_lowercase();
             assert!(!lower.contains("artcraft") && !lower.contains("discord"), "{id}: {label}");
         }
-        for removed in ["help.discord", "help.artcraftWebsite", "help.website"] {
+        for removed in ["help.discord", "help.artcraftWebsite", "help.website", "help.github", "help.checkForUpdates"] {
             assert!(command(removed).is_none(), "{removed}");
         }
-        assert!(command("help.github").is_some() && command("help.reportIssue").is_some());
+        assert!(command("help.fude").is_some() && command("help.reportIssue").is_some());
     }
 }

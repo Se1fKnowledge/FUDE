@@ -1,21 +1,20 @@
 //! Project links: the Help menu, the About dialog, the start screen and the title bar all open
 //! these. This FUDE build carries no ArtCraft name, wordmark or links (docs/brand/LICENSE-brand.txt
-//! upstream requires forks to remove them): the upstream PhotoCraft source stays credited on
-//! GitHub, and issues go to the FUDE repository that ships this build.
+//! upstream requires forks to remove them) and no link to the upstream PhotoCraft repository: it
+//! is FUDE's editor, so every link goes to the FUDE repository. The upstream authors stay
+//! credited in the About dialog, NOTICE and the licence files.
 
 use serde_json::{Value, json};
 
 use crate::PhotocraftApp;
 
-/// The upstream PhotoCraft source this editor is built from.
-pub const GITHUB: &str = "https://github.com/storytold/photocraft";
 /// The FUDE project, which ships this build.
 pub const FUDE: &str = "https://github.com/Se1fKnowledge/FUDE";
 /// Problems with this build are reported to FUDE, not to the upstream tracker.
 pub const ISSUES: &str = "https://github.com/Se1fKnowledge/FUDE/issues";
 
 /// Help-menu link commands: (id, url). Labels live in `menus::UI_COMMANDS`.
-pub const COMMANDS: &[(&str, &str)] = &[("help.github", GITHUB), ("help.reportIssue", ISSUES)];
+pub const COMMANDS: &[(&str, &str)] = &[("help.fude", FUDE), ("help.reportIssue", ISSUES)];
 
 pub fn url_for(id: &str) -> Option<&'static str> {
     COMMANDS.iter().find(|c| c.0 == id).map(|c| c.1)
@@ -33,11 +32,11 @@ pub fn open(app: &mut PhotocraftApp, ctx: &egui::Context, url: &str) -> Value {
     json!({"url": url})
 }
 
-/// "PhotoCraft on GitHub · FUDE" as links, centred. Clicks route through [`open`] (the platform
+/// "FUDE on GitHub · Report an Issue" as links, centred. Clicks route through [`open`] (the platform
 /// browser service) rather than `ui.hyperlink_to`, which uses the unreliable `ctx.open_url`.
 pub fn link_row(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
     let t = crate::theme::Tokens::get(ui.ctx());
-    let links = [(tl!("PhotoCraft on GitHub"), GITHUB), (tl!("FUDE"), FUDE)];
+    let links = [(tl!("FUDE on GitHub"), FUDE), (tl!("Report an Issue"), ISSUES)];
     let font = egui::FontId::proportional(12.5);
     let sep = "  ·  ";
     let width: f32 = links.iter().map(|(l, _)| ui.painter().layout_no_wrap((*l).into(), font.clone(), t.text).size().x).sum::<f32>()
@@ -94,7 +93,7 @@ mod tests {
     fn help_menu_lists_links_then_separator_then_system_info_and_about() {
         let app = PhotocraftApp::new(photocraft_engine::Session::new(), Default::default());
         let help: Vec<String> = crate::menus::menu_items(&app).into_iter().filter(|i| i.path == ["Help"]).map(|i| i.id).collect();
-        assert_eq!(help, ["help.github", "help.reportIssue", "help.checkForUpdates", "---", "help.systemInfo", "help.about"]);
+        assert_eq!(help, ["help.fude", "help.reportIssue", "---", "help.systemInfo", "help.about"]);
         for (id, _) in COMMANDS {
             assert!(crate::menus::is_live(id) && crate::menus::is_enabled(&app, id), "{id}");
         }
@@ -104,7 +103,7 @@ mod tests {
     fn link_commands_open_their_urls() {
         let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), Default::default());
         let ctx = egui::Context::default();
-        for (id, url) in [("help.github", "https://github.com/storytold/photocraft"), ("help.reportIssue", "https://github.com/Se1fKnowledge/FUDE/issues")] {
+        for (id, url) in [("help.fude", "https://github.com/Se1fKnowledge/FUDE"), ("help.reportIssue", "https://github.com/Se1fKnowledge/FUDE/issues")] {
             let r = crate::menus::invoke(&mut app, &ctx, id, serde_json::json!({})).unwrap();
             assert_eq!(r["url"], url);
             assert_eq!(app.ui.status, format!("Opened {url}"));
@@ -119,7 +118,7 @@ mod tests {
             let lower = url.to_ascii_lowercase();
             assert!(!lower.contains("artcraft") && !lower.contains("discord"), "{id}: {url}");
         }
-        for removed in ["help.discord", "help.artcraftWebsite", "help.website"] {
+        for removed in ["help.discord", "help.artcraftWebsite", "help.website", "help.github", "help.checkForUpdates"] {
             assert_eq!(url_for(removed), None, "{removed}");
             assert!(!crate::menus::is_live(removed), "{removed} is still a live command");
         }
@@ -152,12 +151,46 @@ mod tests {
         assert!(!root.join("../../docs/brand").exists(), "the ArtCraft brand assets must stay removed");
     }
 
-    /// The Help menu, the About dialog and the start screen show the same two project links.
+    /// Every link the editor can open goes to the FUDE repository: none to upstream PhotoCraft.
     #[test]
-    fn link_targets_are_github_projects() {
-        for url in [GITHUB, FUDE, ISSUES] {
-            assert!(url.starts_with("https://github.com/"), "{url}");
+    fn every_link_goes_to_the_fude_repository() {
+        for (id, url) in COMMANDS.iter().chain([("fude", FUDE), ("issues", ISSUES)].iter()) {
+            assert!(url.starts_with("https://github.com/Se1fKnowledge/FUDE"), "{id}: {url}");
+            assert!(!url.to_ascii_lowercase().contains("storytold"), "{id}: {url}");
         }
-        assert!(ISSUES.starts_with(FUDE), "issues go to the FUDE repository");
+    }
+
+    /// No source file of the editor's interface, engine or app carries a link to the upstream
+    /// PhotoCraft repository or its release API (comments citing upstream issues are history).
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    fn no_runtime_link_to_the_upstream_repository() {
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let mut stack = vec![root.join("crates/ui-egui/src"), root.join("crates/engine/src"), root.join("apps/photocraft/src")];
+        let mut checked = 0;
+        while let Some(dir) = stack.pop() {
+            for entry in std::fs::read_dir(&dir).unwrap() {
+                let path = entry.unwrap().path();
+                if path.is_dir() {
+                    stack.push(path);
+                    continue;
+                }
+                if path.extension().and_then(|e| e.to_str()) != Some("rs") {
+                    continue;
+                }
+                let text = std::fs::read_to_string(&path).unwrap();
+                for (n, line) in text.lines().enumerate() {
+                    let code = line.trim_start();
+                    if code.starts_with("//") {
+                        continue;
+                    }
+                    for banned in [concat!("github.com/", "storytold"), concat!("api.", "github.com")] {
+                        assert!(!code.contains(banned), "{}:{}: {line}", path.display(), n + 1);
+                    }
+                }
+                checked += 1;
+            }
+        }
+        assert!(checked > 100, "checked {checked} files");
     }
 }

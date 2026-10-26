@@ -8251,7 +8251,7 @@ mod tests {
             PhotocraftApp::setup_context(&h.ctx, crate::theme::ThemeKind::default());
             h.state_mut().1 = true;
             h.run_steps(3);
-            for label in ["New document", "PhotoCraft on GitHub"] {
+            for label in ["New document", "FUDE on GitHub"] {
                 for node in h.query_all_by_label_contains(label) {
                     let r = node.rect();
                     assert!(r.left() >= 0.0 && r.right() <= width, "`{label}` is clipped in a {width}-point-wide canvas: {r:?}");
