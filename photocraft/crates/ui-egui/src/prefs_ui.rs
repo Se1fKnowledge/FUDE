@@ -2898,6 +2898,50 @@ mod tests {
         assert_eq!(app.session.prefs().interface.dark_theme, DarkTheme::SoftDark);
     }
 
+    /// Window › Theme › FUDE Washi and FUDE Ink show the theme, fix the mode to its family and save
+    /// it in that family's slot, leaving the other slot alone.
+    #[test]
+    fn fude_theme_menu_commands_select_and_save_their_slot() {
+        let ctx = egui::Context::default();
+        let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), crate::Services::default());
+        sync_appearance(&mut app, &ctx);
+        assert_eq!(app.ui.theme, ThemeKind::FudeInk, "a new install opens in FUDE Ink");
+        app.run("prefs.set", json!({"path": "interface.darkTheme", "value": "studio"})).unwrap();
+        crate::menus::invoke(&mut app, &ctx, "window.theme.fudeWashi", json!({})).unwrap();
+        tick(&mut app, &ctx);
+        let i = app.session.prefs().interface.clone();
+        assert_eq!((app.ui.theme, i.appearance_mode, i.light_theme), (ThemeKind::FudeWashi, AppearanceMode::Light, LightTheme::FudeWashi));
+        assert_eq!(i.dark_theme, DarkTheme::Studio, "choosing the light theme kept the dark slot");
+        crate::menus::invoke(&mut app, &ctx, "window.theme.fudeInk", json!({})).unwrap();
+        tick(&mut app, &ctx);
+        let i = app.session.prefs().interface.clone();
+        assert_eq!((app.ui.theme, i.appearance_mode, i.dark_theme), (ThemeKind::FudeInk, AppearanceMode::Dark, DarkTheme::FudeInk));
+        assert_eq!(i.light_theme, LightTheme::FudeWashi, "choosing the dark theme kept the light slot");
+        assert_eq!(Tokens::get(&ctx).kind, ThemeKind::FudeInk);
+    }
+
+    /// The Preferences theme cards list FUDE first in both families, and every option there is a
+    /// saved theme id that names the same palette.
+    #[test]
+    fn theme_cards_offer_fude_first_and_every_option_is_a_saved_theme() {
+        assert_eq!(DARK_THEME_OPTIONS.first(), Some(&("fudeInk", ThemeKind::FudeInk)));
+        assert_eq!(LIGHT_THEME_OPTIONS.first(), Some(&("fudeWashi", ThemeKind::FudeWashi)));
+        for (id, kind) in LIGHT_THEME_OPTIONS.iter().chain(DARK_THEME_OPTIONS) {
+            assert_eq!(SavedTheme::parse(id).map(|t| t.name()), Some(*id), "{id}");
+            assert_eq!(ThemeKind::from_name(id), Some(*kind), "{id}");
+            assert_eq!(kind.id(), *id);
+        }
+        for (_, kind) in LIGHT_THEME_OPTIONS {
+            assert!(kind.is_light(), "{kind:?} in the light list");
+        }
+        for (_, kind) in DARK_THEME_OPTIONS {
+            assert!(kind.is_dark(), "{kind:?} in the dark list");
+        }
+        // A favourite FUDE theme appears in the appearance button's menu group of its family.
+        let (light, dark) = favorite_theme_groups(&[SavedTheme::FudeWashi, SavedTheme::FudeInk]);
+        assert_eq!((light, dark), (vec![ThemeKind::FudeWashi], vec![ThemeKind::FudeInk]));
+    }
+
     #[test]
     fn auto_uses_native_system_theme_when_egui_does_not_report_one() {
         let (mut app, _) = app_with_store();

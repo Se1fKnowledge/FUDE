@@ -85,6 +85,45 @@ fn appearance_defaults_and_legacy_theme_migrate() {
     }
 }
 
+/// The FUDE themes are saved choices of every theme slot, first in the dark and light lists, and
+/// an old single-theme file naming one of them migrates to that theme's appearance.
+#[test]
+fn fude_themes_are_choices_and_a_legacy_fude_theme_selects_its_family() {
+    assert_eq!(DarkTheme::NAMES.first(), Some(&"fudeInk"));
+    assert_eq!(LightTheme::NAMES.first(), Some(&"fudeWashi"));
+    assert!(Theme::NAMES.contains(&"fudeInk") && Theme::NAMES.contains(&"fudeWashi"));
+    assert_eq!(Theme::default(), Theme::FudeInk);
+    for (name, theme) in [("fudeInk", Theme::FudeInk), ("fudeWashi", Theme::FudeWashi)] {
+        assert_eq!(Theme::parse(name), Some(theme));
+        assert_eq!(theme.name(), name);
+    }
+    for (theme, mode, dark, light) in [
+        ("fudeWashi", AppearanceMode::Light, DarkTheme::FudeInk, LightTheme::FudeWashi),
+        ("fudeInk", AppearanceMode::Dark, DarkTheme::FudeInk, LightTheme::FudeWashi),
+    ] {
+        let mut s = Session::new();
+        s.load_prefs_json(&json!({"interface": {"theme": theme}}).to_string()).unwrap();
+        let i = &s.prefs().interface;
+        assert_eq!((i.appearance_mode, i.dark_theme, i.light_theme), (mode, dark, light), "{theme}");
+    }
+}
+
+/// `prefs.set interface.theme` (old automation) with a FUDE theme fixes the mode to its family
+/// and leaves the other family's saved theme alone.
+#[test]
+fn setting_the_legacy_theme_to_a_fude_theme_fixes_its_mode() {
+    let mut s = Session::new();
+    s.execute("prefs.set", json!({"path": "interface.darkTheme", "value": "studio"})).unwrap();
+    s.execute("prefs.set", json!({"path": "interface.theme", "value": "fudeWashi"})).unwrap();
+    let i = &s.prefs().interface;
+    assert_eq!((i.appearance_mode, i.light_theme, i.dark_theme), (AppearanceMode::Light, LightTheme::FudeWashi, DarkTheme::Studio));
+    s.execute("prefs.set", json!({"path": "interface.theme", "value": "fudeInk"})).unwrap();
+    let i = &s.prefs().interface;
+    assert_eq!((i.appearance_mode, i.dark_theme, i.light_theme), (AppearanceMode::Dark, DarkTheme::FudeInk, LightTheme::FudeWashi));
+    assert!(s.execute("prefs.set", json!({"path": "interface.darkTheme", "value": "fudeWashi"})).is_err(), "Washi is not a dark theme");
+    assert!(s.execute("prefs.set", json!({"path": "interface.lightTheme", "value": "fudeInk"})).is_err(), "Ink is not a light theme");
+}
+
 #[test]
 fn legacy_theme_migration_preserves_saved_theme_slots() {
     for (legacy, slot, saved) in [("proMedium", "darkTheme", "solarizedDark"), ("studioLight", "lightTheme", "adwaita")] {

@@ -1496,6 +1496,113 @@ mod tests {
         }
     }
 
+    /// The FUDE palettes are the FUDE design-system tokens (Figma `FUDE / Цвет`), not
+    /// approximations: a change on either side has to be made on both.
+    #[test]
+    fn fude_tokens_are_the_fude_design_system_colours() {
+        let rgb = |hex: u32| Color32::from_rgb((hex >> 16) as u8, (hex >> 8) as u8, hex as u8);
+        let ink = Tokens::for_kind(ThemeKind::FudeInk);
+        for (token, colour, hex) in [
+            ("sumi/bg", ink.canvas, 0x111216),
+            ("sumi/panel", ink.chrome, 0x1A1C21),
+            ("sumi/panel", ink.card, 0x1A1C21),
+            ("sumi/raised", ink.hover, 0x23262D),
+            ("sumi/line", ink.field_border, 0x2F333B),
+            ("sumi/text", ink.text, 0xE8E4DC),
+            ("ai/300", ink.accent_border, 0x8FB2D6),
+            ("shu/500", ink.primary_bg, 0xBC3823),
+            ("shu/500", ink.caption_close, 0xBC3823),
+        ] {
+            assert_eq!(colour, rgb(hex), "FUDE Ink {token}");
+        }
+        let washi = Tokens::for_kind(ThemeKind::FudeWashi);
+        for (token, colour, hex) in [
+            ("paper/base", washi.chrome, 0xF3EEE4),
+            ("paper/raised", washi.card, 0xFBF8F2),
+            ("paper/sunken", washi.dock, 0xE9E2D4),
+            ("paper/line", washi.card_border, 0xDDD4C3),
+            ("ink/900", washi.text, 0x16161A),
+            ("ink/700", washi.text_dim, 0x3B3A40),
+            ("ai/500", washi.accent, 0x2F5D8C),
+            ("ai/300", washi.accent_border, 0x8FB2D6),
+            ("ai/100", washi.accent_soft, 0xDCE7F1),
+            ("ai/100", washi.row_selected, 0xDCE7F1),
+            ("shu/500", washi.primary_bg, 0xBC3823),
+        ] {
+            assert_eq!(colour, rgb(hex), "FUDE Washi {token}");
+        }
+    }
+
+    /// Depth reads the same way in both FUDE themes: Ink steps up from the deepest canvas to the
+    /// pressed state; Washi's canvas surround is the darkest paper and the input field the lightest.
+    /// Neither is a neutral grey: ink leans blue (sumi), paper leans warm (washi).
+    #[test]
+    fn fude_surfaces_step_in_depth_and_keep_their_tint() {
+        let lum = |c: Color32| 0.2126 * f32::from(c.r()) + 0.7152 * f32::from(c.g()) + 0.0722 * f32::from(c.b());
+        let ink = Tokens::for_kind(ThemeKind::FudeInk);
+        let ink_steps = [ink.canvas, ink.dock, ink.chrome, ink.hover, ink.pressed];
+        for pair in ink_steps.windows(2) {
+            assert!(lum(pair[0]) < lum(pair[1]), "FUDE Ink: {pair:?}");
+        }
+        assert!(ink_steps.iter().all(|c| c.b() > c.r()), "sumi ink leans blue");
+        let washi = Tokens::for_kind(ThemeKind::FudeWashi);
+        let washi_steps = [washi.canvas, washi.pressed, washi.dock, washi.hover, washi.chrome, washi.card, washi.field];
+        for pair in washi_steps.windows(2) {
+            assert!(lum(pair[0]) < lum(pair[1]), "FUDE Washi: {pair:?}");
+        }
+        assert!(washi_steps.iter().all(|c| c.r() > c.b()), "washi paper leans warm");
+        // Both share the Pro layout's softened radii.
+        for t in [ink, washi] {
+            assert_eq!((t.radius_sm, t.radius, t.radius_lg), (4.0, 6.0, 8.0), "{:?}", t.kind);
+        }
+    }
+
+    /// `apply` puts the FUDE palette into egui itself, so every stock widget draws in it too.
+    #[test]
+    fn applying_a_fude_theme_installs_its_palette_into_egui() {
+        for kind in [ThemeKind::FudeInk, ThemeKind::FudeWashi] {
+            let ctx = egui::Context::default();
+            apply(&ctx, kind);
+            let t = Tokens::get(&ctx);
+            assert_eq!(t.kind, kind);
+            let style = ctx.global_style();
+            let v = &style.visuals;
+            assert_eq!(v.dark_mode, kind == ThemeKind::FudeInk, "{kind:?}");
+            assert_eq!(v.panel_fill, t.chrome);
+            assert_eq!(v.window_fill, t.card);
+            assert_eq!(v.extreme_bg_color, t.field);
+            assert_eq!(v.override_text_color, Some(t.text));
+            assert_eq!(v.hyperlink_color, t.accent);
+            assert_eq!(v.error_fg_color, t.danger);
+            assert_eq!(v.warn_fg_color, t.warning);
+            assert_eq!(v.selection.bg_fill, t.accent, "Pro layouts select with the accent");
+            assert_eq!(v.window_corner_radius, CornerRadius::same(8));
+            assert_eq!(v.widgets.inactive.bg_fill, t.field);
+            assert_eq!(v.widgets.hovered.bg_fill, t.hover);
+            assert_eq!(v.widgets.active.bg_fill, t.pressed);
+            assert_eq!(style.text_styles[&TextStyle::Body].size, 12.0, "Pro type size");
+        }
+    }
+
+    /// Every theme id and label is unique and parses back, FUDE's included, so Window › Theme and
+    /// `ui.set {theme}` stay unambiguous; the dark and light families split every theme.
+    #[test]
+    fn theme_ids_and_labels_are_unique_and_round_trip() {
+        let ids: std::collections::HashSet<_> = ThemeKind::ALL.iter().map(|k| k.id()).collect();
+        let labels: std::collections::HashSet<_> = ThemeKind::ALL.iter().map(|k| k.label()).collect();
+        assert_eq!(ids.len(), ThemeKind::ALL.len());
+        assert_eq!(labels.len(), ThemeKind::ALL.len());
+        for kind in ThemeKind::ALL {
+            assert_eq!(ThemeKind::from_name(kind.id()), Some(kind), "{kind:?}");
+            assert_ne!(kind.is_dark(), kind.is_light(), "{kind:?}");
+            assert_eq!(Tokens::for_kind(kind).dark(), kind.is_dark(), "{kind:?}");
+        }
+        assert!(ThemeKind::FudeInk.is_dark() && ThemeKind::FudeWashi.is_light());
+        // `next` walks ALL and wraps: Washi is last, so it leads back to the first theme.
+        assert_eq!(ThemeKind::FudeInk.next(), ThemeKind::FudeWashi);
+        assert_eq!(ThemeKind::FudeWashi.next(), ThemeKind::ALL[0]);
+    }
+
     #[test]
     fn breeze_themes_parse_and_meet_text_contrast() {
         for (kind, aliases) in [
