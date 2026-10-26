@@ -31,6 +31,7 @@
 ```text
 FUDE/
 ├── README.md          этот файл
+├── LICENSE            MIT для собственного кода и материалов FUDE
 ├── PRODUCT.md         продукт: пользователи, цели, функции, открытые вопросы
 ├── CHANGELOG.md       что менялось
 ├── docs/              документация FUDE
@@ -75,8 +76,8 @@ cargo test -p photocraft-engine --lib prefs
 
 ## Лицензии
 
-- Редактор в папке [`photocraft/`](photocraft/) распространяется по **MIT OR Apache-2.0**, как и исходный PhotoCraft. См. [photocraft/LICENSE-MIT](photocraft/LICENSE-MIT), [photocraft/LICENSE-APACHE](photocraft/LICENSE-APACHE) и [photocraft/NOTICE](photocraft/NOTICE). Строка копирайта исходных авторов сохранена, как того требуют эти лицензии.
+- Собственный код и материалы FUDE (документация, материалы дизайна, будущее приложение уроков) — **MIT**, см. [LICENSE](LICENSE).
+- Редактор в папке [`photocraft/`](photocraft/) остаётся под своей лицензией **MIT OR Apache-2.0**, как и исходный PhotoCraft. См. [photocraft/LICENSE-MIT](photocraft/LICENSE-MIT), [photocraft/LICENSE-APACHE](photocraft/LICENSE-APACHE) и [photocraft/NOTICE](photocraft/NOTICE). Строка копирайта исходных авторов сохранена, как того требуют эти лицензии.
 - Название, логотипы и ссылки ArtCraft удалены из редактора по условиям бренда для форков. Они остаются товарными знаками ArtCraft Team.
-- Лицензия для собственного кода и материалов FUDE (документация, макет, будущее приложение уроков) пока не выбрана.
 
 FUDE не связан с Adobe. Photoshop — товарный знак Adobe Inc.; название используется только для описания того, на что похож редактор.
