@@ -10,8 +10,8 @@
 </p>
 
 <p align="center">
-  <img src="design/app-guide.png" alt="Урок: гайд проигрывается в настоящем редакторе, подписи шагов в FUDE" width="49%">
-  <img src="design/app-practice.png" alt="Практика: шаги задания, автопроверка и подсказка" width="49%">
+  <img src="design/app-guide.png" alt="Урок: гайд рисует в редакторе, встроенном в окно FUDE" width="49%">
+  <img src="design/app-practice.png" alt="Практика: редактор PhotoCraft внутри окна FUDE, справа шаги задания и автопроверка" width="49%">
 </p>
 <p align="center">
   <img src="design/app-lessons.png" alt="Каталог уроков" width="49%">
