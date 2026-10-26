@@ -2033,7 +2033,7 @@ mod tests {
     }
 
     /// #5996: a real key press comes as a key and its text. A letter typed into Help › Search is
-    /// text for the field, not a mnemonic: "S" ran System Info and "A" the ArtCraft website.
+    /// text for the field, not a mnemonic: "S" ran System Info and "A" a website link.
     #[test]
     fn help_search_letters_are_not_mnemonics() {
         use egui::{Event, Key, Modifiers, PointerButton};

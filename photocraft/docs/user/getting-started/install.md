@@ -1,11 +1,11 @@
 ---
 title: Install PhotoCraft
-description: Download PhotoCraft for Windows 10 or 11, macOS or Linux from getartcraft.com or GitHub, or install it with ArtCraft Launcher.
+description: Download PhotoCraft for Windows 10 or 11, macOS or Linux from GitHub, or build this FUDE copy from source.
 order: 10
 verified: 0.8.2
 ---
 
-The easiest way is the [PhotoCraft page on getartcraft.com](https://getartcraft.com/apps/photocraft). You can also install it with [ArtCraft Launcher](https://getartcraft.com/docs/craft-launcher/guides/install-and-update-apps), which lists PhotoCraft. For a specific build or file format, take it from the [latest release](https://github.com/storytold/photocraft/releases/latest) on GitHub. In the file names below, `<version>` stands for the version number, for example `0.8.2`.
+This copy of PhotoCraft is part of FUDE and is built from source (see `docs/build.md` in the [FUDE repository](https://github.com/Se1fKnowledge/FUDE)). Upstream PhotoCraft builds come from the [latest release](https://github.com/storytold/photocraft/releases/latest) on GitHub. In the file names below, `<version>` stands for the version number, for example `0.8.2`.
 
 ## Windows
 

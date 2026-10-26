@@ -16,10 +16,10 @@ It is a native app written in Rust that draws the canvas on your graphics card, 
 - [Troubleshooting](troubleshooting/index.md)
 - [FAQ](faq/index.md)
 
-## Part of the Craft App Suite
+## Part of FUDE
 
-PhotoCraft is one of the Crafting Apps from the ArtCraft team, next to VectorCraft, FilmCraft and the other Craft apps. You can install and update them from [ArtCraft Launcher](https://getartcraft.com/docs/craft-launcher).
+This copy of PhotoCraft is the editor of [FUDE](https://github.com/Se1fKnowledge/FUDE), an app that teaches digital drawing. It is built from the open-source [PhotoCraft](https://github.com/storytold/photocraft) code.
 
 ## Get help
 
-Ask in [Discord](https://discord.gg/artcraft) or open an issue in the [issue tracker](https://github.com/storytold/photocraft/issues). In PhotoCraft, **Help › Report an Issue…** opens the same issue tracker.
+Open an issue in the [FUDE issue tracker](https://github.com/Se1fKnowledge/FUDE/issues). In the editor, **Help › Report an Issue…** opens the same tracker.

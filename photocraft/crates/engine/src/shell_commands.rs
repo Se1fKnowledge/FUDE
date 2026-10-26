@@ -85,9 +85,7 @@ pub const SHELL_COMMANDS: &[(&str, &str, &[&str], Option<&str>)] = &[
     ("window.theme.softLight", "Soft", &["Window", "Theme", "Light Theme"], None),
     ("window.theme.system", "Sync with system", &["Window", "Theme"], None),
     ("edit.search", "Search…", &["Edit"], Some("Cmd+F")),
-    ("help.discord", "Join the ArtCraft Discord…", &["Help"], None),
-    ("help.website", "PhotoCraft Website", &["Help"], None),
-    ("help.artcraftWebsite", "ArtCraft Website", &["Help"], None),
+    // FUDE build: the ArtCraft Discord and website items are removed (trademark terms for forks).
     ("help.github", "PhotoCraft on GitHub", &["Help"], None),
     ("help.reportIssue", "Report an Issue…", &["Help"], None),
     ("help.systemInfo", "System Info…", &["Help"], None),
@@ -192,5 +190,37 @@ mod tests {
         }
         assert_eq!(tool_default("tools.select.move"), Some(Some("V")));
         assert_eq!(tool_default("edit.copy"), None);
+    }
+
+    fn command(id: &str) -> Option<&'static (&'static str, &'static str, &'static [&'static str], Option<&'static str>)> {
+        SHELL_COMMANDS.iter().find(|c| c.0 == id)
+    }
+
+    /// FUDE's two themes are Window › Theme commands, each in its appearance family's submenu and
+    /// first in it, so the defaults lead their lists.
+    #[test]
+    fn fude_theme_commands_lead_their_theme_submenus() {
+        for (id, label, family) in [("window.theme.fudeInk", "FUDE Ink", "Dark Theme"), ("window.theme.fudeWashi", "FUDE Washi", "Light Theme")] {
+            let (_, l, path, shortcut) = command(id).unwrap_or_else(|| panic!("{id} missing"));
+            assert_eq!(*l, label);
+            assert_eq!(*path, ["Window", "Theme", family]);
+            assert_eq!(*shortcut, None, "{id} takes no default key");
+            let first = SHELL_COMMANDS.iter().find(|c| c.2 == ["Window", "Theme", family]).map(|c| c.0);
+            assert_eq!(first, Some(id), "{family} submenu starts with the FUDE theme");
+        }
+    }
+
+    /// The FUDE build carries no ArtCraft name or community links in any command label, and the
+    /// upstream ArtCraft Help items are gone.
+    #[test]
+    fn no_command_label_carries_the_artcraft_brand() {
+        for (id, label, _, _) in SHELL_COMMANDS {
+            let lower = label.to_ascii_lowercase();
+            assert!(!lower.contains("artcraft") && !lower.contains("discord"), "{id}: {label}");
+        }
+        for removed in ["help.discord", "help.artcraftWebsite", "help.website"] {
+            assert!(command(removed).is_none(), "{removed}");
+        }
+        assert!(command("help.github").is_some() && command("help.reportIssue").is_some());
     }
 }

@@ -513,11 +513,8 @@
 
 # Help
 	About PhotoCraft	Про PhotoCraft
-	PhotoCraft Website	Вебсайт PhotoCraft
 	PhotoCraft on GitHub	PhotoCraft на GitHub
 	Report an Issue…	Повідомити про проблему…
-	ArtCraft Website	Вебсайт ArtCraft
-	Join the ArtCraft Discord…	Приєднатися до Discord ArtCraft…
 	System Info…	Інформація про систему…
 
 # Tools and options bar
@@ -1665,9 +1662,6 @@
 	Preserve Transparency	Зберігати прозорість
 	Reverse	Зворотний
 	Align with layer	Вирівняти за шаром
-	Join us on Discord	Приєднуйтеся до нас у Discord
-	PhotoCraft website	Вебсайт PhotoCraft
-	ArtCraft	ArtCraft
 	GitHub	GitHub
 	No character style	Без стилю символів
 	No author	Автор відсутній
@@ -3362,7 +3356,6 @@ cameraRaw	Masking	Маскування
 	Custom Pixel Aspect Ratio	Довільне співвідношення сторін пікселя
 	32-bit Preview Options	Параметри 32-бітного перегляду
 	New Guide	Нова напрямна
-	Join the ArtCraft Discord	Приєднатися до Discord ArtCraft
 	Report an Issue	Повідомити про проблему
 	WIA Support	Підтримка WIA
 	Load Files into Stack	Завантажити файли у стос
