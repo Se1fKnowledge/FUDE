@@ -1,10 +1,82 @@
 # FUDE 筆
 
-Приложение для обучения цифровому рисунку в графическом редакторе. За образец взят Photoshop, сам редактор — открытый [PhotoCraft](https://github.com/storytold/photocraft), перекрашенный в стиль FUDE: японская живопись тушью, бумага васи, индиго и киноварь.
+**FUDE** («кисть» по-японски) — приложение для обучения цифровому рисунку в графическом редакторе. За образец взят Photoshop, а сам редактор — открытый [PhotoCraft](https://github.com/storytold/photocraft), перекрашенный в стиль FUDE: японская живопись тушью, бумага васи, индиго и киноварь.
 
-Дипломный проект.
+Дипломный проект (4 курс).
+
+<p align="center">
+  <img src="design/photocraft-fude-ink.png" alt="Редактор PhotoCraft в теме FUDE Тушь: тёмные панели, сфера с тенью на холсте" width="49%">
+  <img src="design/photocraft-fude-washi.png" alt="Редактор PhotoCraft в теме FUDE Васи: кремовые панели цвета бумаги" width="49%">
+</p>
+
+## Что это
+
+Ученик выбирает категорию и урок, смотрит анимированный видеогайд, читает теорию и выполняет задание прямо во встроенном редакторе. Режим подсказки показывает, куда нажать, и рисует на холсте теневую фигуру. Использование подсказок учитывается в статистике. Прогресс видно на вкладках «Достижения», «Активность» (по дням, как на GitHub) и «Статистика» (рост отдельных сторон навыка).
+
+Подробно о продукте, аудитории и ограничениях — в [PRODUCT.md](PRODUCT.md).
+
+## Что уже сделано
+
+| Часть | Состояние | Где |
+|---|---|---|
+| Макет всех экранов в Figma: 13 экранов, включая состояния первого дня и ошибок | готов | [docs/design-system.md](docs/design-system.md) |
+| Дизайн-система: цвета, шрифты, компоненты, движение | готова | [docs/design-system.md](docs/design-system.md) |
+| Анимация открытия (3,6 с) на ключевых кадрах Figma | готова | [design/fude-splash.mp4](design/fude-splash.mp4) |
+| Редактор: PhotoCraft с темами FUDE Тушь и FUDE Васи | готов, тесты проходят | [docs/editor.md](docs/editor.md) |
+| Удаление товарных знаков ArtCraft из редактора | сделано | [docs/editor.md](docs/editor.md#товарные-знаки-artcraft) |
+| Приложение уроков (Tauri + Rust) | ещё не начато | [docs/architecture.md](docs/architecture.md), [docs/roadmap.md](docs/roadmap.md) |
+
+## Структура репозитория
+
+```text
+FUDE/
+├── README.md          этот файл
+├── PRODUCT.md         продукт: пользователи, цели, функции, открытые вопросы
+├── CHANGELOG.md       что менялось
+├── docs/              документация FUDE
+│   ├── architecture.md   как устроено приложение и как в него встраивается редактор
+│   ├── design-system.md  цвета, шрифты, компоненты, экраны макета, движение
+│   ├── editor.md         что изменено в PhotoCraft и почему
+│   ├── build.md          как собрать и запустить редактор на Windows
+│   ├── testing.md        какие есть тесты и как их запускать
+│   ├── contributing.md   ветки, коммиты, как вносить изменения
+│   └── roadmap.md        план работ
+├── design/            материалы макета: видео заставки, скриншоты редактора
+└── photocraft/        редактор: копия storytold/photocraft@c65b5d2 с изменениями FUDE
+```
+
+## Быстрый старт
+
+Нужны Rust 1.95+ и Visual Studio Build Tools с компонентом C++ (подробно — в [docs/build.md](docs/build.md)).
+
+```bash
+cd photocraft
+cargo run --release -p photocraft
+```
+
+Редактор откроется в теме FUDE Тушь. Светлая тема FUDE Васи переключается в меню **Window › Theme › Light Theme**.
+
+Тесты тем и бренда:
+
+```bash
+cd photocraft
+cargo test -p photocraft-ui-egui --lib theme::
+cargo test -p photocraft-engine --lib prefs
+```
+
+Полный список тестов — в [docs/testing.md](docs/testing.md).
 
 ## Ветки
 
-- `main` — только готовые версии.
-- `SelfKnowledge` — разработка.
+- **`main`** — только готовые версии.
+- **`SelfKnowledge`** — разработка. Всё новое попадает сюда, в `main` — через слияние готовой версии.
+
+Порядок работы описан в [docs/contributing.md](docs/contributing.md).
+
+## Лицензии
+
+- Редактор в папке [`photocraft/`](photocraft/) распространяется по **MIT OR Apache-2.0**, как и исходный PhotoCraft. См. [photocraft/LICENSE-MIT](photocraft/LICENSE-MIT), [photocraft/LICENSE-APACHE](photocraft/LICENSE-APACHE) и [photocraft/NOTICE](photocraft/NOTICE). Строка копирайта исходных авторов сохранена, как того требуют эти лицензии.
+- Название, логотипы и ссылки ArtCraft удалены из редактора по условиям бренда для форков. Они остаются товарными знаками ArtCraft Team.
+- Лицензия для собственного кода и материалов FUDE (документация, макет, будущее приложение уроков) пока не выбрана.
+
+FUDE не связан с Adobe. Photoshop — товарный знак Adobe Inc.; название используется только для описания того, на что похож редактор.
