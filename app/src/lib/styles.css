@@ -1,0 +1,459 @@
+/* FUDE design tokens (docs/design-system.md, Figma «01 · Дизайн-система»). */
+@import '@fontsource/cormorant-garamond/cyrillic-600.css';
+@import '@fontsource/cormorant-garamond/cyrillic-700.css';
+@import '@fontsource/cormorant-garamond/latin-600.css';
+@import '@fontsource/cormorant-garamond/latin-700.css';
+@import '@fontsource/cormorant-garamond/cyrillic-600-italic.css';
+@import '@fontsource/cormorant-infant/latin-700.css';
+@import '@fontsource/manrope/cyrillic-400.css';
+@import '@fontsource/manrope/cyrillic-600.css';
+@import '@fontsource/manrope/cyrillic-700.css';
+@import '@fontsource/manrope/latin-400.css';
+@import '@fontsource/manrope/latin-600.css';
+@import '@fontsource/manrope/latin-700.css';
+@import '@fontsource/yuji-syuku/400.css';
+@import '@fontsource/jetbrains-mono/latin-500.css';
+
+:root {
+	--paper-base: #f3eee4;
+	--paper-raised: #fbf8f2;
+	--paper-sunken: #e9e2d4;
+	--paper-line: #ddd4c3;
+	--ink-900: #16161a;
+	--ink-700: #3b3a40;
+	--ink-500: #625e57;
+	--ink-300: #ada79c;
+	--ai-900: #16304f;
+	--ai-700: #1f4470;
+	--ai-500: #2f5d8c;
+	--ai-300: #8fb2d6;
+	--ai-100: #dce7f1;
+	--shu-700: #a92f1e;
+	--shu-500: #bc3823;
+	--shu-100: #f6d9d2;
+	--kaki-700: #8f4e16;
+	--kaki-500: #e8893b;
+	--kaki-100: #f7e1cb;
+	--kin-700: #76591f;
+	--kin-500: #c29a4e;
+	--kin-100: #f1e6cc;
+	--sumi-bg: #111216;
+	--sumi-panel: #1a1c21;
+	--sumi-raised: #23262d;
+	--sumi-line: #2f333b;
+	--sumi-text: #e8e4dc;
+	--sumi-muted: #a3a7af;
+
+	--font-display: 'Cormorant Garamond', 'Times New Roman', serif;
+	--font-number: 'Cormorant Infant', 'Cormorant Garamond', serif;
+	--font-ui: 'Manrope', 'Segoe UI', sans-serif;
+	--font-kanji: 'Yuji Syuku', 'Yu Mincho', serif;
+	--font-mono: 'JetBrains Mono', Consolas, monospace;
+
+	--radius-card: 16px;
+	--radius-m: 12px;
+	--radius-s: 8px;
+	--shadow-card: 0 1px 2px rgb(22 22 26 / 4%), 0 8px 24px rgb(22 22 26 / 6%);
+	--shadow-float: 0 12px 40px rgb(22 22 26 / 18%);
+
+	--ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+	--ease-ink: cubic-bezier(0.65, 0, 0.35, 1);
+	--sidebar: 264px;
+}
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+html,
+body {
+	margin: 0;
+	height: 100%;
+	background: var(--paper-base);
+	color: var(--ink-900);
+	font-family: var(--font-ui);
+	font-size: 15px;
+	line-height: 1.6;
+	-webkit-font-smoothing: antialiased;
+}
+
+/* A soft wash of indigo and persimmon, like the mockup backgrounds. */
+body {
+	background:
+		radial-gradient(1200px 600px at 100% 0%, rgb(143 178 214 / 22%), transparent 60%),
+		radial-gradient(900px 500px at 60% 110%, rgb(247 225 203 / 55%), transparent 60%), var(--paper-base);
+	background-attachment: fixed;
+}
+
+h1,
+h2,
+h3,
+p {
+	margin: 0;
+}
+
+button {
+	font: inherit;
+	color: inherit;
+}
+
+a {
+	color: var(--ai-500);
+	text-decoration: none;
+}
+
+:focus-visible {
+	outline: 2px solid var(--ai-500);
+	outline-offset: 2px;
+	border-radius: 6px;
+}
+
+.display-l {
+	font-family: var(--font-display);
+	font-weight: 600;
+	font-size: 46px;
+	line-height: 1.08;
+	letter-spacing: -0.01em;
+}
+
+.display-xl {
+	font-family: var(--font-display);
+	font-weight: 600;
+	font-size: 68px;
+	line-height: 1.02;
+}
+
+.h1 {
+	font-family: var(--font-display);
+	font-weight: 700;
+	font-size: 32px;
+	line-height: 1.15;
+}
+
+.h2 {
+	font-weight: 700;
+	font-size: 20px;
+	line-height: 1.3;
+}
+
+.h3 {
+	font-weight: 600;
+	font-size: 16px;
+	line-height: 1.35;
+}
+
+.body-s {
+	font-size: 13px;
+	line-height: 1.5;
+}
+
+.label {
+	font-weight: 600;
+	font-size: 13px;
+	line-height: 1.25;
+}
+
+.caps {
+	font-weight: 700;
+	font-size: 12px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.muted {
+	color: var(--ink-500);
+}
+
+.number {
+	font-family: var(--font-number);
+	font-weight: 700;
+}
+
+.kanji {
+	font-family: var(--font-kanji);
+	font-weight: 400;
+}
+
+.mono {
+	font-family: var(--font-mono);
+	font-weight: 500;
+	font-size: 12px;
+}
+
+.card {
+	background: var(--paper-raised);
+	border-radius: var(--radius-card);
+	box-shadow: var(--shadow-card);
+}
+
+.kbd {
+	display: inline-grid;
+	place-items: center;
+	min-width: 26px;
+	height: 26px;
+	padding: 0 7px;
+	border-radius: 6px;
+	background: var(--paper-sunken);
+	box-shadow: inset 0 -1px 0 var(--paper-line);
+	font-family: var(--font-mono);
+	font-size: 12px;
+}
+
+/* Buttons: Основная (ink), Акцент (vermilion, one per screen), Контурная, Тихая, Подсказка. */
+.btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	height: 44px;
+	padding: 0 22px;
+	border: 0;
+	border-radius: 10px;
+	font-weight: 600;
+	font-size: 14px;
+	cursor: pointer;
+	transition:
+		transform 120ms var(--ease-out),
+		background 160ms,
+		box-shadow 160ms;
+	white-space: nowrap;
+}
+
+.btn:active {
+	transform: translateY(1px) scale(0.99);
+}
+
+.btn:disabled {
+	opacity: 0.5;
+	cursor: default;
+}
+
+.btn-accent {
+	background: var(--shu-500);
+	color: #fff;
+	box-shadow: 0 6px 16px rgb(188 56 35 / 28%);
+}
+
+.btn-accent:hover:not(:disabled) {
+	background: var(--shu-700);
+}
+
+.btn-primary {
+	background: var(--ink-900);
+	color: var(--paper-raised);
+}
+
+.btn-primary:hover:not(:disabled) {
+	background: var(--ink-700);
+}
+
+.btn-outline {
+	background: transparent;
+	box-shadow: inset 0 0 0 1.5px var(--ink-900);
+}
+
+.btn-outline:hover:not(:disabled) {
+	background: rgb(22 22 26 / 5%);
+}
+
+.btn-quiet {
+	background: var(--paper-sunken);
+	color: var(--ink-900);
+}
+
+.btn-quiet:hover:not(:disabled) {
+	background: var(--paper-line);
+}
+
+.btn-hint {
+	background: rgb(47 93 140 / 14%);
+	color: var(--ai-700);
+	box-shadow: inset 0 0 0 1px rgb(47 93 140 / 35%);
+}
+
+.btn-hint:hover:not(:disabled) {
+	background: rgb(47 93 140 / 22%);
+}
+
+.btn-s {
+	height: 34px;
+	padding: 0 14px;
+	font-size: 13px;
+	border-radius: 8px;
+}
+
+.chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	height: 32px;
+	padding: 0 14px;
+	border: 0;
+	border-radius: 999px;
+	background: var(--paper-sunken);
+	font-size: 13px;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.chip[aria-pressed='true'] {
+	background: var(--ink-900);
+	color: var(--paper-raised);
+}
+
+.pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 2px 10px;
+	border-radius: 999px;
+	font-size: 12px;
+	font-weight: 600;
+}
+
+.pill-ai {
+	background: var(--ai-100);
+	color: var(--ai-700);
+}
+
+.pill-kaki {
+	background: var(--kaki-100);
+	color: var(--kaki-700);
+}
+
+.pill-kin {
+	background: var(--kin-100);
+	color: var(--kin-700);
+}
+
+.pill-shu {
+	background: var(--shu-100);
+	color: var(--shu-700);
+}
+
+.track {
+	height: 6px;
+	border-radius: 999px;
+	background: var(--paper-sunken);
+	overflow: hidden;
+}
+
+.track > i {
+	display: block;
+	height: 100%;
+	border-radius: inherit;
+	background: var(--ai-500);
+	transition: width 700ms var(--ease-out);
+}
+
+.segmented {
+	display: inline-flex;
+	padding: 4px;
+	border-radius: 12px;
+	background: var(--paper-sunken);
+}
+
+.segmented button {
+	height: 36px;
+	padding: 0 16px;
+	border: 0;
+	border-radius: 9px;
+	background: transparent;
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--ink-500);
+	cursor: pointer;
+}
+
+.segmented button[aria-pressed='true'],
+.segmented button[aria-selected='true'] {
+	background: var(--paper-raised);
+	color: var(--ink-900);
+	box-shadow: var(--shadow-card);
+}
+
+input[type='text'],
+input[type='number'],
+textarea,
+select {
+	width: 100%;
+	padding: 10px 12px;
+	border: 1px solid var(--paper-line);
+	border-radius: 10px;
+	background: var(--paper-raised);
+	font: inherit;
+	font-size: 14px;
+	color: var(--ink-900);
+}
+
+textarea {
+	resize: vertical;
+	line-height: 1.55;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+	outline: 2px solid var(--ai-300);
+	outline-offset: 0;
+	border-color: var(--ai-500);
+}
+
+label.field {
+	display: grid;
+	gap: 6px;
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--ink-700);
+}
+
+.page {
+	padding: 40px 48px 48px;
+	max-width: 1280px;
+}
+
+.page-head {
+	display: flex;
+	align-items: flex-end;
+	justify-content: space-between;
+	gap: 24px;
+	margin-bottom: 28px;
+}
+
+.page-head p {
+	margin-top: 6px;
+	color: var(--ink-500);
+}
+
+/* Screens appear like ink soaking into paper. */
+.reveal {
+	animation: reveal 520ms var(--ease-out) both;
+}
+
+@keyframes reveal {
+	from {
+		opacity: 0;
+		transform: translateY(10px);
+		filter: blur(3px);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 1ms !important;
+		transition-duration: 1ms !important;
+	}
+}
+
+.sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	white-space: nowrap;
+}

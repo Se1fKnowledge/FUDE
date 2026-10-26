@@ -511,9 +511,13 @@ pub struct ResultView {
 
 #[tauri::command]
 pub fn result(state: State<'_, AppState>, attempt: i64) -> AppResult<ResultView> {
-    let (_, fresh) = refresh_achievements(&state)?;
+    let (all, _) = refresh_achievements(&state)?;
     let c = ctx(&state)?;
     let a = c.attempts.iter().find(|a| a.id == attempt).cloned().ok_or_else(|| AppError::msg("попытка не найдена"))?;
+    // Achievements are stored when the last check passes; the result shows the ones that
+    // came with this attempt.
+    let since = a.finished.map(crate::db::fmt);
+    let fresh: Vec<Achievement> = all.into_iter().filter(|x| matches!((&x.unlocked, &since), (Some(at), Some(s)) if at >= s)).collect();
     let entry = c.library.lesson(&a.lesson);
     let steps = entry.map_or(0, |e| e.lesson.task.steps.len());
     let canvas = picture(&state.attempts_dir(), &format!("attempt-{attempt}.png"));
