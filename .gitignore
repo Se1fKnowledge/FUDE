@@ -1,0 +1,14 @@
+# Rust build output (PhotoCraft keeps its own .gitignore inside photocraft/)
+target/
+
+# Impeccable: per-developer settings and caches
+.impeccable/config.local.json
+.impeccable/hook.cache.json
+.impeccable/critique/
+
+# Editors and OS
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
+*.log
