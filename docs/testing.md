@@ -12,13 +12,13 @@
 | Набор | Команда | Результат |
 |---|---|---|
 | ядро уроков и уроки | `cargo test -p fude-core` (из корня) | 93 прошли, 0 упали |
-| бэкенд приложения | `cargo test -p fude-app` | 24 прошли, 0 упали |
+| бэкенд приложения | `cargo test -p fude-app` | 26 прошли, 0 упали |
 | гайды в настоящем PhotoCraft | `cargo test -p fude-app --test real_editor -- --ignored` | 12 из 12 гайдов решают свои задания |
 | интерфейс | `cd app && npm test` | 24 прошли, 0 упали |
 | типы интерфейса | `cd app && npm run check` | 0 ошибок, 0 предупреждений |
 | clippy | `cargo clippy -p fude-core -p fude-app --all-targets -- -D warnings` | без предупреждений |
-| движок редактора | `cargo test -p photocraft-engine --lib` | 2182 прошли, 0 упали, 14 пропущены |
-| интерфейс редактора | `cargo test -p photocraft-ui-egui --lib` | 3813 прошли, 0 упали, 18 пропущены |
+| движок редактора | `cargo test -p photocraft-engine --lib` | 2178 прошли, 0 упали, 14 пропущены |
+| интерфейс редактора | `cargo test -p photocraft-ui-egui --lib` | 3809 прошли, 0 упали, 18 пропущены |
 | clippy редактора | `cargo clippy -p photocraft-engine -p photocraft-ui-egui --lib --tests -- -D warnings` | без предупреждений |
 
 Пропущенные тесты (`#[ignore]`) пропускает и сам PhotoCraft: это долгие проверки производительности и тесты, которым нужны внешние корпуса файлов.
@@ -70,6 +70,7 @@ cargo run -p fude-core --bin fude -- validate lessons
 | `practice` | 2 | попытка против поддельного редактора: проверка, подсказка (засчитана один раз, слой подсказки и возврат на слой ученика), удаление слоя подсказки, итог с опытом и сходством, журнал; ручные шаги и отсутствие лишних снимков |
 | `learn` | 3 | русская дата; совет сэнсэя указывает на урок с подсказками или на слабый навык; первый день |
 | `state` | 1 | картинки урока становятся `data:`-адресами, пути не выходят из папки урока |
+| `window` | 2 | крошечные прямоугольники под редактор не используются; у процесса без окон нет главного окна |
 | `tests/real_editor.rs` | 1 (`--ignored`) | запускает настоящий PhotoCraft и проходит каждый встроенный урок его же гайдом, проверяя после каждого шага |
 
 ### Интерфейс — `app/src/lib/*.test.ts`
@@ -148,12 +149,14 @@ cargo clippy -p photocraft-engine -p photocraft-ui-egui --lib --tests -- -D warn
 
 | Тест | Что проверяет |
 |---|---|
-| `help_menu_lists_links_then_separator_then_system_info_and_about` (обновлён) | меню «Справка»: PhotoCraft on GitHub, Сообщить о проблеме, Проверить обновления, разделитель, Сведения о системе, О программе |
-| `link_commands_open_their_urls` (обновлён) | ссылки ведут на исходный код PhotoCraft и в Issues FUDE |
+| `help_menu_lists_links_then_separator_then_system_info_and_about` (обновлён) | меню «Справка»: FUDE на GitHub, Сообщить о проблеме, разделитель, Сведения о системе, О программе — без проверки обновлений |
+| `link_commands_open_their_urls` (обновлён) | ссылки ведут в репозиторий и Issues FUDE |
+| `control::tests::host_embedding_hides_the_window_controls` | `ui.set {"hostEmbedded": true}` убирает кнопки окна и место под них, `false` возвращает; не-булево значение отклоняется |
 | `links_open_through_the_platform_service` (обновлён) | ссылки открываются через системный браузер |
 | `no_link_or_help_command_carries_the_artcraft_brand` | ни одна ссылка не ведёт на ArtCraft или Discord; удалённые пункты — неизвестные команды |
 | `catalogs_and_repository_carry_no_artcraft_brand` | ни в одном из 21 каталога переводов нет строк ArtCraft или ссылок на Discord ArtCraft; папки с логотипами `docs/brand` нет |
-| `link_targets_are_github_projects` | все ссылки — на GitHub, проблемы — в репозиторий FUDE |
+| `every_link_goes_to_the_fude_repository` | все ссылки редактора ведут в репозиторий FUDE, ни одной на PhotoCraft |
+| `no_runtime_link_to_the_upstream_repository` | ни в одном файле кода интерфейса, движка и приложения редактора нет ссылки на `github.com/storytold` или `api.github.com` (комментарии не считаются) |
 
 ### Прочее, что пришлось обновить
 

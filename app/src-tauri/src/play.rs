@@ -27,6 +27,45 @@ pub fn editor_status(state: State<'_, AppState>) -> EditorStatus {
     EditorStatus { found: state.executable.is_some(), path: state.executable.as_ref().map(|p| p.display().to_string()), running }
 }
 
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LayoutView {
+    pub supported: bool,
+    pub embedded: bool,
+}
+
+/// Shows the editor inside the FUDE window (`embedded`) or as its own window.
+#[tauri::command]
+pub fn editor_layout(state: State<'_, AppState>, embedded: bool) -> LayoutView {
+    {
+        let mut layout = lock(&state.layout);
+        layout.embedded = embedded && layout.host != 0 && crate::window::EMBEDDING_SUPPORTED;
+    }
+    let mut editor = lock(&state.editor);
+    if let Some(e) = editor.as_mut() {
+        state.arrange(e);
+    }
+    let layout = lock(&state.layout);
+    LayoutView { supported: layout.host != 0 && crate::window::EMBEDDING_SUPPORTED, embedded: layout.embedded }
+}
+
+/// The area the current screen reserves for the editor (physical pixels), or `None` when the
+/// screen shows no editor.
+#[tauri::command]
+pub fn editor_area(state: State<'_, AppState>, rect: Option<crate::window::Rect>) {
+    {
+        let mut layout = lock(&state.layout);
+        layout.visible = rect.is_some();
+        if rect.is_some() {
+            layout.rect = rect;
+        }
+    }
+    let mut editor = lock(&state.editor);
+    if let Some(e) = editor.as_mut() {
+        state.arrange(e);
+    }
+}
+
 #[tauri::command]
 pub fn editor_close(state: State<'_, AppState>) {
     state.guide_cancel.store(true, Ordering::SeqCst);

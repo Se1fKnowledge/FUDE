@@ -147,6 +147,11 @@ impl Editor {
         matches!(self.child.try_wait(), Ok(None))
     }
 
+    /// The editor's process id, to find its window.
+    pub fn pid(&self) -> u32 {
+        self.child.id()
+    }
+
     pub fn call(&mut self, call: &Call) -> AppResult<Value> {
         self.client.call(call)
     }

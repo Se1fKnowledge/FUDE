@@ -8,6 +8,7 @@
 	import Icon from '#lib/components/Icon.svelte';
 	import LessonHeader from '#lib/components/LessonHeader.svelte';
 	import Markdown from '#lib/components/Markdown.svelte';
+	import { editorSlot, preferEmbedded } from '#lib/editor-slot.ts';
 	import { clock, duration } from '#lib/format.ts';
 
 	let view = $state<LessonView | null>(null);
@@ -18,6 +19,9 @@
 	let videoError = $state(false);
 	let answers = $state<Record<number, number>>({});
 	let unlisten: UnlistenFn | null = null;
+	// The guide plays in the editor shown right in the player, unless the student prefers it
+	// in its own window.
+	let inside = $state(false);
 
 	const id = $derived(page.params.id ?? '');
 
@@ -27,6 +31,7 @@
 		unlisten = await listen<GuideEvent>('guide', (e) => {
 			if (e.payload.lesson === id) guide = e.payload;
 		});
+		api.editorLayout(preferEmbedded()).then((l) => (inside = l.supported && l.embedded)).catch(() => {});
 		try {
 			view = await api.lesson(id);
 			if (!view.guide.length && view.video) mode = 'video';
@@ -42,6 +47,7 @@
 	});
 
 	const playing = $derived(guide?.state === 'starting' || guide?.state === 'step');
+	const editorShown = $derived(inside && !!guide && guide.state !== 'stopped' && guide.state !== 'error');
 	const xp = $derived(view ? Math.floor((40 + 20 * view.lesson.difficulty) * 1.5) : 0);
 	const elapsed = $derived(view && guide && guide.state !== 'starting' ? view.guide.slice(0, guide.index).reduce((s, g) => s + g.pause, 0) : 0);
 
@@ -101,6 +107,15 @@
 				</div>
 			{:else if view.guide.length}
 				<div class="player stage">
+					{#if editorShown}
+						<div class="view slot" use:editorSlot aria-label="Редактор PhotoCraft с гайдом">
+							<p class="body-s waiting">Открываем редактор…</p>
+						</div>
+						<div class="caption-row" aria-live="polite">
+							{#if guide?.state === 'step'}<span class="kbd">{guide.index + 1}</span>{/if}
+							{guide?.caption}
+						</div>
+					{:else}
 					<div class="view">
 						{#if view.taskImage}
 							<img src={view.taskImage} alt="Холст задания" />
@@ -125,6 +140,7 @@
 							{/if}
 						</div>
 					</div>
+					{/if}
 					<div class="controls">
 						{#if playing}
 							<button class="btn btn-quiet btn-s" onclick={() => api.guideStop()}><Icon name="stop" size={16} /> Стоп</button>
@@ -264,6 +280,12 @@
 		grid-template-rows: minmax(0, 1fr) auto;
 	}
 
+	.stage:has(.slot) {
+		grid-template-rows: minmax(0, 1fr) auto auto;
+		aspect-ratio: auto;
+		height: calc(100vh - 140px);
+	}
+
 	.view {
 		position: relative;
 		display: grid;
@@ -332,6 +354,29 @@
 	.intro .body-s {
 		margin-top: 6px;
 		color: var(--sumi-muted);
+	}
+
+	.slot {
+		background: var(--sumi-bg);
+	}
+
+	.waiting {
+		color: var(--sumi-muted);
+	}
+
+	.caption-row {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		min-height: 40px;
+		padding: 8px 24px 0;
+		font-weight: 600;
+	}
+
+	.caption-row .kbd {
+		background: var(--shu-500);
+		color: #fff;
+		box-shadow: none;
 	}
 
 	.controls {

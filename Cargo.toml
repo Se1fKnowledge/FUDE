@@ -12,7 +12,7 @@ repository = "https://github.com/Se1fKnowledge/FUDE"
 rust-version = "1.85"
 
 [workspace.lints.rust]
-unsafe_code = "forbid"
+unsafe_code = "deny"
 
 [workspace.lints.clippy]
 unwrap_used = "deny"

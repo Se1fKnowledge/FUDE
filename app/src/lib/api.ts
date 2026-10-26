@@ -411,6 +411,8 @@ export const api = {
 
 	editorStatus: () => invoke<EditorStatus>('editor_status'),
 	editorClose: () => invoke<void>('editor_close'),
+	editorLayout: (embedded: boolean) => invoke<{ supported: boolean; embedded: boolean }>('editor_layout', { embedded }),
+	editorArea: (rect: { x: number; y: number; width: number; height: number } | null) => invoke<void>('editor_area', { rect }),
 	guidePlay: (id: string) => invoke<void>('guide_play', { id }),
 	guideStop: () => invoke<void>('guide_stop'),
 	practiceStart: (id: string) => invoke<{ attempt: number; steps: StepView[] }>('practice_start', { id }),

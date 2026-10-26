@@ -13,6 +13,9 @@ use crate::db::Db;
 use crate::editor::{self, Editor};
 use crate::error::{AppError, AppResult};
 use crate::practice::Practice;
+use crate::window::{self, Rect};
+use fude_core::control::Call;
+use serde_json::json;
 
 pub struct AppState {
     /// Lessons that ship with the app (read-only).
@@ -26,6 +29,29 @@ pub struct AppState {
     pub editor: Mutex<Option<Editor>>,
     pub practice: Mutex<Option<Practice>>,
     pub guide_cancel: Arc<AtomicBool>,
+    /// Where the editor's window goes: inside the FUDE window or on its own.
+    pub layout: Mutex<Layout>,
+}
+
+/// The editor window's place. Lock order: `editor` before `layout`.
+#[derive(Debug)]
+pub struct Layout {
+    /// Show the editor inside the FUDE window (else as its own window).
+    pub embedded: bool,
+    /// FUDE's own window handle (0 where embedding is not supported).
+    pub host: isize,
+    /// The area the interface reserves for the editor, in physical pixels.
+    pub rect: Option<Rect>,
+    /// Whether the current screen shows the editor at all.
+    pub visible: bool,
+    /// The editor window while it is a child of FUDE's window, with what to restore.
+    pub attached: Option<(isize, window::Saved)>,
+}
+
+impl Layout {
+    pub fn new(host: isize) -> Self {
+        Layout { embedded: window::EMBEDDING_SUPPORTED && host != 0, host, rect: None, visible: false, attached: None }
+    }
 }
 
 /// Locks a mutex, recovering the data if a panic poisoned it.
@@ -54,9 +80,48 @@ impl AppState {
                     "Редактор PhotoCraft не найден. Соберите его (cargo build --release -p photocraft) или укажите путь в переменной FUDE_PHOTOCRAFT.",
                 )
             })?;
-            *guard = Some(Editor::launch(exe, &self.data.join("control.token"), read_root, &self.attempts_dir())?);
+            let editor = Editor::launch(exe, &self.data.join("control.token"), read_root, &self.attempts_dir())?;
+            lock(&self.layout).attached = None;
+            *guard = Some(editor);
+        }
+        if let Some(editor) = guard.as_mut() {
+            self.arrange(editor);
         }
         Ok(guard)
+    }
+
+    /// Puts the editor's window where the layout says: inside FUDE over the reserved area, or
+    /// on its own. Called with the editor locked.
+    pub fn arrange(&self, editor: &mut Editor) {
+        let mut layout = lock(&self.layout);
+        let wanted_inside = layout.embedded && layout.host != 0 && layout.rect.is_some_and(|r| r.is_usable());
+        let current = layout.attached.map(|(w, _)| w).filter(|w| window::alive(*w));
+        // A freshly started editor opens its window shortly after its channel: wait for it.
+        let found = current.or_else(|| {
+            (0..40).find_map(|_| {
+                let w = window::main_window(editor.pid());
+                if w.is_none() {
+                    std::thread::sleep(std::time::Duration::from_millis(100));
+                }
+                w
+            })
+        });
+        let Some(win) = found else { return };
+        if wanted_inside {
+            let Some(rect) = layout.rect else { return };
+            if layout.attached.is_none() {
+                let saved = window::embed(win, layout.host, rect);
+                layout.attached = Some((win, saved));
+                // No caption buttons or self-moving inside FUDE (photocraft/docs/control-protocol.md).
+                let _ = editor.call(&Call::new("ui.set", json!({ "hostEmbedded": true })));
+            } else {
+                window::place(win, rect);
+            }
+            window::show(win, layout.visible);
+        } else if let Some((w, saved)) = layout.attached.take() {
+            window::detach(w, saved);
+            let _ = editor.call(&Call::new("ui.set", json!({ "hostEmbedded": false })));
+        }
     }
 
     pub fn close_editor(&self) {

@@ -6,6 +6,7 @@
 	import Splash from '#lib/components/Splash.svelte';
 	import Welcome from '#lib/components/Welcome.svelte';
 	import { refreshSession, session } from '#lib/session.svelte.ts';
+	import { api } from '#lib/api.ts';
 
 	let { children }: { children: Snippet } = $props();
 
@@ -20,6 +21,11 @@
 
 	// The lesson path takes the whole window, like the mockup screens 06–08.
 	const focus = $derived(/^\/(lesson|practice|result)\//.test(page.url.pathname));
+
+	// Leaving the lesson path closes the editor it opened.
+	$effect(() => {
+		if (!focus && session.boot) api.editorClose().catch(() => {});
+	});
 </script>
 
 {#if splash}

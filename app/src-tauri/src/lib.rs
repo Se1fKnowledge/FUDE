@@ -13,6 +13,7 @@ pub mod practice;
 pub mod progress;
 pub mod state;
 pub mod studio;
+pub mod window;
 
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
@@ -44,6 +45,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     scope.allow_directory(&builtin, true)?;
     scope.allow_directory(&user, true)?;
     let db = db::Db::open(&data.join("fude.db"), learn::now())?;
+    let host = main_window_handle(app);
     app.manage(AppState {
         builtin,
         user,
@@ -53,8 +55,19 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         editor: Mutex::new(None),
         practice: Mutex::new(None),
         guide_cancel: Arc::new(AtomicBool::new(false)),
+        layout: Mutex::new(state::Layout::new(host)),
     });
     Ok(())
+}
+
+/// The native handle of FUDE's main window (Windows), or 0.
+fn main_window_handle(app: &tauri::App) -> isize {
+    use raw_window_handle::{HasWindowHandle, RawWindowHandle};
+    let Some(window) = app.get_webview_window("main") else { return 0 };
+    match window.window_handle().map(|h| h.as_raw()) {
+        Ok(RawWindowHandle::Win32(h)) => h.hwnd.get(),
+        _ => 0,
+    }
 }
 
 pub fn run() {
@@ -80,6 +93,8 @@ pub fn run() {
             learn::result,
             play::editor_status,
             play::editor_close,
+            play::editor_layout,
+            play::editor_area,
             play::guide_play,
             play::guide_stop,
             play::practice_start,
