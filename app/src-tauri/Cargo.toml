@@ -1,0 +1,38 @@
+[package]
+name = "fude-app"
+version = "0.1.0"
+description = "FUDE: lessons of digital drawing in the PhotoCraft editor"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "fude_app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "fude"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+base64 = "0.22"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std", "serde"] }
+fude-core = { path = "../../core" }
+getrandom = "0.3"
+rusqlite = { version = "0.41", features = ["bundled"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tauri = { version = "2", features = ["protocol-asset"] }
+tauri-plugin-dialog = "2"
+thiserror = "2"
+
+[dev-dependencies]
+image = { version = "0.25", default-features = false, features = ["png"] }
+tempfile = "3"
+
+[lints]
+workspace = true

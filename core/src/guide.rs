@@ -21,6 +21,8 @@ pub const ALLOWED_COMMANDS: &[&str] = &[
     "layer.new.layer",
     "layer.setProps",
     "layer.select",
+    "layer.selectTop",
+    "layer.selectBottom",
     "layer.delete",
     "select.rect",
     "select.all",

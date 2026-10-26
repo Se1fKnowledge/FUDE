@@ -188,7 +188,7 @@ points = [[0.2, 0.5], [0.4, 0.45], [0.6, 0.5]]
 - `open` или `canvas` (как в `task`) — с чего начинается гайд; можно опустить, тогда гайд идёт в текущем документе.
 - `caption` — подпись внизу экрана; `highlight` — цель в интерфейсе (те же, что у подсказок); `pause` — пауза после шага в миллисекундах (0–15000, по умолчанию 600).
 - Разрешённые методы: `ui.set` (только `tool`, `zoom`, `center`, `rotation`, `fit`, `brushSize`), `ui.pointer` и `engine.execute`.
-- Разрешённые команды `engine.execute`: `paint.stroke`, `layer.new.layer`, `layer.setProps`, `layer.select`, `layer.delete`, `select.rect`, `select.all`, `select.deselect`, `select.inverse`, `edit.fill`, `edit.undo`, `edit.redo`, `tools.setBrush`, `tools.setColors`, `tools.defaultColors`, `tools.swapColors`, `file.new`.
+- Разрешённые команды `engine.execute`: `paint.stroke`, `layer.new.layer`, `layer.setProps`, `layer.select`, `layer.selectTop`, `layer.selectBottom`, `layer.delete`, `select.rect`, `select.all`, `select.deselect`, `select.inverse`, `edit.fill`, `edit.undo`, `edit.redo`, `tools.setBrush`, `tools.setColors`, `tools.defaultColors`, `tools.swapColors`, `file.new`.
 - Ограничения: до 400 шагов, до 2000 вызовов, до 5000 точек в одном штрихе.
 
 Всё остальное (открытие и сохранение файлов, скрипты, горячие клавиши, сеть) сценарий вызвать не может: так импортированный чужой урок не навредит компьютеру ученика.

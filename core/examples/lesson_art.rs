@@ -373,8 +373,12 @@ fn basics_layers(out: &Out) {
                     [vec![ui_set(json!({ "tool": "Brush" })), brush(46.0, 0.8, 1.0), color(KAKI)], rings].concat(),
                     1400,
                 ),
-                step("Глаз слева от слоя прячет и показывает его", Some("panel:Layers"), vec![engine("layer.setProps", json!({ "visible": false }))], 1200),
-                step("Слой снова виден", Some("panel:Layers"), vec![engine("layer.setProps", json!({ "visible": true }))], 1200),
+                step(
+                    "Глаз слева от фона прячет его: солнце видно отдельно, а пейзаж цел",
+                    Some("panel:Layers"),
+                    vec![engine("layer.selectBottom", json!({})), engine("layer.setProps", json!({ "visible": false })), engine("layer.selectTop", json!({}))],
+                    1600,
+                ),
             ],
         ),
     );

@@ -2,7 +2,7 @@
 # Cargo.lock and build rules, so it stays out of this one.
 [workspace]
 resolver = "3"
-members = ["core"]
+members = ["core", "app/src-tauri"]
 exclude = ["photocraft"]
 
 [workspace.package]

@@ -834,32 +834,30 @@
         {
           "method": "engine.execute",
           "params": {
-            "command": "layer.setProps",
-            "params": {
-              "visible": false
-            }
+            "command": "layer.selectBottom",
+            "params": {}
           }
-        }
-      ],
-      "caption": "Глаз слева от слоя прячет и показывает его",
-      "highlight": "panel:Layers",
-      "pause": 1200
-    },
-    {
-      "calls": [
+        },
         {
           "method": "engine.execute",
           "params": {
             "command": "layer.setProps",
             "params": {
-              "visible": true
+              "visible": false
             }
+          }
+        },
+        {
+          "method": "engine.execute",
+          "params": {
+            "command": "layer.selectTop",
+            "params": {}
           }
         }
       ],
-      "caption": "Слой снова виден",
+      "caption": "Глаз слева от фона прячет его: солнце видно отдельно, а пейзаж цел",
       "highlight": "panel:Layers",
-      "pause": 1200
+      "pause": 1600
     }
   ],
   "title": "Слои"
