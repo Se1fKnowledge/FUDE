@@ -77,6 +77,16 @@
 
 Тесты: `no_runtime_link_to_the_upstream_repository` проверяет, что ни в одном файле кода интерфейса, движка и приложения нет ссылки на `github.com/storytold` или `api.github.com` (кроме комментариев); `every_link_goes_to_the_fude_repository` — что все ссылки меню ведут в FUDE; тесты меню «Справка» и команд проверяют, что `help.github` и `help.checkForUpdates` больше не существуют.
 
+### 4. Режим «внутри окна FUDE»
+
+FUDE на Windows встраивает окно редактора в своё окно (см. [app.md](app.md#редактор-в-окне-fude-или-отдельно)). Чтобы встроенный редактор не мешал, в канал управления добавлено поле `ui.set {"hostEmbedded": bool}` ([`control.rs`](../photocraft/crates/ui-egui/src/control.rs)). Пока оно `true`:
+
+- не рисуются кнопки окна «свернуть / развернуть / закрыть» и место под них в верхней панели ([`titlebar.rs`](../photocraft/crates/ui-egui/src/titlebar.rs), [`panels.rs`](../photocraft/crates/ui-egui/src/panels.rs));
+- верхняя панель не перетаскивает и не разворачивает окно, нет зон растягивания краёв ([`lib.rs`](../photocraft/crates/ui-egui/src/lib.rs));
+- `ui.inspect` сообщает `hostEmbedded`.
+
+FUDE ставит `true`, когда встраивает окно, и `false`, когда отделяет его. Тест: `host_embedding_hides_the_window_controls`.
+
 ## Как обновить PhotoCraft из исходного репозитория
 
 Изменения FUDE лежат отдельными коммитами, поэтому их можно перенести на новую версию:
