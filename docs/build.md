@@ -40,6 +40,27 @@ cargo run --release -p photocraft
 | `--safe-gpu` | рисовать холст на процессоре (если видеокарта или драйвер не справляются) |
 | `--control <порт>` | открыть JSON-канал управления на порту, например `--control 7878` (так FUDE будет управлять редактором) |
 
+## Ядро уроков
+
+Собственный код FUDE — отдельное рабочее пространство Cargo в корне репозитория (`Cargo.toml`); `photocraft/` в него не входит и собирается своим. Из корня:
+
+```bash
+cargo build -p fude-core                         # библиотека и CLI fude
+cargo run -p fude-core --bin fude -- help        # команды CLI
+cargo run -p fude-core --example lesson_art -- lessons   # перерисовать картинки и гайды встроенных уроков
+```
+
+Ядро небольшое и собирается за минуту; сборка лежит в `target/` в корне.
+
+Чтобы попробовать гайд урока в настоящем редакторе, запустите PhotoCraft с каналом управления и корнями файлов:
+
+```bash
+cd photocraft
+cargo run --release -p photocraft -- --control 7878 --control-token-file ../target/control.token --automation-read-root ../lessons/light/03-cast-shadow --automation-write-root ../target/attempt
+```
+
+Подключитесь к `127.0.0.1:7878`. Первой строкой отправьте `{"id":"auth","method":"auth","params":{"token":"<содержимое control.token>"}}`, затем — строки, которые печатает `fude guide lessons/light/03-cast-shadow`. На каждую строку редактор отвечает строкой с тем же `id`.
+
 ## Снимок интерфейса без окна
 
 ```bash
