@@ -101,9 +101,11 @@ fn selected_theme(interface: &prefs::Interface, system: Option<egui::Theme>) -> 
             LightTheme::Adwaita => ThemeKind::Adwaita,
             LightTheme::BreezeLight => ThemeKind::BreezeLight,
             LightTheme::SoftLight => ThemeKind::SoftLight,
+            LightTheme::FudeWashi => ThemeKind::FudeWashi,
         }
     } else {
         match interface.dark_theme {
+            DarkTheme::FudeInk => ThemeKind::FudeInk,
             DarkTheme::Pro => ThemeKind::Pro,
             DarkTheme::ProMedium => ThemeKind::ProMedium,
             DarkTheme::Studio => ThemeKind::Studio,
@@ -152,6 +154,7 @@ pub(crate) fn step_brightness(app: &mut PhotocraftApp, ctx: &egui::Context, ligh
 }
 
 const LIGHT_THEME_OPTIONS: &[(&str, ThemeKind)] = &[
+    ("fudeWashi", ThemeKind::FudeWashi),
     ("proLight", ThemeKind::ProLight),
     ("proLightGray", ThemeKind::ProLightGray),
     ("studioLight", ThemeKind::StudioLight),
@@ -161,6 +164,7 @@ const LIGHT_THEME_OPTIONS: &[(&str, ThemeKind)] = &[
     ("softLight", ThemeKind::SoftLight),
 ];
 const DARK_THEME_OPTIONS: &[(&str, ThemeKind)] = &[
+    ("fudeInk", ThemeKind::FudeInk),
     ("proMedium", ThemeKind::ProMedium),
     ("pro", ThemeKind::Pro),
     ("studio", ThemeKind::Studio),
@@ -1695,8 +1699,8 @@ fn appearance_rows(ui: &mut egui::Ui, obj: &mut Map<String, Value>, system: Opti
     }
     let light_active = mode == "light" || (mode == "auto" && system == Some(egui::Theme::Light));
     obj.insert("appearanceMode".into(), json!(mode));
-    let mut light = obj.get("lightTheme").and_then(Value::as_str).unwrap_or("studioLight").to_string();
-    let mut dark = obj.get("darkTheme").and_then(Value::as_str).unwrap_or("proMedium").to_string();
+    let mut light = obj.get("lightTheme").and_then(Value::as_str).unwrap_or("fudeWashi").to_string();
+    let mut dark = obj.get("darkTheme").and_then(Value::as_str).unwrap_or("fudeInk").to_string();
     let mut favorites: Vec<SavedTheme> = obj.get("favoriteThemes").cloned().and_then(|v| serde_json::from_value(v).ok()).unwrap_or_default();
     if rows.light {
         theme_row(ui, "Light Theme", light_active, &mut light, &mut favorites, LIGHT_THEME_OPTIONS);
@@ -2860,8 +2864,8 @@ mod tests {
     #[test]
     fn appearance_resolves_both_saved_themes_and_follows_system() {
         let mut interface = prefs::Interface { appearance_mode: AppearanceMode::Auto, ..prefs::Interface::default() };
-        assert_eq!(selected_theme(&interface, Some(egui::Theme::Dark)), ThemeKind::ProMedium);
-        assert_eq!(selected_theme(&interface, Some(egui::Theme::Light)), ThemeKind::ProLight);
+        assert_eq!(selected_theme(&interface, Some(egui::Theme::Dark)), ThemeKind::FudeInk);
+        assert_eq!(selected_theme(&interface, Some(egui::Theme::Light)), ThemeKind::FudeWashi);
         interface.dark_theme = DarkTheme::Studio;
         interface.light_theme = LightTheme::Classic;
         assert_eq!(selected_theme(&interface, Some(egui::Theme::Dark)), ThemeKind::Studio);
@@ -2902,7 +2906,7 @@ mod tests {
         app.run("prefs.set", json!({"path": "interface.appearanceMode", "value": "auto"})).unwrap();
         let ctx = egui::Context::default();
         tick(&mut app, &ctx);
-        assert_eq!(app.ui.theme, ThemeKind::ProLight);
+        assert_eq!(app.ui.theme, ThemeKind::FudeWashi);
     }
 
     #[test]
@@ -2926,7 +2930,8 @@ mod tests {
         let ctx = egui::Context::default();
         let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), crate::Services::default());
         sync_appearance(&mut app, &ctx);
-        assert_eq!(app.ui.theme, ThemeKind::ProMedium, "Photoshop's default brightness");
+        // FUDE Ink is not one of Photoshop's brightnesses; stepping starts from Medium Gray's slot.
+        assert_eq!(app.ui.theme, ThemeKind::FudeInk, "FUDE's default theme");
         let press = |app: &mut PhotocraftApp, id: &str| crate::menus::invoke(app, &ctx, id, json!({})).unwrap();
         for expected in [ThemeKind::ProLightGray, ThemeKind::ProLight, ThemeKind::ProLight] {
             press(&mut app, "view.lightenInterface");
@@ -3074,15 +3079,15 @@ mod tests {
         ctx.set_theme(egui::ThemePreference::Dark);
         assert_eq!(ctx.options(|o| o.theme_preference), egui::ThemePreference::Dark);
         appearance_frame(&mut app, &ctx, Some(egui::Theme::Light));
-        assert_palette(&ctx, ThemeKind::ProLight);
+        assert_palette(&ctx, ThemeKind::FudeWashi);
         assert_eq!(app.session.prefs().interface.appearance_mode, AppearanceMode::Auto);
         // A restored pin must also clear when the concrete PhotoCraft palette stays the same.
         ctx.set_theme(egui::ThemePreference::Dark);
         appearance_frame(&mut app, &ctx, Some(egui::Theme::Light));
         assert_eq!(ctx.options(|o| o.theme_preference), egui::ThemePreference::System);
-        assert_palette(&ctx, ThemeKind::ProLight);
+        assert_palette(&ctx, ThemeKind::FudeWashi);
         appearance_frame(&mut app, &ctx, Some(egui::Theme::Dark));
-        assert_palette(&ctx, ThemeKind::ProMedium);
+        assert_palette(&ctx, ThemeKind::FudeInk);
         assert_eq!(app.session.prefs().interface.appearance_mode, AppearanceMode::Auto);
     }
 

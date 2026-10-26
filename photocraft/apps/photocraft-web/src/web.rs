@@ -80,7 +80,7 @@ pub fn start() {
                 canvas,
                 options,
                 Box::new(move |cc| {
-                    PhotocraftApp::setup_context(&cc.egui_ctx, ThemeKind::Pro);
+                    PhotocraftApp::setup_context(&cc.egui_ctx, ThemeKind::default());
                     let inbox: Inbox = Arc::default();
                     let place_inbox: Inbox = Arc::default();
                     let served: Served = Arc::default();
@@ -93,7 +93,7 @@ pub fn start() {
                         photocraft_ui_egui::notices::post(&mut app, i18n::t("Some brush presets could not be loaded"), preset_warnings, true, None);
                     }
                     listen_pen(&pen_target, app.stylus.feed.clone());
-                    app.set_theme(&cc.egui_ctx, ThemeKind::Pro);
+                    app.set_theme(&cc.egui_ctx, ThemeKind::default());
                     if let Some(rs) = cc.wgpu_render_state.clone()
                         && !force_cpu
                     {

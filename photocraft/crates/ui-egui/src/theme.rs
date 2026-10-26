@@ -15,6 +15,9 @@
 //!
 //! - **Pro (Light Gray)** and **Pro (Light)**: Photoshop's third and fourth interface brightness
 //!   levels (#B8B8B8 and #F0F0F0 panels) with the Pro layout (#2661).
+//! - **FUDE Ink** and **FUDE Washi** (the defaults): the FUDE drawing school's sumi-e palette on
+//!   the Pro layout. Ink is warm near-black sumi with indigo selection and a vermilion primary
+//!   button; Washi is the same system on cream washi paper.
 //!
 //! Widgets read [`Tokens::get`] instead of hard-coding colours, so every theme applies everywhere.
 
@@ -27,8 +30,7 @@ use std::sync::Arc;
 pub enum ThemeKind {
     /// Photoshop-style Spectrum dark: flat charcoal panels, tab strips, blue accents (darkest brightness).
     Pro,
-    /// Photoshop's default (second) interface brightness: #535353 panels, #282828 canvas (default).
-    #[default]
+    /// Photoshop's default (second) interface brightness: #535353 panels, #282828 canvas.
     ProMedium,
     /// Photoshop's third interface brightness: #B8B8B8 panels (#2661).
     ProLightGray,
@@ -52,10 +54,16 @@ pub enum ThemeKind {
     SoftDark,
     /// A low-contrast light theme: pale violet-grey surfaces, softened dark text and a periwinkle accent.
     SoftLight,
+    /// FUDE's sumi ink on the Pro layout: warm near-black surfaces, indigo selection, vermilion
+    /// primary button (default).
+    #[default]
+    FudeInk,
+    /// FUDE's washi paper on the Pro layout: cream surfaces, ink text, indigo selection.
+    FudeWashi,
 }
 
 impl ThemeKind {
-    pub const ALL: [ThemeKind; 14] = [
+    pub const ALL: [ThemeKind; 16] = [
         ThemeKind::Pro,
         ThemeKind::ProMedium,
         ThemeKind::ProLightGray,
@@ -70,6 +78,8 @@ impl ThemeKind {
         ThemeKind::BreezeDark,
         ThemeKind::SoftDark,
         ThemeKind::SoftLight,
+        ThemeKind::FudeInk,
+        ThemeKind::FudeWashi,
     ];
     pub fn label(self) -> &'static str {
         match self {
@@ -87,6 +97,8 @@ impl ThemeKind {
             ThemeKind::BreezeDark => "Breeze Dark",
             ThemeKind::SoftDark => "Soft Dark",
             ThemeKind::SoftLight => "Soft Light",
+            ThemeKind::FudeInk => "FUDE Ink",
+            ThemeKind::FudeWashi => "FUDE Washi",
         }
     }
     /// The canonical name: `ui.set {theme}` accepts it and the Window › Theme commands are
@@ -107,11 +119,14 @@ impl ThemeKind {
             ThemeKind::BreezeDark => "breezeDark",
             ThemeKind::SoftDark => "softDark",
             ThemeKind::SoftLight => "softLight",
+            ThemeKind::FudeInk => "fudeInk",
+            ThemeKind::FudeWashi => "fudeWashi",
         }
     }
-    /// Photoshop-grammar layout (tab strips, flat panels): the four Pro brightness levels.
+    /// Photoshop-grammar layout (tab strips, flat panels): the four Pro brightness levels and the
+    /// FUDE palettes built on them.
     pub fn is_pro(self) -> bool {
-        matches!(self, ThemeKind::Pro | ThemeKind::ProMedium | ThemeKind::ProLightGray | ThemeKind::ProLight)
+        matches!(self, ThemeKind::Pro | ThemeKind::ProMedium | ThemeKind::ProLightGray | ThemeKind::ProLight | ThemeKind::FudeInk | ThemeKind::FudeWashi)
     }
     /// Whether this theme belongs to the dark appearance family.
     pub fn is_dark(self) -> bool {
@@ -124,6 +139,7 @@ impl ThemeKind {
                 | ThemeKind::AdwaitaDark
                 | ThemeKind::BreezeDark
                 | ThemeKind::SoftDark
+                | ThemeKind::FudeInk
         )
     }
     /// Whether this theme belongs to the light appearance family.
@@ -150,6 +166,8 @@ impl ThemeKind {
             "breezedark" | "kdedark" | "plasmadark" => Some(ThemeKind::BreezeDark),
             "softdark" => Some(ThemeKind::SoftDark),
             "softlight" => Some(ThemeKind::SoftLight),
+            "fudeink" | "fude" | "fudedark" | "sumi" | "ink" => Some(ThemeKind::FudeInk),
+            "fudewashi" | "fudelight" | "washi" | "paper" => Some(ThemeKind::FudeWashi),
             _ => None,
         }
     }
@@ -221,6 +239,88 @@ impl Tokens {
 
     pub fn for_kind(kind: ThemeKind) -> Self {
         match kind {
+            // FUDE's sumi-e palette on the Pro layout. Surfaces are the FUDE `sumi/*` tokens (warm
+            // near-black ink, never neutral grey), selection is indigo (`ai`), the primary button is
+            // vermilion (`shu`) and warnings are persimmon (`kaki`). Every text colour holds 4.5:1
+            // on every surface, including hover, pressed and the selected row (checked by the tests).
+            ThemeKind::FudeInk => Tokens {
+                kind,
+                chrome: Color32::from_rgb(26, 28, 33),
+                canvas: Color32::from_rgb(17, 18, 22),
+                canvas_dot: Color32::from_rgb(17, 18, 22),
+                dock: Color32::from_rgb(21, 22, 26),
+                card: Color32::from_rgb(26, 28, 33),
+                card_border: Color32::from_rgb(17, 18, 22),
+                field: Color32::from_rgb(20, 21, 25),
+                field_border: Color32::from_rgb(47, 51, 59),
+                hover: Color32::from_rgb(35, 38, 45),
+                pressed: Color32::from_rgb(44, 48, 56),
+                text: Color32::from_rgb(232, 228, 220),
+                text_dim: Color32::from_rgb(204, 200, 192),
+                text_faint: Color32::from_rgb(168, 172, 180),
+                icon: Color32::from_rgb(214, 210, 202),
+                accent: Color32::from_rgb(63, 110, 159),
+                accent_soft: Color32::from_rgb(41, 56, 79),
+                accent_border: Color32::from_rgb(143, 178, 214),
+                accent_text: Color32::from_rgb(250, 248, 242),
+                separator: Color32::from_rgb(17, 18, 22),
+                shadow: Color32::from_black_alpha(160),
+                primary_bg: Color32::from_rgb(188, 56, 35),
+                primary_text: Color32::from_rgb(251, 248, 242),
+                danger: Color32::from_rgb(240, 124, 106),
+                warning: Color32::from_rgb(236, 148, 74),
+                radius_sm: 4.0,
+                radius: 6.0,
+                radius_lg: 8.0,
+                tab_strip: Color32::from_rgb(21, 22, 26),
+                row_selected: Color32::from_rgb(41, 56, 79),
+                histogram_bg: Color32::from_rgb(17, 18, 22),
+                caption_close: Color32::from_rgb(188, 56, 35),
+                caption_close_text: Color32::from_rgb(251, 248, 242),
+                scrim: Color32::from_black_alpha(120),
+                ..Tokens::for_kind(ThemeKind::Pro)
+            },
+            // The same system on FUDE's washi paper: cream surfaces (`paper/*`), ink text, indigo
+            // selection. Secondary text, accent text and the status hues are dark enough to hold
+            // 4.5:1 on the darkest paper, the canvas surround.
+            ThemeKind::FudeWashi => Tokens {
+                kind,
+                chrome: Color32::from_rgb(243, 238, 228),
+                canvas: Color32::from_rgb(222, 214, 198),
+                canvas_dot: Color32::from_rgb(222, 214, 198),
+                dock: Color32::from_rgb(233, 226, 212),
+                card: Color32::from_rgb(251, 248, 242),
+                card_border: Color32::from_rgb(221, 212, 195),
+                field: Color32::from_rgb(255, 253, 249),
+                field_border: Color32::from_rgb(203, 193, 175),
+                hover: Color32::from_rgb(236, 230, 218),
+                pressed: Color32::from_rgb(226, 218, 204),
+                text: Color32::from_rgb(22, 22, 26),
+                text_dim: Color32::from_rgb(59, 58, 64),
+                text_faint: Color32::from_rgb(92, 88, 81),
+                icon: Color32::from_rgb(59, 58, 64),
+                accent: Color32::from_rgb(47, 93, 140),
+                accent_soft: Color32::from_rgb(220, 231, 241),
+                accent_border: Color32::from_rgb(143, 178, 214),
+                accent_text: Color32::from_rgb(31, 68, 112),
+                separator: Color32::from_rgb(221, 212, 195),
+                shadow: Color32::from_black_alpha(45),
+                primary_bg: Color32::from_rgb(188, 56, 35),
+                primary_text: Color32::WHITE,
+                danger: Color32::from_rgb(160, 44, 28),
+                warning: Color32::from_rgb(132, 72, 20),
+                radius_sm: 4.0,
+                radius: 6.0,
+                radius_lg: 8.0,
+                tab_strip: Color32::from_rgb(233, 226, 212),
+                row_selected: Color32::from_rgb(220, 231, 241),
+                histogram_bg: Color32::from_rgb(22, 22, 26),
+                histogram_level: 240,
+                caption_close: Color32::from_rgb(188, 56, 35),
+                caption_close_text: Color32::WHITE,
+                scrim: Color32::from_black_alpha(90),
+                ..Tokens::for_kind(ThemeKind::Pro)
+            },
             // Sampled from Photoshop 2026's default brightness (raw display values).
             ThemeKind::ProMedium => Tokens {
                 kind,
@@ -822,7 +922,8 @@ impl Tokens {
     /// [`crate::widgets::text_field`], because `Visuals::selection` also fills selected list rows
     /// and slider trails, which must keep the theme's.
     pub fn field_selection(&self) -> Color32 {
-        if self.pro { Color32::from_gray(if self.dark() { 96 } else { 201 }) } else { self.accent_soft }
+        let monochrome = matches!(self.kind, ThemeKind::Pro | ThemeKind::ProMedium | ThemeKind::ProLightGray | ThemeKind::ProLight);
+        if monochrome { Color32::from_gray(if self.dark() { 96 } else { 201 }) } else { self.accent_soft }
     }
 
     /// The 1 px ring round a slider knob, if the theme draws one: the Pro layouts' dark ring, and
@@ -1357,6 +1458,38 @@ mod tests {
                 let floor = if i < 5 { 4.5 } else { 3.0 };
                 assert!(contrast(t.danger, surface) >= floor && contrast(t.warning, surface) >= floor, "{kind:?}: status on {surface:?}");
             }
+            for k in [1.0, 0.93, 0.85] {
+                assert!(contrast(t.primary_text, t.primary_bg.gamma_multiply(k)) >= 4.5, "{kind:?}: primary at {k}");
+            }
+        }
+    }
+
+    #[test]
+    fn fude_themes_are_the_default_parse_and_hold_text_contrast() {
+        assert_eq!(ThemeKind::default(), ThemeKind::FudeInk);
+        for (kind, aliases) in [(ThemeKind::FudeInk, ["FUDE Ink", "fude_ink", "sumi"]), (ThemeKind::FudeWashi, ["FUDE Washi", "fude-washi", "washi"])] {
+            assert_eq!(ThemeKind::from_name(kind.id()), Some(kind));
+            for alias in aliases {
+                assert_eq!(ThemeKind::from_name(alias), Some(kind), "{alias}");
+            }
+            assert!(ThemeKind::ALL.contains(&kind));
+            let t = Tokens::for_kind(kind);
+            assert_eq!(t.kind, kind);
+            assert_eq!(t.dark(), kind == ThemeKind::FudeInk);
+            assert!(t.pro && kind.is_pro() && !t.bevel, "{kind:?} uses the Pro layout");
+            // FUDE is a coloured palette: text-field selection takes its indigo, not a grey.
+            assert_eq!(t.field_selection(), t.accent_soft);
+            let surfaces = [t.chrome, t.canvas, t.dock, t.card, t.field, t.hover, t.pressed, t.row_selected, t.accent_soft];
+            for (i, surface) in surfaces.into_iter().enumerate() {
+                for (name, colour) in [("text", t.text), ("dim", t.text_dim), ("faint", t.text_faint)] {
+                    assert!(contrast(colour, surface) >= 4.5, "{kind:?}: {name} on {surface:?}");
+                }
+                // Status colours are marks on hovered or selected surfaces (3:1), text on resting ones.
+                let floor = if i < 5 { 4.5 } else { 3.0 };
+                assert!(contrast(t.danger, surface) >= floor && contrast(t.warning, surface) >= floor, "{kind:?}: status on {surface:?}");
+            }
+            assert!(contrast(t.accent_text, t.accent_soft) >= 4.5, "{kind:?}: accent text on the soft accent");
+            assert!(contrast(Color32::WHITE, t.accent) >= 4.5, "{kind:?}: label on the indigo selection");
             for k in [1.0, 0.93, 0.85] {
                 assert!(contrast(t.primary_text, t.primary_bg.gamma_multiply(k)) >= 4.5, "{kind:?}: primary at {k}");
             }

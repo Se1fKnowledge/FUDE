@@ -83,7 +83,8 @@ fn harness(app: PhotocraftApp, size: egui::Vec2) -> Harness<'static, PhotocraftA
     let mut harness = Harness::builder().with_size(size).with_step_dt(1.0 / 60.0).build_ui_state(
         move |ui, app: &mut PhotocraftApp| {
             if !ready {
-                PhotocraftApp::setup_context(ui.ctx(), crate::theme::ThemeKind::ProMedium);
+                // The app's initial theme, so the context and `ui.theme` agree from the first frame.
+                PhotocraftApp::setup_context(ui.ctx(), crate::theme::ThemeKind::default());
                 ready = true;
                 return;
             }
@@ -664,7 +665,8 @@ fn customized_panel_menus_and_rail_remain_reachable_after_float_and_restore() {
     let mut menu = Harness::builder().build_ui_state(
         move |ui, app: &mut PhotocraftApp| {
             if !ready {
-                PhotocraftApp::setup_context(ui.ctx(), crate::theme::ThemeKind::ProMedium);
+                // The app's initial theme, so the context and `ui.theme` agree from the first frame.
+                PhotocraftApp::setup_context(ui.ctx(), crate::theme::ThemeKind::default());
                 ready = true;
             }
             panel_menu(app, ui, "swatches");
@@ -701,7 +703,8 @@ fn actions_panel_menu_includes_load_and_save_actions() {
     let mut menu = Harness::builder().build_ui_state(
         move |ui, app: &mut PhotocraftApp| {
             if !ready {
-                PhotocraftApp::setup_context(ui.ctx(), crate::theme::ThemeKind::ProMedium);
+                // The app's initial theme, so the context and `ui.theme` agree from the first frame.
+                PhotocraftApp::setup_context(ui.ctx(), crate::theme::ThemeKind::default());
                 ready = true;
             }
             panel_menu(app, ui, "actions");
