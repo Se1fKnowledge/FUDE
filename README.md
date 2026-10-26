@@ -27,7 +27,7 @@
 | Формат уроков и пакетов `.fude` | готов | [docs/lesson-format.md](docs/lesson-format.md) |
 | Ядро уроков `fude-core`: библиотека, проверка заданий, гайды, подсказки, импорт и экспорт, редактор уроков; CLI `fude` | готово, 93 теста | [core/](core/), [docs/architecture.md](docs/architecture.md) |
 | Встроенные уроки: «Основы интерфейса» и «Свет и тень», 12 уроков | готовы | [lessons/](lessons/) |
-| Приложение уроков (Tauri + SvelteKit) | ещё не начато | [docs/roadmap.md](docs/roadmap.md) |
+| Приложение: Tauri + SvelteKit, все экраны макета, практика в PhotoCraft с автопроверкой и подсказками, прогресс в SQLite, мастерская уроков | работает, 24 + 24 теста | [app/](app/), [docs/app.md](docs/app.md) |
 
 ## Структура репозитория
 
@@ -39,9 +39,11 @@ FUDE/
 ├── CHANGELOG.md       что менялось
 ├── Cargo.toml         рабочее пространство Rust для собственного кода FUDE
 ├── core/              ядро уроков fude-core и CLI fude
+├── app/               приложение: интерфейс (SvelteKit) и бэкенд (Tauri, src-tauri/)
 ├── lessons/           встроенные уроки: basics, light
 ├── docs/              документация FUDE
 │   ├── architecture.md   как устроено приложение и как в него встраивается редактор
+│   ├── app.md            приложение: запуск, экраны, практика, опыт и ранги
 │   ├── lesson-format.md  формат уроков, проверок, гайдов и пакетов .fude
 │   ├── design-system.md  цвета, шрифты, компоненты, экраны макета, движение
 │   ├── editor.md         что изменено в PhotoCraft и почему
@@ -55,14 +57,17 @@ FUDE/
 
 ## Быстрый старт
 
-Нужны Rust 1.95+ и Visual Studio Build Tools с компонентом C++ (подробно — в [docs/build.md](docs/build.md)).
+Нужны Rust 1.95+, Visual Studio Build Tools с компонентом C++ и Node.js 20+ (подробно — в [docs/build.md](docs/build.md) и [docs/app.md](docs/app.md)).
 
 ```bash
 cd photocraft
-cargo run --release -p photocraft
+cargo build --release -p photocraft   # редактор, один раз
+cd ../app
+npm install
+npm run tauri dev                     # приложение FUDE
 ```
 
-Редактор откроется в теме FUDE Тушь. Светлая тема FUDE Васи переключается в меню **Window › Theme › Light Theme**.
+При первом запуске FUDE спросит имя и цель дня. Практика открывает PhotoCraft отдельным окном в теме FUDE Тушь; светлая тема FUDE Васи переключается в меню редактора **Window › Theme › Light Theme**.
 
 Проверить встроенные уроки и запустить тесты ядра (из корня репозитория):
 
