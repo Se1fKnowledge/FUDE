@@ -5,7 +5,8 @@
 use std::io::{BufRead, BufReader, Write};
 use std::net::{Ipv4Addr, SocketAddr, TcpListener, TcpStream};
 use std::path::{Path, PathBuf};
-use std::process::{Child, Command};
+use std::process::{Child, Command, Stdio};
+use std::sync::mpsc;
 use std::time::{Duration, Instant};
 
 use fude_core::control::Call;
@@ -70,6 +71,23 @@ impl Client {
     }
 }
 
+/// What the editor said about its control channel on its standard error.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ControlLine {
+    Listening(SocketAddr),
+    Failed(String),
+}
+
+/// Reads PhotoCraft's channel lines: `photocraft: control server listening on 127.0.0.1:51150`
+/// or `photocraft: control server failed to bind 127.0.0.1:0: <reason>`.
+pub fn parse_control_line(line: &str) -> Option<ControlLine> {
+    let rest = line.trim().strip_prefix("photocraft: control server ")?;
+    if let Some(addr) = rest.strip_prefix("listening on ") {
+        return addr.trim().parse().ok().map(ControlLine::Listening);
+    }
+    rest.strip_prefix("failed to bind ").map(|reason| ControlLine::Failed(reason.trim().to_string()))
+}
+
 /// A fresh 256-bit token as 64 hex characters.
 pub fn new_token() -> AppResult<String> {
     let mut bytes = [0u8; 32];
@@ -108,39 +126,79 @@ impl Editor {
     /// Starts PhotoCraft with its channel on a free port and the two file roots, and waits
     /// until it answers.
     pub fn launch(exe: &Path, token_file: &Path, read_root: &Path, write_root: &Path) -> AppResult<Editor> {
+        // Port 0: PhotoCraft binds a free port itself and reports it. Choosing one here and
+        // handing it over races with every other program that opens a port in between: when the
+        // editor lost that race it ran on without its channel and FUDE gave up with a busy port.
+        let mut command = Command::new(exe);
+        command
+            .arg("--control")
+            .arg("0")
+            .arg("--control-token-file")
+            .arg(token_file)
+            .arg("--automation-read-root")
+            .arg(read_root)
+            .arg("--automation-write-root")
+            .arg(write_root);
+        Editor::start(command, token_file, read_root, write_root, START_TIMEOUT)
+    }
+
+    /// Runs `command` (an editor told to write its channel line to standard error), writing a
+    /// fresh token to `token_file` first, and connects once the editor reports its port.
+    pub fn start(mut command: Command, token_file: &Path, read_root: &Path, write_root: &Path, timeout: Duration) -> AppResult<Editor> {
         std::fs::create_dir_all(write_root)?;
         if let Some(parent) = token_file.parent() {
             std::fs::create_dir_all(parent)?;
         }
         let token = new_token()?;
         std::fs::write(token_file, &token)?;
-        let port = free_port()?;
-        let mut child = Command::new(exe)
-            .arg("--control")
-            .arg(port.to_string())
-            .arg("--control-token-file")
-            .arg(token_file)
-            .arg("--automation-read-root")
-            .arg(read_root)
-            .arg("--automation-write-root")
-            .arg(write_root)
-            .spawn()
-            .map_err(|e| AppError::msg(format!("не удалось запустить редактор {}: {e}", exe.display())))?;
-        let addr = SocketAddr::from((Ipv4Addr::LOCALHOST, port));
+        let program = command.get_program().to_string_lossy().into_owned();
+        let mut child = command.stderr(Stdio::piped()).spawn().map_err(|e| AppError::msg(format!("не удалось запустить редактор {program}: {e}")))?;
+        let (tx, rx) = mpsc::channel();
+        if let Some(stderr) = child.stderr.take() {
+            std::thread::spawn(move || {
+                // Pass the editor's log through, and report the first channel line.
+                let mut tx = Some(tx);
+                for line in BufReader::new(stderr).lines().map_while(Result::ok) {
+                    eprintln!("{line}");
+                    if let Some(found) = parse_control_line(&line)
+                        && let Some(tx) = tx.take()
+                    {
+                        let _ = tx.send(found);
+                    }
+                }
+            });
+        }
         let started = Instant::now();
-        loop {
+        let addr = loop {
             if let Some(status) = child.try_wait()? {
                 return Err(AppError::msg(format!("редактор закрылся при запуске ({status})")));
             }
+            match rx.recv_timeout(Duration::from_millis(200)) {
+                Ok(ControlLine::Listening(addr)) => break addr,
+                Ok(ControlLine::Failed(reason)) => {
+                    let _ = child.kill();
+                    return Err(AppError::msg(format!("редактор не смог открыть канал управления: {reason}")));
+                }
+                Err(_) if started.elapsed() < timeout => {}
+                Err(_) => {
+                    let _ = child.kill();
+                    return Err(AppError::msg(format!("редактор не открыл канал управления за {} с", timeout.as_secs())));
+                }
+            }
+        };
+        // The channel is listening; the first connection can still race the editor's startup.
+        let mut last = None;
+        for _ in 0..25 {
             match Client::connect(addr, &token) {
                 Ok(client) => return Ok(Editor { child, client, read_root: read_root.to_path_buf(), write_root: write_root.to_path_buf() }),
-                Err(_) if started.elapsed() < START_TIMEOUT => std::thread::sleep(Duration::from_millis(300)),
                 Err(e) => {
-                    let _ = child.kill();
-                    return Err(AppError::msg(format!("редактор не ответил за {} с: {e}", START_TIMEOUT.as_secs())));
+                    last = Some(e);
+                    std::thread::sleep(Duration::from_millis(200));
                 }
             }
         }
+        let _ = child.kill();
+        Err(AppError::msg(format!("редактор не ответил на {addr}: {}", last.map_or_else(String::new, |e| e.to_string()))))
     }
 
     pub fn alive(&mut self) -> bool {
@@ -239,6 +297,116 @@ pub mod tests {
         let (addr, _log, _h) = fake_editor("secret", |_, _| Ok(json!(null)));
         let err = Client::connect(addr, "guess").err().unwrap().to_string();
         assert!(err.contains("bad token"), "{err}");
+    }
+
+    /// Plays PhotoCraft when this test binary is started by [`fake`]: reports its channel the way
+    /// PhotoCraft does and answers requests. Run normally it does nothing.
+    #[test]
+    fn fake_editor_process() {
+        let Ok(mode) = std::env::var("FUDE_FAKE_EDITOR") else { return };
+        match mode.as_str() {
+            "exit" => std::process::exit(3),
+            "fail" => {
+                eprintln!("photocraft: control server failed to bind 127.0.0.1:0: test refusal");
+                std::thread::sleep(Duration::from_secs(30));
+            }
+            "silent" => std::thread::sleep(Duration::from_secs(30)),
+            _ => {
+                let token = std::fs::read_to_string(std::env::var("FUDE_FAKE_TOKEN").unwrap()).unwrap();
+                let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).unwrap();
+                eprintln!("photocraft: control token file: somewhere");
+                eprintln!("photocraft: control server listening on {}", listener.local_addr().unwrap());
+                let (stream, _) = listener.accept().unwrap();
+                let mut writer = stream.try_clone().unwrap();
+                for line in BufReader::new(stream).lines().map_while(Result::ok) {
+                    let req: Value = serde_json::from_str(&line).unwrap();
+                    let ok = req["method"] != "auth" || req["params"]["token"] == token.as_str();
+                    let reply = json!({"id": req["id"], "ok": ok, "result": {"method": req["method"]}, "error": "bad token"});
+                    writeln!(writer, "{reply}").unwrap();
+                }
+            }
+        }
+        std::process::exit(0);
+    }
+
+    /// This test binary, started as a fake editor in `mode`.
+    fn fake(mode: &str, token: &Path) -> Command {
+        let mut c = Command::new(std::env::current_exe().unwrap());
+        c.args(["editor::tests::fake_editor_process", "--exact", "--nocapture", "--test-threads=1"])
+            .env("FUDE_FAKE_EDITOR", mode)
+            .env("FUDE_FAKE_TOKEN", token);
+        c
+    }
+
+    #[test]
+    fn an_editor_is_reached_on_the_port_it_reports() {
+        let dir = tempfile::tempdir().unwrap();
+        let token = dir.path().join("token");
+        let mut editor = Editor::start(fake("ok", &token), &token, dir.path(), &dir.path().join("w"), Duration::from_secs(20)).unwrap();
+        assert!(editor.alive());
+        assert!(editor.pid() > 0);
+        assert_eq!(editor.inspect().unwrap()["method"], "ui.inspect");
+        assert_eq!(editor.call(&Call::engine("edit.undo", json!({}))).unwrap()["method"], "engine.execute");
+        assert!(dir.path().join("w").is_dir(), "the write root is created");
+        assert_eq!(std::fs::read_to_string(&token).unwrap().len(), 64, "a fresh token was written for the editor");
+    }
+
+    #[test]
+    fn an_editor_that_cannot_open_its_channel_is_reported_at_once() {
+        let dir = tempfile::tempdir().unwrap();
+        let token = dir.path().join("token");
+        let started = Instant::now();
+        let err = Editor::start(fake("fail", &token), &token, dir.path(), dir.path(), Duration::from_secs(20)).err().unwrap().to_string();
+        assert!(err.contains("не смог открыть канал управления") && err.contains("test refusal"), "{err}");
+        assert!(started.elapsed() < Duration::from_secs(15), "no waiting for the timeout");
+    }
+
+    #[test]
+    fn an_editor_that_exits_at_start_is_reported() {
+        let dir = tempfile::tempdir().unwrap();
+        let token = dir.path().join("token");
+        let err = Editor::start(fake("exit", &token), &token, dir.path(), dir.path(), Duration::from_secs(20)).err().unwrap().to_string();
+        assert!(err.contains("закрылся при запуске"), "{err}");
+    }
+
+    #[test]
+    fn a_silent_editor_times_out() {
+        let dir = tempfile::tempdir().unwrap();
+        let token = dir.path().join("token");
+        let err = Editor::start(fake("silent", &token), &token, dir.path(), dir.path(), Duration::from_secs(2)).err().unwrap().to_string();
+        assert!(err.contains("не открыл канал управления за 2 с"), "{err}");
+    }
+
+    #[test]
+    fn the_editor_is_found_beside_the_app() {
+        let name = if cfg!(windows) { "photocraft.exe" } else { "photocraft" };
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(dir.path().join("photocraft")).unwrap();
+        std::fs::write(dir.path().join("photocraft").join(name), b"").unwrap();
+        if std::env::var_os("FUDE_PHOTOCRAFT").is_none() {
+            assert_eq!(find_executable(Some(dir.path())), Some(dir.path().join("photocraft").join(name)), "in a photocraft folder");
+            std::fs::write(dir.path().join(name), b"").unwrap();
+            assert_eq!(find_executable(Some(dir.path())), Some(dir.path().join(name)), "right beside fude.exe wins");
+        }
+    }
+
+    #[test]
+    fn the_editors_channel_line_gives_its_port() {
+        assert_eq!(
+            parse_control_line("photocraft: control server listening on 127.0.0.1:51150"),
+            Some(ControlLine::Listening(SocketAddr::from((Ipv4Addr::LOCALHOST, 51150))))
+        );
+        assert_eq!(
+            parse_control_line("  photocraft: control server listening on 127.0.0.1:7878\r"),
+            Some(ControlLine::Listening(SocketAddr::from((Ipv4Addr::LOCALHOST, 7878))))
+        );
+        assert_eq!(
+            parse_control_line("photocraft: control server failed to bind 127.0.0.1:0: access denied"),
+            Some(ControlLine::Failed("127.0.0.1:0: access denied".into()))
+        );
+        for other in ["photocraft: control token file: C:\\x", "INFO [main] photocraft: GPU startup", "photocraft: control server listening on nowhere", ""] {
+            assert_eq!(parse_control_line(other), None, "{other}");
+        }
     }
 
     #[test]

@@ -35,7 +35,11 @@ fn builtin_lessons(app: &tauri::App) -> PathBuf {
 }
 
 fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
-    let data = app.path().app_data_dir()?;
+    // FUDE_DATA_DIR keeps tests and demos away from the student's own progress.
+    let data = match std::env::var_os("FUDE_DATA_DIR") {
+        Some(dir) if !dir.is_empty() => PathBuf::from(dir),
+        _ => app.path().app_data_dir()?,
+    };
     std::fs::create_dir_all(&data)?;
     let user = data.join("lessons");
     std::fs::create_dir_all(&user)?;
@@ -46,6 +50,14 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     scope.allow_directory(&user, true)?;
     let db = db::Db::open(&data.join("fude.db"), learn::now())?;
     let host = main_window_handle(app);
+    let handle = app.handle().clone();
+    window::install_host(
+        host,
+        Box::new(move || {
+            use tauri::Emitter;
+            let _ = handle.emit("hint-hotkey", ());
+        }),
+    );
     app.manage(AppState {
         builtin,
         user,
@@ -103,6 +115,7 @@ pub fn run() {
             play::practice_hide_hint,
             play::practice_confirm,
             play::practice_stop,
+            play::practice_hint_key,
             studio::studio,
             studio::studio_category_create,
             studio::studio_category_save,

@@ -421,6 +421,7 @@ export const api = {
 	practiceHideHint: () => invoke<void>('practice_hide_hint'),
 	practiceConfirm: (step: string) => invoke<void>('practice_confirm', { step }),
 	practiceStop: () => invoke<void>('practice_stop'),
+	practiceHintKey: (enabled: boolean) => invoke<void>('practice_hint_key', { enabled }),
 
 	studio: () => invoke<Studio>('studio'),
 	categoryCreate: (title: string, kanji: string | null, accentName: Accent, description: string) =>

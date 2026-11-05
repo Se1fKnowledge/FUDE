@@ -7,6 +7,8 @@
 	import LessonHeader from '#lib/components/LessonHeader.svelte';
 	import { editorSlot, preferEmbedded, rememberEmbedded } from '#lib/editor-slot.ts';
 	import { refreshSession } from '#lib/session.svelte.ts';
+	import { HINT_KEY_LABEL, isCheckKey, isHintKey, typingInto } from '#lib/shortcuts.ts';
+	import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 
 	const id = $derived(page.params.id ?? '');
 
@@ -111,20 +113,34 @@
 		check();
 	}
 
+	// F1 reaches us as a hot key from the Rust side while the FUDE window is active, the
+	// embedded editor included; this handler covers the rest (other systems, the hot key busy).
 	function onkeydown(e: KeyboardEvent) {
-		const target = e.target as HTMLElement | null;
-		if (target?.closest('input, textarea')) return;
-		if (e.key.toLowerCase() === 'h' || e.key.toLowerCase() === 'р') showHint();
-		if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) check();
+		if (typingInto(e.target)) return;
+		if (isHintKey(e)) {
+			e.preventDefault();
+			showHint();
+		}
+		if (isCheckKey(e)) check();
 	}
+
+	let unlistenHint: UnlistenFn | null = null;
 
 	async function leave() {
 		stopTimer();
 		await api.practiceStop();
 	}
 
-	onMount(start);
-	onDestroy(stopTimer);
+	onMount(() => {
+		start();
+		api.practiceHintKey(true).catch(() => {});
+		listen('hint-hotkey', () => showHint()).then((u) => (unlistenHint = u));
+	});
+	onDestroy(() => {
+		stopTimer();
+		unlistenHint?.();
+		api.practiceHintKey(false).catch(() => {});
+	});
 </script>
 
 <svelte:window {onkeydown} />
@@ -222,7 +238,7 @@
 			<span class="spacer"></span>
 			{#if hint}<span class="hint-flag"><Icon name="bulb" size={15} /> Режим подсказки — будет видно в статистике</span>{/if}
 			<button class="btn btn-hint btn-s" onclick={showHint} disabled={phase !== 'ready' || !current?.hasHint}>
-				<Icon name="bulb" size={16} /> Подсказка <span class="kbd">H</span>
+				<Icon name="bulb" size={16} /> Подсказка <span class="kbd">{HINT_KEY_LABEL}</span>
 			</button>
 			<button class="btn btn-accent btn-s" onclick={() => check()} disabled={phase !== 'ready' || checking}>
 				{checking ? 'Проверяем…' : 'Проверить'}

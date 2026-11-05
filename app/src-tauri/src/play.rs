@@ -272,6 +272,16 @@ pub fn practice_confirm(state: State<'_, AppState>, step: String) -> AppResult<(
     Ok(())
 }
 
+/// F1 asks for a hint while FUDE's window is active (the embedded editor included): on while a
+/// practice screen is open, off when it closes.
+#[tauri::command]
+pub fn practice_hint_key(enabled: bool) {
+    crate::window::set_hint_key(enabled);
+    if enabled {
+        crate::window::focus_editor_soon();
+    }
+}
+
 /// Leaves the task: the attempt stays unfinished, the editor closes.
 #[tauri::command]
 pub fn practice_stop(state: State<'_, AppState>) {
