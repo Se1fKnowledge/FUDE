@@ -481,6 +481,16 @@ fn dispatch(app: &mut PhotocraftApp, ctx: &egui::Context, req: &ControlRequest) 
             ok(serde_json::to_value(items).unwrap_or_default())
         }
         "ui.inspect" => ok(inspect(app, ctx)),
+        // The engine's journal of executed commands from `from` on, for a host that records what
+        // the user does (FUDE turns it into a lesson guide). `next` is where the following read
+        // starts; at most `limit` entries (500 by default) per read.
+        "journal.read" => {
+            let journal = &app.session.journal;
+            let from = u("from").map_or(0, |n| usize::try_from(n).unwrap_or(usize::MAX)).min(journal.len());
+            let limit = u("limit").map_or(500, |n| usize::try_from(n).unwrap_or(500)).clamp(1, 5000);
+            let entries: Vec<Value> = journal[from..].iter().take(limit).map(|(id, params)| json!({"id": id, "params": params})).collect();
+            ok(json!({"next": from + entries.len(), "total": journal.len(), "entries": entries}))
+        }
         "ui.set" => {
             if let Some(field) = p.as_object().and_then(|o| o.keys().find(|k| !UI_SET_FIELDS.contains(&k.as_str()))) {
                 return err(format!("unknown field `{field}` (fields: {})", UI_SET_FIELDS.join(", ")));
@@ -2475,6 +2485,31 @@ mod tests {
         assert_eq!(app.session.active_index(), before, "the active document is untouched");
         // A valid index still opens the window.
         assert_eq!(call(&mut app, &ctx, "ui.window.open", json!({"document": 0}))["ok"], true);
+    }
+
+    #[test]
+    fn journal_read_returns_executed_commands_from_a_mark() {
+        let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), crate::Services::default());
+        let ctx = egui::Context::default();
+        let start = call(&mut app, &ctx, "journal.read", json!({"from": u64::MAX}));
+        assert_eq!(start["ok"], true, "{start}");
+        let mark = start["result"]["next"].as_u64().expect("next");
+        assert_eq!(start["result"]["entries"], json!([]));
+
+        call(&mut app, &ctx, "ui.set", json!({"brushSize": 30}));
+        call(&mut app, &ctx, "ui.set", json!({"brushSize": 50}));
+        let r = call(&mut app, &ctx, "journal.read", json!({"from": mark}));
+        let entries = r["result"]["entries"].as_array().expect("entries").clone();
+        assert!(!entries.is_empty(), "{r}");
+        assert!(entries.iter().all(|e| e["id"] == "tools.setBrush"), "{r}");
+        let next = r["result"]["next"].as_u64().expect("next");
+        assert_eq!(next, r["result"]["total"].as_u64().expect("total"));
+
+        let again = call(&mut app, &ctx, "journal.read", json!({"from": next}));
+        assert_eq!(again["result"]["entries"], json!([]), "nothing new since the last read");
+        let one = call(&mut app, &ctx, "journal.read", json!({"from": mark, "limit": 1}));
+        assert_eq!(one["result"]["entries"].as_array().map(Vec::len), Some(1));
+        assert_eq!(one["result"]["next"], mark + 1);
     }
 
     #[test]
