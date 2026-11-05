@@ -10,6 +10,8 @@ use std::path::Path;
 use serde::Serialize;
 
 use crate::guide;
+#[cfg(test)]
+use crate::model::Style;
 use crate::model::{Category, Check, CheckKind, FORMAT, Hint, Lesson, Range, Region, Shape, parse_hex};
 use crate::paths::{self, IMAGE_EXTENSIONS, VIDEO_EXTENSIONS};
 
@@ -361,12 +363,12 @@ fn hint(issues: &mut Vec<Issue>, field: &str, hint: &Hint) {
     for (i, shape) in hint.shapes.iter().enumerate() {
         let field = format!("{field}.shapes[{i}]");
         let points: Vec<[f64; 2]> = match shape {
-            Shape::Ellipse { rect } | Shape::Rect { rect } => {
+            Shape::Ellipse { rect, .. } | Shape::Rect { rect, .. } => {
                 region(issues, &field, rect);
                 vec![]
             }
-            Shape::Line { from, to } => vec![*from, *to],
-            Shape::Path { points } => {
+            Shape::Line { from, to, .. } | Shape::Arrow { from, to, .. } => vec![*from, *to],
+            Shape::Path { points, .. } => {
                 if points.len() < 2 {
                     issues.push(Issue::error(&field, "в линии нужно хотя бы две точки"));
                 }
@@ -378,6 +380,18 @@ fn hint(issues: &mut Vec<Issue>, field: &str, hint: &Hint) {
         };
         if points.iter().flatten().any(|v| !(0.0..=1.0).contains(v)) {
             issues.push(Issue::error(&field, "координаты — доли холста от 0 до 1"));
+        }
+        let style = shape.style();
+        if let Some(color) = &style.color
+            && parse_hex(color).is_none()
+        {
+            issues.push(Issue::error(format!("{field}.style.color"), "цвет — в виде #rrggbb"));
+        }
+        if style.width.is_some_and(|w| !(0.5..=200.0).contains(&w)) {
+            issues.push(Issue::error(format!("{field}.style.width"), "толщина — от 0,5 до 200 пикселей"));
+        }
+        if style.opacity.is_some_and(|o| !(0.05..=1.0).contains(&o)) {
+            issues.push(Issue::error(format!("{field}.style.opacity"), "непрозрачность — от 0,05 до 1"));
         }
     }
 }
@@ -646,9 +660,28 @@ mod tests {
         l.task.steps[0].hint = Some(Hint {
             text: "x".into(),
             target: None,
-            shapes: vec![Shape::Path { points: vec![[0.1, 0.1]] }, Shape::Line { from: [0.0, 0.0], to: [1.2, 0.5] }],
+            shapes: vec![
+                Shape::Path { points: vec![[0.1, 0.1]], style: Style::default() },
+                Shape::Line { from: [0.0, 0.0], to: [1.2, 0.5], style: Style::default() },
+            ],
         });
         assert_eq!(errors(&lesson(&l, None, None)), vec!["task.steps[0].hint.shapes[0]", "task.steps[0].hint.shapes[1]"]);
+    }
+
+    #[test]
+    fn ghost_styles_are_checked() {
+        let mut l = sample();
+        let bad = Style { color: Some("red".into()), width: Some(0.1), opacity: Some(1.5), dashed: true };
+        let good = Style { color: Some("#2F5D8C".into()), width: Some(6.0), opacity: Some(0.35), dashed: true };
+        l.task.steps[0].hint = Some(Hint {
+            text: "x".into(),
+            target: None,
+            shapes: vec![Shape::Arrow { from: [0.1, 0.1], to: [0.5, 0.5], style: bad }, Shape::Arrow { from: [0.1, 0.1], to: [0.5, 0.5], style: good }],
+        });
+        assert_eq!(
+            errors(&lesson(&l, None, None)),
+            vec!["task.steps[0].hint.shapes[0].style.color", "task.steps[0].hint.shapes[0].style.width", "task.steps[0].hint.shapes[0].style.opacity"]
+        );
     }
 
     #[test]

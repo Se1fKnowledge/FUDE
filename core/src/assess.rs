@@ -473,6 +473,91 @@ fn canvas_check(kind: &CheckKind, context: &Context, canvas: &RgbaImage) -> Verd
     }
 }
 
+/// What a check does on the finished result and on the untouched task: the author's proof
+/// that it tells a done step from a step not started.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CheckProof {
+    pub step: String,
+    /// Index of the check within its step.
+    pub index: usize,
+    pub kind: &'static str,
+    /// Canvas checks are proved on pictures; editor-state checks only in the real editor.
+    pub canvas: bool,
+    /// On the reference picture (the finished result), when the lesson has one.
+    pub on_reference: Option<CheckOutcome>,
+    /// On the task as the student gets it.
+    pub on_task: Option<CheckOutcome>,
+    pub verdict: ProofVerdict,
+    /// A threshold that would separate the two, when the check has one and it does not
+    /// separate them yet.
+    pub suggestion: Option<f64>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum ProofVerdict {
+    /// Passes on the reference, fails on the untouched task.
+    Works,
+    /// Passes on the untouched task too: it lets a student through without doing anything.
+    PassesUntouched,
+    /// Fails on the finished result: nobody can pass it.
+    FailsReference,
+    /// No reference picture to prove it on.
+    NoReference,
+    /// Reads the editor state, not the canvas.
+    EditorState,
+}
+
+/// Proves every check of `lesson` on its reference picture and on the untouched task.
+pub fn prove(lesson: &Lesson, dir: &Path) -> Result<Vec<CheckProof>> {
+    let context = Context::for_lesson(lesson, dir)?;
+    let reference = lesson.task.reference.as_ref().and_then(|r| context.references.get(r)).cloned();
+    let size = reference.as_ref().map(|r| r.dimensions()).or(lesson.task.canvas.as_ref().map(|c| (c.width, c.height))).unwrap_or((1200, 800));
+    let untouched = match &context.base {
+        Base::Image(image) => image.clone(),
+        Base::Color([r, g, b]) => RgbaImage::from_pixel(size.0.max(1), size.1.max(1), image::Rgba([*r, *g, *b, 255])),
+    };
+    let snap = |canvas: RgbaImage| Snapshot { state: EditorState::default(), canvas: Some(canvas) };
+    let on_task = snap(untouched);
+    let on_ref = reference.map(snap);
+    let mut out = Vec::new();
+    for step in &lesson.task.steps {
+        for (index, c) in step.checks.iter().enumerate() {
+            let canvas = c.kind.needs_canvas();
+            let (r, t) = if canvas { (on_ref.as_ref().map(|s| check(c, &context, s)), Some(check(c, &context, &on_task))) } else { (None, None) };
+            let verdict = match (canvas, &r, &t) {
+                (false, ..) => ProofVerdict::EditorState,
+                (true, None, _) => ProofVerdict::NoReference,
+                (true, Some(r), _) if !r.passed => ProofVerdict::FailsReference,
+                (true, Some(_), Some(t)) if t.passed => ProofVerdict::PassesUntouched,
+                _ => ProofVerdict::Works,
+            };
+            let suggestion = match verdict {
+                ProofVerdict::PassesUntouched | ProofVerdict::FailsReference => {
+                    suggest(&c.kind, r.as_ref().and_then(|o| o.value), t.as_ref().and_then(|o| o.value))
+                }
+                _ => None,
+            };
+            out.push(CheckProof { step: step.id.clone(), index, kind: c.kind.name(), canvas, on_reference: r, on_task: t, verdict, suggestion });
+        }
+    }
+    Ok(out)
+}
+
+/// A threshold halfway between what the finished result and the untouched task measure, for
+/// checks whose bar is one number that grows with the work done. `None` when the two measure
+/// the same or the work moves the value the wrong way.
+fn suggest(kind: &CheckKind, done: Option<f64>, untouched: Option<f64>) -> Option<f64> {
+    let (done, untouched) = (done?, untouched?);
+    match kind {
+        CheckKind::Coverage { .. } | CheckKind::Darker { .. } | CheckKind::Similar { .. } if done > untouched + 0.02 => {
+            Some(((done + untouched) / 2.0 * 100.0).round() / 100.0)
+        }
+        _ => None,
+    }
+}
+
 /// Pixel bounds `[x0, y0, x1, y1)` of a fractional region, at least one pixel.
 pub fn pixel_bounds(region: &Region, width: u32, height: u32) -> [u32; 4] {
     let [x, y, w, h] = *region;
@@ -822,5 +907,106 @@ mod tests {
             assert_ne!(tool_label(tool), tool);
         }
         assert_eq!(tool_label("Frame"), "Frame");
+    }
+    #[test]
+    fn proof_tells_working_checks_from_ones_that_pass_untouched() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut task = RgbaImage::from_pixel(100, 100, image::Rgba([240, 240, 240, 255]));
+        for x in 0..100 {
+            for y in 60..100 {
+                task.put_pixel(x, y, image::Rgba([200, 200, 200, 255]));
+            }
+        }
+        let mut done = task.clone();
+        for x in 40..90 {
+            for y in 60..75 {
+                done.put_pixel(x, y, image::Rgba([90, 90, 90, 255]));
+            }
+        }
+        std::fs::create_dir_all(dir.path().join("assets")).unwrap();
+        task.save(dir.path().join("assets/task.png")).unwrap();
+        done.save(dir.path().join("assets/reference.png")).unwrap();
+        let toml = r#"
+format = 1
+id = "t.shadow"
+title = "Тень"
+summary = "x"
+difficulty = 1
+minutes = 5
+order = 1
+skills = ["light"]
+[theory]
+file = "theory.md"
+[task]
+brief = "x"
+open = "assets/task.png"
+reference = "assets/reference.png"
+[[task.steps]]
+id = "shadow"
+text = "x"
+  [[task.steps.checks]]
+  kind = "coverage"
+  region = [0.4, 0.6, 0.5, 0.15]
+  changed = { min = 0.3 }
+  [[task.steps.checks]]
+  kind = "darker"
+  region = [0.4, 0.6, 0.5, 0.15]
+  than = [0.0, 0.0, 0.3, 0.3]
+  by = 0.05
+  [[task.steps.checks]]
+  kind = "coverage"
+  region = [0.4, 0.6, 0.5, 0.15]
+  changed = { min = 0.99, max = 1.0 }
+  [[task.steps.checks]]
+  kind = "tool"
+  tool = "Brush"
+"#;
+        let lesson: Lesson = toml::from_str(toml).unwrap();
+        let proofs = prove(&lesson, dir.path()).unwrap();
+        let verdicts: Vec<ProofVerdict> = proofs.iter().map(|p| p.verdict).collect();
+        // The darker check compares the shadow area with the bright wall: the floor is already
+        // darker than the wall, so it passes on the untouched task as well.
+        assert_eq!(verdicts, vec![ProofVerdict::Works, ProofVerdict::PassesUntouched, ProofVerdict::Works, ProofVerdict::EditorState]);
+        assert_eq!(proofs[0].on_reference.as_ref().map(|o| o.passed), Some(true));
+        assert_eq!(proofs[0].on_task.as_ref().map(|o| o.passed), Some(false));
+        let s = proofs[1].suggestion.unwrap();
+        let (done, untouched) = (proofs[1].on_reference.as_ref().unwrap().value.unwrap(), proofs[1].on_task.as_ref().unwrap().value.unwrap());
+        assert!(untouched < s && s < done, "the suggestion separates {untouched} and {done}: {s}");
+        assert_eq!(proofs[3].on_task, None, "editor-state checks are not run on pictures");
+    }
+
+    #[test]
+    fn without_a_reference_canvas_checks_cannot_be_proved() {
+        let lesson: Lesson = toml::from_str(
+            r##"
+format = 1
+id = "t.blank"
+title = "x"
+summary = "x"
+difficulty = 1
+minutes = 5
+order = 1
+skills = ["line"]
+[theory]
+file = "theory.md"
+[task]
+brief = "x"
+[task.canvas]
+width = 40
+height = 20
+background = "#FFFFFF"
+[[task.steps]]
+id = "a"
+text = "x"
+  [[task.steps.checks]]
+  kind = "coverage"
+  region = [0.0, 0.0, 1.0, 1.0]
+  changed = { min = 0.1 }
+"##,
+        )
+        .unwrap();
+        let proofs = prove(&lesson, Path::new(".")).unwrap();
+        assert_eq!(proofs[0].verdict, ProofVerdict::NoReference);
+        assert_eq!(proofs[0].on_task.as_ref().map(|o| o.passed), Some(false), "a blank canvas is still measured");
     }
 }

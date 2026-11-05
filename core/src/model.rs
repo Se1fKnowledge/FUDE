@@ -245,10 +245,78 @@ pub type Point = [f64; 2];
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Shape {
-    Ellipse { rect: Region },
-    Rect { rect: Region },
-    Line { from: Point, to: Point },
-    Path { points: Vec<Point> },
+    Ellipse {
+        rect: Region,
+        #[serde(default, skip_serializing_if = "Style::is_default")]
+        style: Style,
+    },
+    Rect {
+        rect: Region,
+        #[serde(default, skip_serializing_if = "Style::is_default")]
+        style: Style,
+    },
+    Line {
+        from: Point,
+        to: Point,
+        #[serde(default, skip_serializing_if = "Style::is_default")]
+        style: Style,
+    },
+    /// A line with an arrow head at `to`: «ведите сюда».
+    Arrow {
+        from: Point,
+        to: Point,
+        #[serde(default, skip_serializing_if = "Style::is_default")]
+        style: Style,
+    },
+    Path {
+        points: Vec<Point>,
+        #[serde(default, skip_serializing_if = "Style::is_default")]
+        style: Style,
+    },
+}
+
+impl Shape {
+    pub fn style(&self) -> &Style {
+        match self {
+            Shape::Ellipse { style, .. } | Shape::Rect { style, .. } | Shape::Line { style, .. } | Shape::Arrow { style, .. } | Shape::Path { style, .. } => {
+                style
+            }
+        }
+    }
+
+    pub fn kind(&self) -> &'static str {
+        match self {
+            Shape::Ellipse { .. } => "ellipse",
+            Shape::Rect { .. } => "rect",
+            Shape::Line { .. } => "line",
+            Shape::Arrow { .. } => "arrow",
+            Shape::Path { .. } => "path",
+        }
+    }
+}
+
+/// How a ghost shape looks to the student. Every field is optional: absent means the hint
+/// defaults (vermilion, a stroke 0.6% of the canvas wide, 35% opaque, solid).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Style {
+    /// `#rrggbb`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub color: Option<String>,
+    /// Stroke width in pixels of the task picture.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub width: Option<f64>,
+    /// 0–1.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub opacity: Option<f64>,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub dashed: bool,
+}
+
+impl Style {
+    pub fn is_default(&self) -> bool {
+        *self == Style::default()
+    }
 }
 
 /// An inclusive range; either end may be open.
@@ -553,7 +621,7 @@ text = "Новый слой"
             other => panic!("unexpected {other:?}"),
         }
         let hint = lesson.task.steps[0].hint.as_ref().unwrap();
-        assert_eq!(hint.shapes, vec![Shape::Ellipse { rect: [0.4, 0.7, 0.3, 0.1] }]);
+        assert_eq!(hint.shapes, vec![Shape::Ellipse { rect: [0.4, 0.7, 0.3, 0.1], style: Style::default() }]);
     }
 
     #[test]
