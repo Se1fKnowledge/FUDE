@@ -94,8 +94,13 @@ pub struct GuideEvent {
 pub fn guide_play(app: AppHandle, state: State<'_, AppState>, id: String) -> AppResult<()> {
     let library = state.library();
     let entry = library.lesson(&id).ok_or_else(|| AppError::msg("урок не найден"))?;
-    let rel = entry.lesson.guide.script.clone().ok_or_else(|| AppError::msg("у урока нет анимированного гайда"))?;
-    let dir = entry.dir.clone();
+    play_guide(app, &state, &entry.lesson, entry.dir.clone())
+}
+
+/// Plays the guide of the lesson saved in `dir` (the studio's «Проиграть в PhotoCraft»).
+pub(crate) fn play_guide(app: AppHandle, state: &AppState, lesson: &fude_core::model::Lesson, dir: std::path::PathBuf) -> AppResult<()> {
+    let id = lesson.id.clone();
+    let rel = lesson.guide.script.clone().ok_or_else(|| AppError::msg("у урока нет анимированного гайда"))?;
     let script = guide::load(&dir.join(&rel))?;
     if guide::validate(&script, Some(&dir)).iter().any(|i| i.is_error()) {
         return Err(AppError::msg("сценарий гайда не прошёл проверку"));
@@ -117,11 +122,16 @@ pub fn guide_play(app: AppHandle, state: State<'_, AppState>, id: String) -> App
                 let editor = guard.as_mut().ok_or_else(|| AppError::msg("редактор не запущен"))?;
                 editor.calls(&script.setup())?;
             }
+            // A step without a caption keeps the one on screen (recorded steps have none).
+            let mut caption = String::new();
             for (i, step) in script.steps.iter().enumerate() {
                 if cancel.load(Ordering::SeqCst) {
                     return Ok(false);
                 }
-                event(&app, "step", i, step.caption.clone(), step.highlight.clone(), None);
+                if !step.caption.trim().is_empty() {
+                    caption.clone_from(&step.caption);
+                }
+                event(&app, "step", i, caption.clone(), step.highlight.clone(), None);
                 {
                     let mut guard = lock(&st.editor);
                     let editor = guard.as_mut().ok_or_else(|| AppError::msg("редактор закрыт"))?;
@@ -175,34 +185,59 @@ pub async fn practice_start(app: AppHandle, id: String) -> AppResult<PracticeSta
     // Starting the editor can take seconds: keep it off the main thread.
     tauri::async_runtime::spawn_blocking(move || {
         let state = app.state::<AppState>();
-        state.guide_cancel.store(true, Ordering::SeqCst);
         let library = state.library();
         let entry = library.lesson(&id).ok_or_else(|| AppError::msg("урок не найден"))?;
-        // Locks are taken practice → editor → db everywhere; here the old practice goes first.
-        *lock(&state.practice) = None;
-        let practice = {
-            let mut guard = state.editor_for(&entry.dir)?;
-            let editor = guard.as_mut().ok_or_else(|| AppError::msg("редактор не запущен"))?;
-            let db = lock(&state.db);
-            let attempt = db.start_attempt(&id, now())?;
-            db.set_stage(&id, "practice", now())?;
-            let practice = Practice::new(attempt, entry.lesson.clone(), &entry.dir, &state.attempts_dir())?;
-            practice.setup(editor)?;
-            practice
-        };
-        let attempt = practice.attempt;
-        let steps = entry
-            .lesson
-            .task
-            .steps
-            .iter()
-            .map(|s| StepView { id: s.id.clone(), text: s.text.clone(), has_hint: s.hint.is_some(), manual: s.checks.is_empty() })
-            .collect();
-        *lock(&state.practice) = Some(practice);
-        Ok(PracticeStart { attempt, steps })
+        start(&state, entry.lesson.clone(), &entry.dir, false)
     })
     .await
     .map_err(|e| AppError::msg(e.to_string()))?
+}
+
+/// The lesson in `dir` as the student will take it, from the studio: nothing is recorded as
+/// progress, and the lesson may still be a draft with errors.
+#[tauri::command]
+pub async fn practice_preview(app: AppHandle, dir: String) -> AppResult<PracticeStart> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let state = app.state::<AppState>();
+        let dir = crate::state::user_dir(&state, &dir)?;
+        let lesson = fude_core::model::load_lesson(&dir)?;
+        start(&state, lesson, &dir, true)
+    })
+    .await
+    .map_err(|e| AppError::msg(e.to_string()))?
+}
+
+pub(crate) fn start(state: &AppState, lesson: fude_core::model::Lesson, dir: &std::path::Path, preview: bool) -> AppResult<PracticeStart> {
+    state.guide_cancel.store(true, Ordering::SeqCst);
+    // Locks are taken practice → editor → db everywhere; here the old practice goes first.
+    *lock(&state.practice) = None;
+    let practice = {
+        let mut guard = state.editor_for(dir)?;
+        let editor = guard.as_mut().ok_or_else(|| AppError::msg("редактор не запущен"))?;
+        let db = lock(if preview { &state.scratch_db } else { &state.db });
+        let attempt = db.start_attempt(&lesson.id, now())?;
+        if !preview {
+            db.set_stage(&lesson.id, "practice", now())?;
+        }
+        let mut practice = Practice::new(attempt, lesson.clone(), dir, &state.attempts_dir())?;
+        practice.preview = preview;
+        practice.setup(editor)?;
+        practice
+    };
+    let attempt = practice.attempt;
+    let steps = lesson
+        .task
+        .steps
+        .iter()
+        .map(|s| StepView { id: s.id.clone(), text: s.text.clone(), has_hint: s.hint.is_some(), manual: s.checks.is_empty() })
+        .collect();
+    *lock(&state.practice) = Some(practice);
+    Ok(PracticeStart { attempt, steps })
+}
+
+/// The database a practice writes to: the scratch one for a studio preview.
+fn db_for<'a>(state: &'a AppState, p: &Practice) -> &'a std::sync::Mutex<crate::db::Db> {
+    if p.preview { &state.scratch_db } else { &state.db }
 }
 
 fn with_practice<T>(state: &AppState, f: impl FnOnce(&mut Practice, &mut crate::editor::Editor) -> AppResult<T>) -> AppResult<T> {
@@ -228,13 +263,17 @@ pub struct CheckResult {
 pub async fn practice_check(app: AppHandle) -> AppResult<CheckResult> {
     tauri::async_runtime::spawn_blocking(move || {
         let state = app.state::<AppState>();
+        let mut preview = false;
         let result = with_practice(&state, |p, e| {
-            let db = lock(&state.db);
+            preview = p.preview;
+            let db = lock(db_for(&state, p));
             let report = p.check(e, &db, now())?;
             Ok(CheckResult { report, hints: p.hints })
         })?;
         if result.report.finished {
-            refresh_achievements(&state)?;
+            if !preview {
+                refresh_achievements(&state)?;
+            }
             *lock(&state.practice) = None;
         }
         Ok(result)
@@ -248,7 +287,7 @@ pub async fn practice_hint(app: AppHandle) -> AppResult<HintReport> {
     tauri::async_runtime::spawn_blocking(move || {
         let state = app.state::<AppState>();
         with_practice(&state, |p, e| {
-            let db = lock(&state.db);
+            let db = lock(db_for(&state, p));
             p.hint(e, &db)
         })
     })

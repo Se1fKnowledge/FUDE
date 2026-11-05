@@ -49,6 +49,8 @@ pub struct Practice {
     started: Instant,
     hint_shown: bool,
     finished: bool,
+    /// An author trying the lesson from the studio: results go to a scratch database.
+    pub preview: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -91,6 +93,7 @@ impl Practice {
             started: Instant::now(),
             hint_shown: false,
             finished: false,
+            preview: false,
         })
     }
 

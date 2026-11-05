@@ -26,9 +26,13 @@ pub struct AppState {
     pub data: PathBuf,
     pub executable: Option<PathBuf>,
     pub db: Mutex<Db>,
+    /// Where previews from the studio keep their attempts, so they never count as progress.
+    pub scratch_db: Mutex<Db>,
     pub editor: Mutex<Option<Editor>>,
     pub practice: Mutex<Option<Practice>>,
     pub guide_cancel: Arc<AtomicBool>,
+    /// A guide being recorded in the editor.
+    pub recording: Mutex<Option<crate::author::Recorder>>,
     /// Where the editor's window goes: inside the FUDE window or on its own.
     pub layout: Mutex<Layout>,
 }

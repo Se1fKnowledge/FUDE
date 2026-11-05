@@ -4,6 +4,7 @@
 //! from `fude-core`; progress lives in SQLite (`db`, `progress`); the editor runs as its
 //! own process driven over its control channel (`editor`, `practice`, `play`).
 
+pub mod author;
 pub mod db;
 pub mod editor;
 pub mod error;
@@ -64,9 +65,11 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         data,
         executable: state::find_editor(),
         db: Mutex::new(db),
+        scratch_db: Mutex::new(db::Db::in_memory(learn::now())?),
         editor: Mutex::new(None),
         practice: Mutex::new(None),
         guide_cancel: Arc::new(AtomicBool::new(false)),
+        recording: Mutex::new(None),
         layout: Mutex::new(state::Layout::new(host)),
     });
     Ok(())
@@ -110,6 +113,7 @@ pub fn run() {
             play::guide_play,
             play::guide_stop,
             play::practice_start,
+            play::practice_preview,
             play::practice_check,
             play::practice_hint,
             play::practice_hide_hint,
@@ -130,6 +134,11 @@ pub fn run() {
             studio::package_inspect,
             studio::package_import,
             studio::library_problems,
+            author::studio_prove,
+            author::studio_hint_preview,
+            author::guide_record_start,
+            author::guide_record_stop,
+            author::guide_play_draft,
         ])
         .run(tauri::generate_context!());
     if let Err(e) = result {

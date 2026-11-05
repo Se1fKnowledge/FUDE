@@ -56,7 +56,7 @@ impl Client {
         loop {
             let mut reply = String::new();
             if self.reader.read_line(&mut reply)? == 0 {
-                return Err(AppError::msg("редактор закрыл соединение"));
+                return Err(std::io::Error::new(std::io::ErrorKind::UnexpectedEof, "редактор закрыл соединение").into());
             }
             let Ok(reply) = serde_json::from_str::<Value>(&reply) else { continue };
             if reply.get("id") != Some(id) {
@@ -69,6 +69,36 @@ impl Client {
             return Err(AppError::msg(format!("редактор: {error}")));
         }
     }
+}
+
+/// A channel that reconnects once when the editor has dropped the connection (PhotoCraft closes
+/// connections that stay idle, e.g. between showing a hint and recording a guide).
+pub struct Link {
+    client: Client,
+    addr: SocketAddr,
+    token: String,
+}
+
+impl Link {
+    pub fn connect(addr: SocketAddr, token: &str) -> AppResult<Link> {
+        Ok(Link { client: Client::connect(addr, token)?, addr, token: token.to_string() })
+    }
+
+    pub fn call(&mut self, call: &Call) -> AppResult<Value> {
+        match self.client.call(call) {
+            Err(e) if dropped(&e) => {
+                self.client = Client::connect(self.addr, &self.token)?;
+                self.client.call(call)
+            }
+            other => other,
+        }
+    }
+}
+
+/// The connection is gone, so the request never ran and may be sent again.
+fn dropped(e: &AppError) -> bool {
+    use std::io::ErrorKind::{BrokenPipe, ConnectionAborted, ConnectionReset, NotConnected, UnexpectedEof};
+    matches!(e, AppError::Io(io) if matches!(io.kind(), ConnectionAborted | ConnectionReset | BrokenPipe | NotConnected | UnexpectedEof))
 }
 
 /// What the editor said about its control channel on its standard error.
@@ -117,7 +147,7 @@ pub fn find_executable(beside: Option<&Path>) -> Option<PathBuf> {
 /// A running editor.
 pub struct Editor {
     child: Child,
-    client: Client,
+    client: Link,
     pub read_root: PathBuf,
     pub write_root: PathBuf,
 }
@@ -189,7 +219,7 @@ impl Editor {
         // The channel is listening; the first connection can still race the editor's startup.
         let mut last = None;
         for _ in 0..25 {
-            match Client::connect(addr, &token) {
+            match Link::connect(addr, &token) {
                 Ok(client) => return Ok(Editor { child, client, read_root: read_root.to_path_buf(), write_root: write_root.to_path_buf() }),
                 Err(e) => {
                     last = Some(e);
@@ -216,13 +246,13 @@ impl Editor {
 
     pub fn calls(&mut self, calls: &[Call]) -> AppResult<()> {
         for call in calls {
-            self.client.call(call)?;
+            self.call(call)?;
         }
         Ok(())
     }
 
     pub fn inspect(&mut self) -> AppResult<Value> {
-        self.client.call(&fude_core::control::inspect())
+        self.call(&fude_core::control::inspect())
     }
 }
 
@@ -290,6 +320,33 @@ pub mod tests {
         let err = client.call(&Call::engine("file.save", json!({}))).unwrap_err().to_string();
         assert_eq!(err, "редактор: refused");
         assert_eq!(log.lock().unwrap().len(), 2);
+    }
+
+    #[test]
+    fn a_dropped_connection_is_reopened_once() {
+        let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).unwrap();
+        let addr = listener.local_addr().unwrap();
+        let served = std::thread::spawn(move || {
+            // First connection: authenticate, then hang up instead of answering, like an
+            // editor that closed an idle channel. Second: answer normally.
+            for round in 0..2 {
+                let (stream, _) = listener.accept().unwrap();
+                let mut writer = stream.try_clone().unwrap();
+                let mut lines = BufReader::new(stream).lines();
+                let auth: Value = serde_json::from_str(&lines.next().unwrap().unwrap()).unwrap();
+                writeln!(writer, "{}", json!({"id": auth["id"], "ok": true, "result": {}})).unwrap();
+                let req: Value = serde_json::from_str(&lines.next().unwrap().unwrap()).unwrap();
+                if round == 1 {
+                    writeln!(writer, "{}", json!({"id": req["id"], "ok": true, "result": {"round": round}})).unwrap();
+                }
+            }
+        });
+        let mut link = Link::connect(addr, "t").unwrap();
+        let reply = link.call(&Call::new("ui.inspect", json!({}))).unwrap();
+        assert_eq!(reply["round"], 1, "answered on the new connection");
+        served.join().unwrap();
+        assert!(dropped(&std::io::Error::from(std::io::ErrorKind::ConnectionAborted).into()));
+        assert!(!dropped(&AppError::msg("редактор: нет такого слоя")), "the editor's own refusals are not retried");
     }
 
     #[test]
