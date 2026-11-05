@@ -299,10 +299,10 @@ pub fn home(state: State<'_, AppState>) -> AppResult<Home> {
     });
     let mut recommended = Vec::new();
     for cat in &c.library.categories {
-        if let Some(e) = cat.lessons.iter().find(|e| !c.passed.contains(&e.lesson.id) && e.lesson.requires.iter().all(|r| c.passed.contains(r))) {
-            if current.as_ref().is_none_or(|cur| cur.id != e.lesson.id) {
-                recommended.push(card(&c, e));
-            }
+        if let Some(e) = cat.lessons.iter().find(|e| !c.passed.contains(&e.lesson.id) && e.lesson.requires.iter().all(|r| c.passed.contains(r)))
+            && current.as_ref().is_none_or(|cur| cur.id != e.lesson.id)
+        {
+            recommended.push(card(&c, e));
         }
     }
     recommended.truncate(3);

@@ -3,7 +3,7 @@
 Версия формата: **1**. Читает и проверяет его ядро [`fude-core`](../core/); проверить папку можно командой:
 
 ```bash
-cargo run -p fude-core --bin fude -- validate lessons
+cargo run -p fude-core --bin fude-cli -- validate lessons
 ```
 
 ## Библиотека
@@ -223,22 +223,22 @@ categories = ["watercolor"]
 
 Экспорт собирает выбранную категорию или отдельные уроки вместе с `category.toml` их категории.
 
-## CLI `fude`
+## CLI `fude-cli`
 
 ```bash
-cargo run -p fude-core --bin fude -- help
+cargo run -p fude-core --bin fude-cli -- help
 ```
 
 | Команда | Что делает |
 |---|---|
-| `fude validate <корень>...` | проверить папки уроков, вывести каталог и все ошибки |
-| `fude pack <папка категории> <файл.fude> [--title T] [--lesson <папка урока>]...` | собрать пакет из категории или отдельных уроков |
-| `fude info <файл.fude>` | показать, что в пакете, и проверить его |
-| `fude import <файл.fude> <свои уроки> [--builtin <корень>] [--replace]` | импортировать пакет |
-| `fude new-category <свои уроки> <название> [--kanji K] [--accent ai\|shu\|kaki\|kin]` | создать категорию |
-| `fude new-lesson <папка категории> <название> [--difficulty 1..5]` | создать урок по шаблону |
-| `fude guide <папка урока>` | вывести команды гайда построчно в JSON — их можно отправить в канал PhotoCraft |
-| `fude assess <папка урока> <inspect.json> [холст.png] [--confirm <шаг>]...` | проверить задание по сохранённому ответу `ui.inspect` и снимку холста |
+| `fude-cli validate <корень>...` | проверить папки уроков, вывести каталог и все ошибки |
+| `fude-cli pack <папка категории> <файл.fude> [--title T] [--lesson <папка урока>]...` | собрать пакет из категории или отдельных уроков |
+| `fude-cli info <файл.fude>` | показать, что в пакете, и проверить его |
+| `fude-cli import <файл.fude> <свои уроки> [--builtin <корень>] [--replace]` | импортировать пакет |
+| `fude-cli new-category <свои уроки> <название> [--kanji K] [--accent ai\|shu\|kaki\|kin]` | создать категорию |
+| `fude-cli new-lesson <папка категории> <название> [--difficulty 1..5]` | создать урок по шаблону |
+| `fude-cli guide <папка урока>` | вывести команды гайда построчно в JSON — их можно отправить в канал PhotoCraft |
+| `fude-cli assess <папка урока> <inspect.json> [холст.png] [--confirm <шаг>]...` | проверить задание по сохранённому ответу `ui.inspect` и снимку холста |
 
 ## Встроенные уроки и их картинки
 

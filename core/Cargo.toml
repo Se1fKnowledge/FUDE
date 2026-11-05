@@ -11,8 +11,8 @@ rust-version.workspace = true
 name = "fude_core"
 
 [[bin]]
-name = "fude"
-path = "src/bin/fude.rs"
+name = "fude-cli"
+path = "src/bin/fude-cli.rs"
 
 [dependencies]
 image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp"] }

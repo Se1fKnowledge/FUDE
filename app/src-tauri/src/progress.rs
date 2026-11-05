@@ -235,10 +235,10 @@ pub fn weekly_xp(attempts: &[Attempt], today: NaiveDate, weeks: u32) -> Vec<(Nai
     for a in attempts {
         let Some(f) = a.finished else { continue };
         let d = f.date();
-        if let Some(slot) = out.iter_mut().rev().find(|(start, _)| d >= *start) {
-            if d < slot.0 + Duration::weeks(1) {
-                slot.1 += a.xp;
-            }
+        if let Some(slot) = out.iter_mut().rev().find(|(start, _)| d >= *start)
+            && d < slot.0 + Duration::weeks(1)
+        {
+            slot.1 += a.xp;
         }
     }
     out

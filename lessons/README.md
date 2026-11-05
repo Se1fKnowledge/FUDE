@@ -3,7 +3,7 @@
 Две категории по шесть уроков. Формат — [docs/lesson-format.md](../docs/lesson-format.md). Проверить:
 
 ```bash
-cargo run -p fude-core --bin fude -- validate lessons
+cargo run -p fude-core --bin fude-cli -- validate lessons
 ```
 
 ## 基 Основы интерфейса (`basics`)

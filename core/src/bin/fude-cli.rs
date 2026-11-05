@@ -11,23 +11,23 @@ use fude_core::model::{Accent, load_lesson};
 use fude_core::package::{self, ExportItem, ImportOptions, Limits};
 use fude_core::{authoring, guide};
 
-const HELP: &str = "fude — уроки FUDE из командной строки
+const HELP: &str = "fude-cli — уроки FUDE из командной строки
 
-  fude validate <корень>...                    проверить папки уроков
-  fude pack <папка категории> <файл.fude> [--title T] [--lesson <папка урока>]...
-  fude info <файл.fude>                        что лежит в пакете
-  fude import <файл.fude> <свои уроки> [--builtin <корень>] [--replace]
-  fude new-category <свои уроки> <название> [--kanji K] [--accent ai|shu|kaki|kin]
-  fude new-lesson <папка категории> <название> [--difficulty 1..5]
-  fude guide <папка урока>                     команды гайда в JSON (по строке)
-  fude assess <папка урока> <inspect.json> [холст.png] [--confirm <шаг>]...";
+  fude-cli validate <корень>...                    проверить папки уроков
+  fude-cli pack <папка категории> <файл.fude> [--title T] [--lesson <папка урока>]...
+  fude-cli info <файл.fude>                        что лежит в пакете
+  fude-cli import <файл.fude> <свои уроки> [--builtin <корень>] [--replace]
+  fude-cli new-category <свои уроки> <название> [--kanji K] [--accent ai|shu|kaki|kin]
+  fude-cli new-lesson <папка категории> <название> [--difficulty 1..5]
+  fude-cli guide <папка урока>                     команды гайда в JSON (по строке)
+  fude-cli assess <папка урока> <inspect.json> [холст.png] [--confirm <шаг>]...";
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
     match run(&args) {
         Ok(code) => code,
         Err(message) => {
-            eprintln!("fude: {message}");
+            eprintln!("fude-cli: {message}");
             ExitCode::from(2)
         }
     }

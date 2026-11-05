@@ -9,7 +9,7 @@ exclude = ["photocraft"]
 edition = "2024"
 license = "MIT"
 repository = "https://github.com/Se1fKnowledge/FUDE"
-rust-version = "1.85"
+rust-version = "1.99"
 
 [workspace.lints.rust]
 unsafe_code = "deny"
