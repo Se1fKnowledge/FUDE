@@ -5,7 +5,7 @@
 | Что | Зачем | Как |
 |---|---|---|
 | Visual Studio 2022 Build Tools, компонент «Разработка классических приложений на C++» | компоновщик MSVC для Rust | `winget install Microsoft.VisualStudio.2022.BuildTools --override "--add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"` |
-| Rust 1.95 или новее (через rustup) | компилятор | `winget install Rustlang.Rustup`, затем `rustup default stable` |
+| Rust 1.99 или новее (через rustup; FUDE требует 1.99, редактор — 1.95) | компилятор | `winget install Rustlang.Rustup`, затем `rustup default stable` |
 | Git | исходники | `winget install Git.Git` |
 
 Проверка:
@@ -45,8 +45,8 @@ cargo run --release -p photocraft
 Собственный код FUDE — отдельное рабочее пространство Cargo в корне репозитория (`Cargo.toml`); `photocraft/` в него не входит и собирается своим. Из корня:
 
 ```bash
-cargo build -p fude-core                         # библиотека и CLI fude
-cargo run -p fude-core --bin fude -- help        # команды CLI
+cargo build -p fude-core                         # библиотека и CLI fude-cli
+cargo run -p fude-core --bin fude-cli -- help        # команды CLI
 cargo run -p fude-core --example lesson_art -- lessons   # перерисовать картинки и гайды встроенных уроков
 ```
 
@@ -59,7 +59,7 @@ cd photocraft
 cargo run --release -p photocraft -- --control 7878 --control-token-file ../target/control.token --automation-read-root ../lessons/light/03-cast-shadow --automation-write-root ../target/attempt
 ```
 
-Подключитесь к `127.0.0.1:7878`. Первой строкой отправьте `{"id":"auth","method":"auth","params":{"token":"<содержимое control.token>"}}`, затем — строки, которые печатает `fude guide lessons/light/03-cast-shadow`. На каждую строку редактор отвечает строкой с тем же `id`.
+Подключитесь к `127.0.0.1:7878`. Первой строкой отправьте `{"id":"auth","method":"auth","params":{"token":"<содержимое control.token>"}}`, затем — строки, которые печатает `fude-cli guide lessons/light/03-cast-shadow`. На каждую строку редактор отвечает строкой с тем же `id`.
 
 ## Снимок интерфейса без окна
 

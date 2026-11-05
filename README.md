@@ -36,7 +36,7 @@
 | Редактор без связи с репозиторием PhotoCraft: без проверки обновлений и сетевых запросов, ссылки только на FUDE | сделано, тесты | [docs/editor.md](docs/editor.md#3-без-связи-с-репозиторием-photocraft) |
 | Редактор в окне FUDE или отдельным окном (Windows) | работает | [docs/app.md](docs/app.md#редактор-в-окне-fude-или-отдельно) |
 | Формат уроков и пакетов `.fude` | готов | [docs/lesson-format.md](docs/lesson-format.md) |
-| Ядро уроков `fude-core`: библиотека, проверка заданий, гайды, подсказки, импорт и экспорт, редактор уроков; CLI `fude` | готово, 93 теста | [core/](core/), [docs/architecture.md](docs/architecture.md) |
+| Ядро уроков `fude-core`: библиотека, проверка заданий, гайды, подсказки, импорт и экспорт, редактор уроков; CLI `fude-cli` | готово, 93 теста | [core/](core/), [docs/architecture.md](docs/architecture.md) |
 | Встроенные уроки: «Основы интерфейса» и «Свет и тень», 12 уроков | готовы | [lessons/](lessons/) |
 | Приложение: Tauri + SvelteKit, все экраны макета, практика в PhotoCraft с автопроверкой и подсказками, прогресс в SQLite, мастерская уроков | работает, 24 + 24 теста | [app/](app/), [docs/app.md](docs/app.md) |
 
@@ -49,7 +49,7 @@ FUDE/
 ├── PRODUCT.md         продукт: пользователи, цели, функции, открытые вопросы
 ├── CHANGELOG.md       что менялось
 ├── Cargo.toml         рабочее пространство Rust для собственного кода FUDE
-├── core/              ядро уроков fude-core и CLI fude
+├── core/              ядро уроков fude-core и CLI fude-cli
 ├── app/               приложение: интерфейс (SvelteKit) и бэкенд (Tauri, src-tauri/)
 ├── lessons/           встроенные уроки: basics, light
 ├── docs/              документация FUDE
@@ -68,7 +68,7 @@ FUDE/
 
 ## Быстрый старт
 
-Нужны Rust 1.95+, Visual Studio Build Tools с компонентом C++ и Node.js 20+ (подробно — в [docs/build.md](docs/build.md) и [docs/app.md](docs/app.md)).
+Нужны Rust 1.99+, Visual Studio Build Tools с компонентом C++ и Node.js 20+ (подробно — в [docs/build.md](docs/build.md) и [docs/app.md](docs/app.md)).
 
 ```bash
 cd photocraft
@@ -78,6 +78,8 @@ npm install
 npm run tauri dev                     # приложение FUDE
 ```
 
+Готовый установщик для Windows собирает GitHub Actions ([`build.yml`](.github/workflows/build.yml)): на каждый push в `main`, по тегу `v*` (тогда ещё и релиз) или вручную. Файлы лежат в артефакте `FUDE-windows-x64` на странице запуска: установщики `.exe` и `.msi` и переносная `.zip`. Тесты и clippy идут на каждый push ([`ci.yml`](.github/workflows/ci.yml)). Подробности — в [docs/app.md](docs/app.md#сборка-на-github).
+
 Запускать кликом: [`app/run-dev.cmd`](app/run-dev.cmd) делает то же самое в свёрнутой консоли (и `npm install`, если нужно). На него удобно сделать ярлык с иконкой `app/src-tauri/icons/icon.ico`; закрытие окна FUDE останавливает всё.
 
 При первом запуске FUDE спросит имя и цель дня. Практика открывает PhotoCraft в теме FUDE Тушь прямо в окне FUDE; кнопка «Отдельное окно» выносит его в своё окно, «Встроить в окно FUDE» — возвращает. Светлая тема FUDE Васи переключается в меню редактора **Window › Theme › Light Theme**.
@@ -85,7 +87,7 @@ npm run tauri dev                     # приложение FUDE
 Проверить встроенные уроки и запустить тесты ядра (из корня репозитория):
 
 ```bash
-cargo run -p fude-core --bin fude -- validate lessons
+cargo run -p fude-core --bin fude-cli -- validate lessons
 cargo test -p fude-core
 ```
 
