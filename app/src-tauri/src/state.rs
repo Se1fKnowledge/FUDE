@@ -179,4 +179,22 @@ mod tests {
         assert_eq!(picture(dir.path(), "notes.md"), None);
         assert_eq!(mime("x.JPG"), "image/jpeg");
     }
+
+    #[test]
+    fn picture_types_follow_the_extension() {
+        assert_eq!(mime("a.png"), "image/png");
+        assert_eq!(mime("dir/b.jpeg"), "image/jpeg");
+        assert_eq!(mime("c.WEBP"), "image/webp");
+        assert_eq!(mime("d.psd"), "application/octet-stream");
+        assert_eq!(mime("no-extension"), "application/octet-stream");
+        assert_eq!(data_url("image/png", &[]), "data:image/png;base64,");
+    }
+
+    #[test]
+    fn pictures_in_subfolders_are_found() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(dir.path().join("media")).unwrap();
+        std::fs::write(dir.path().join("media").join("ref.jpg"), [0xFFu8, 0xD8]).unwrap();
+        assert_eq!(picture(dir.path(), "media/ref.jpg").as_deref(), Some("data:image/jpeg;base64,/9g="));
+    }
 }

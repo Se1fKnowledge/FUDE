@@ -303,4 +303,79 @@ mod tests {
         assert_eq!(db.profile().unwrap().created, "2026-10-01T09:00:00", "created is kept");
         assert_eq!(db.attempts().unwrap().len(), 1);
     }
+
+    #[test]
+    fn times_round_trip_and_garbage_is_rejected() {
+        assert_eq!(fmt(at(7, 15)), "2026-10-07T15:00:00");
+        assert_eq!(parse(&fmt(at(7, 15))), Some(at(7, 15)));
+        assert_eq!(parse("вчера"), None);
+        assert_eq!(parse("2026-10-07"), None);
+    }
+
+    #[test]
+    fn the_daily_goal_is_kept_between_one_and_ten() {
+        let db = Db::in_memory(at(1, 9)).unwrap();
+        db.set_profile("Ира", 0).unwrap();
+        assert_eq!(db.profile().unwrap().daily_goal, 1);
+        db.set_profile("Ира", 4).unwrap();
+        assert_eq!(db.profile().unwrap().daily_goal, 4);
+    }
+
+    #[test]
+    fn an_unfinished_attempt_has_no_result_yet() {
+        let db = Db::in_memory(at(1, 9)).unwrap();
+        let id = db.start_attempt("tools.first", at(2, 9)).unwrap();
+        let a = db.attempt(id).unwrap().unwrap();
+        assert_eq!(a.finished, None);
+        assert!(!a.passed);
+        assert_eq!((a.hints, a.seconds, a.xp, a.similarity), (0, 0, 0, None));
+        assert!(db.steps(id).unwrap().is_empty());
+        assert_eq!(db.attempt(id + 100).unwrap(), None, "unknown attempts are absent");
+    }
+
+    #[test]
+    fn attempts_come_in_the_order_they_started() {
+        let db = Db::in_memory(at(1, 9)).unwrap();
+        let late = db.start_attempt("b", at(5, 9)).unwrap();
+        let early = db.start_attempt("a", at(2, 9)).unwrap();
+        let same = db.start_attempt("c", at(5, 9)).unwrap();
+        let ids: Vec<i64> = db.attempts().unwrap().iter().map(|a| a.id).collect();
+        assert_eq!(ids, vec![early, late, same]);
+    }
+
+    #[test]
+    fn steps_belong_to_their_attempt() {
+        let db = Db::in_memory(at(1, 9)).unwrap();
+        let one = db.start_attempt("a", at(2, 9)).unwrap();
+        let two = db.start_attempt("a", at(3, 9)).unwrap();
+        db.record_step(one, "layer", false, at(2, 9)).unwrap();
+        db.record_step(two, "layer", true, at(3, 9)).unwrap();
+        assert_eq!(db.steps(one).unwrap(), vec![("layer".to_string(), false)]);
+        assert_eq!(db.steps(two).unwrap(), vec![("layer".to_string(), true)]);
+    }
+
+    #[test]
+    fn the_journal_is_newest_first_and_limited() {
+        let db = Db::in_memory(at(1, 9)).unwrap();
+        for day in 1..=5 {
+            db.log(at(day, 9), "lesson", &format!("день {day}"), "").unwrap();
+        }
+        db.log(at(5, 9), "pass", "тот же час", "").unwrap();
+        let j = db.journal(3).unwrap();
+        let titles: Vec<&str> = j.iter().map(|e| e.title.as_str()).collect();
+        assert_eq!(titles, vec!["тот же час", "день 5", "день 4"], "ties go to the later entry");
+        assert_eq!(db.journal(0).unwrap().len(), 0);
+    }
+
+    #[test]
+    fn clearing_a_missing_stage_is_harmless() {
+        let db = Db::in_memory(at(1, 9)).unwrap();
+        db.clear_stage("nothing").unwrap();
+        db.set_stage("a", "theory", at(2, 9)).unwrap();
+        db.set_stage("a", "guide", at(2, 10)).unwrap();
+        let s = db.latest_stage().unwrap().unwrap();
+        assert_eq!((s.lesson.as_str(), s.stage.as_str(), s.at.as_str()), ("a", "guide", "2026-10-02T10:00:00"));
+        db.clear_stage("a").unwrap();
+        assert!(db.latest_stage().unwrap().is_none());
+    }
 }
