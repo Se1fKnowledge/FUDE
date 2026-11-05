@@ -1,36 +1,46 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
+	import { beforeNavigate, goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { convertFileSrc } from '@tauri-apps/api/core';
 	import { open } from '@tauri-apps/plugin-dialog';
-	import { api, errorText, type DraftDetail, type Issue, type Lesson, type Skill, type Step } from '#lib/api.ts';
-	import { describe, stepId } from '#lib/checks.ts';
-	import CheckEditor from '#lib/components/CheckEditor.svelte';
+	import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+	import { api, errorText, type CheckProof, type DraftDetail, type GuideEvent, type GuideScript, type Issue, type Lesson, type LessonCard, type RecordTick, type Region, type Shape, type Step } from '#lib/api.ts';
+	import { defaultCheck, stepId } from '#lib/checks.ts';
 	import Icon from '#lib/components/Icon.svelte';
-	import Markdown from '#lib/components/Markdown.svelte';
-	import RegionPicker from '#lib/components/RegionPicker.svelte';
-	import { defaultCheck } from '#lib/checks.ts';
+	import LessonTile from '#lib/components/LessonTile.svelte';
+	import { editorSlot, preferEmbedded } from '#lib/editor-slot.ts';
 	import { count } from '#lib/format.ts';
+	import StudioCanvas, { type CanvasTool, type DemoStroke, type RegionMark } from '#lib/studio/StudioCanvas.svelte';
+	import GuidePanel from '#lib/studio/GuidePanel.svelte';
+	import GuideTimeline from '#lib/studio/GuideTimeline.svelte';
+	import InterfaceMap from '#lib/studio/InterfaceMap.svelte';
+	import LessonTexts, { type LessonSection } from '#lib/studio/LessonTexts.svelte';
+	import TaskPanel, { type TaskTab } from '#lib/studio/TaskPanel.svelte';
+	import { captionAt, emptyScript, frameAt, insertStep, isStroke, parseScript, removeStep, strokePoints, strokeStep, times, type BrushSettings } from '#lib/studio/timeline.ts';
 
 	const dir = $derived(page.url.searchParams.get('dir') ?? '');
 
+	// ---------------------------------------------------------------- the draft
 	let draft = $state<DraftDetail | null>(null);
 	let lesson = $state<Lesson | null>(null);
 	let theory = $state('');
-	let guide = $state('');
+	let script = $state<GuideScript>({ format: 1, steps: [] });
 	let issues = $state<Issue[]>([]);
 	let taskImage = $state<string | null>(null);
 	let referenceImage = $state<string | null>(null);
-	let section = $state<'about' | 'theory' | 'guide' | 'quiz' | 'task'>('about');
-	let preview = $state(false);
-	let saving = $state(false);
-	let saved = $state('');
+	let size = $state({ w: 1200, h: 800 });
 	let error = $state('');
-	let openStep = $state(0);
+	let saving = $state(false);
+	let savedAt = $state('');
+	let dirty = $state(false);
+	let loaded = false;
+
+	type Mode = 'lesson' | 'guide' | 'task';
+	let mode = $state<Mode>('task');
+	let section = $state<LessonSection>('theory');
 
 	async function load() {
 		try {
-			// Clone the plain reply before Svelte makes it reactive.
 			const d = await api.draft(dir);
 			const editable = structuredClone(d.lesson);
 			editable.quiz ??= [];
@@ -38,44 +48,77 @@
 			draft = d;
 			lesson = editable;
 			theory = d.theory;
-			guide = d.guide ?? '';
+			script = parseScript(d.guide) ?? emptyScript(editable.task);
 			issues = d.issues;
 			taskImage = d.taskImage;
 			referenceImage = d.referenceImage;
+			await measure();
+			if (!editable.task.steps.length) mode = 'lesson';
+			loaded = true;
 		} catch (e) {
 			error = errorText(e);
 		}
 	}
 
-	onMount(load);
+	/** The picture's size in pixels: what checks, ghosts and strokes are measured in. */
+	async function measure() {
+		if (lesson?.task.canvas) {
+			size = { w: lesson.task.canvas.width, h: lesson.task.canvas.height };
+		} else if (taskImage) {
+			const img = new Image();
+			img.src = taskImage;
+			await img.decode().catch(() => {});
+			if (img.naturalWidth) size = { w: img.naturalWidth, h: img.naturalHeight };
+		}
+	}
 
-	async function saveAll() {
-		if (!lesson) return;
+	$effect(() => {
+		// Any edit after loading marks the draft unsaved.
+		void JSON.stringify([lesson, theory, script]);
+		if (loaded) dirty = true;
+	});
+
+	function cleanLesson(): Lesson {
+		const clean = $state.snapshot(lesson) as Lesson;
+		if (!clean.requires?.length) delete clean.requires;
+		if (!clean.quiz?.length) delete clean.quiz;
+		for (const s of clean.task.steps) {
+			if (s.hint && !s.hint.text.trim() && !s.hint.target && !s.hint.shapes?.length) delete s.hint;
+			if (s.hint && !s.hint.shapes?.length) delete s.hint.shapes;
+		}
+		return clean;
+	}
+
+	async function save(): Promise<boolean> {
+		if (!lesson || saving) return false;
 		saving = true;
 		error = '';
 		try {
-			const clean = $state.snapshot(lesson) as Lesson;
-			if (!clean.requires?.length) delete clean.requires;
-			if (!clean.quiz?.length) delete clean.quiz;
-			issues = await api.draftSave(dir, clean, theory, guide.trim() ? guide : lesson.guide.script ? '' : null);
-			saved = issues.some((i) => i.severity === 'error') ? 'Сохранено как черновик: исправьте ошибки, чтобы урок попал в каталог.' : 'Сохранено. Урок в каталоге.';
-			draft = await api.draft(dir);
+			const s = $state.snapshot(script) as GuideScript;
+			const guideText = s.steps.length ? JSON.stringify(s, null, 2) : lesson.guide.script ? '' : null;
+			issues = await api.draftSave(dir, cleanLesson(), theory, guideText);
+			if (!s.steps.length) delete lesson.guide.script;
+			else lesson.guide.script ??= 'guide.json';
+			dirty = false;
+			savedAt = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+			return true;
 		} catch (e) {
 			error = errorText(e);
+			return false;
 		} finally {
 			saving = false;
+			queueMicrotask(() => (dirty = false));
 		}
 	}
 
-	async function attach(kind: 'video' | 'image', target: 'video' | 'open' | 'reference' | 'poster') {
+	async function attach(target: 'open' | 'reference' | 'video') {
 		if (!lesson) return;
-		const filters = kind === 'video' ? [{ name: 'Видео', extensions: ['mp4', 'webm'] }] : [{ name: 'Картинка', extensions: ['png', 'jpg', 'jpeg', 'webp'] }];
-		const source = await open({ multiple: false, filters });
+		const video = target === 'video';
+		const source = await open({ multiple: false, filters: [video ? { name: 'Видео', extensions: ['mp4', 'webm'] } : { name: 'Картинка', extensions: ['png', 'jpg', 'jpeg', 'webp'] }] });
 		if (typeof source !== 'string') return;
 		try {
-			const rel = await api.attach(dir, kind, source);
+			const rel = await api.attach(dir, video ? 'video' : 'image', source);
 			if (target === 'video') lesson.guide.video = rel;
-			if (target === 'poster') lesson.guide.poster = rel;
 			if (target === 'reference') {
 				lesson.task.reference = rel;
 				referenceImage = await api.picture(dir, rel);
@@ -84,6 +127,8 @@
 				lesson.task.open = rel;
 				delete lesson.task.canvas;
 				taskImage = await api.picture(dir, rel);
+				if (!script.steps.length) script = emptyScript(lesson.task);
+				await measure();
 			}
 		} catch (e) {
 			error = errorText(e);
@@ -95,363 +140,678 @@
 		delete lesson.task.open;
 		lesson.task.canvas = { width: 1200, height: 800, background: '#FFFFFF' };
 		taskImage = null;
+		measure();
+	}
+
+	// ---------------------------------------------------------------- task mode
+	let stepIndex = $state(0);
+	let tab = $state<TaskTab>('hint');
+	let tool = $state<CanvasTool>('select');
+	let selectedShape = $state(-1);
+	let selectedRegion = $state<string | null>(null);
+	let showOthers = $state(false);
+	let showRegions = $state(true);
+	let showHints = $state(true);
+	let refOpacity = $state(0);
+	let proofs = $state<CheckProof[]>([]);
+	let mapFor = $state<'hint' | 'guide' | null>(null);
+
+	const step = $derived<Step | null>(lesson?.task.steps[stepIndex] ?? null);
+	const REGION_COLORS = ['#2F5D8C', '#E8893B', '#C29A4E', '#6B7FA3', '#8F4E16'];
+
+	/** Letters and colours of the regions of each check of the step: A, B, C… */
+	const regionMarks = $derived.by(() => {
+		const marks: (RegionMark & { check: number; field: 'region' | 'than' })[] = [];
+		step?.checks.forEach((c, ci) => {
+			const add = (field: 'region' | 'than', region: Region, name: string) => {
+				const n = marks.length;
+				marks.push({ key: `${ci}:${field}`, label: String.fromCharCode(65 + n), region, color: REGION_COLORS[n % REGION_COLORS.length], name, check: ci, field });
+			};
+			if ('region' in c && c.region) add('region', c.region, c.kind === 'darker' ? 'темнее' : 'проверка');
+			if (c.kind === 'darker') add('than', c.than, 'светлее');
+		});
+		return marks;
+	});
+	const lettersOf = (ci: number) => {
+		const m = regionMarks.filter((r) => r.check === ci);
+		return { letters: m.map((r) => r.label), colors: m.map((r) => r.color), keys: m.map((r) => r.key) };
+	};
+
+	function setShapes(shapes: Shape[]) {
+		if (!lesson || !step) return;
+		const s = lesson.task.steps[stepIndex];
+		s.hint = { ...(s.hint ?? { text: '' }), shapes };
+		tab = 'hint';
+	}
+
+	function setRegion(key: string, region: Region) {
+		const m = regionMarks.find((r) => r.key === key);
+		if (!lesson || !m) return;
+		const c = lesson.task.steps[stepIndex].checks[m.check] as Record<string, unknown>;
+		c[m.field] = region;
+	}
+
+	function drawRegion(region: Region) {
+		if (!lesson) return;
+		const s = lesson.task.steps[stepIndex];
+		if (selectedRegion) {
+			setRegion(selectedRegion, region);
+		} else {
+			s.checks.push({ ...defaultCheck('coverage'), region } as Step['checks'][number]);
+			selectedRegion = `${s.checks.length - 1}:region`;
+		}
+		tab = 'checks';
+		tool = 'select';
 	}
 
 	function addStep() {
 		if (!lesson) return;
-		const step: Step = { id: stepId(lesson.task.steps.map((s) => s.id)), text: '', checks: [defaultCheck('tool')] };
-		lesson.task.steps.push(step);
-		openStep = lesson.task.steps.length - 1;
+		lesson.task.steps.push({ id: stepId(lesson.task.steps.map((s) => s.id)), text: '', checks: [] });
+		stepIndex = lesson.task.steps.length - 1;
+		tab = 'text';
 	}
 
-	function moveStep(i: number, by: number) {
+	function moveTaskStep(by: number) {
 		if (!lesson) return;
 		const steps = lesson.task.steps;
-		const j = i + by;
+		const j = stepIndex + by;
 		if (j < 0 || j >= steps.length) return;
-		[steps[i], steps[j]] = [steps[j], steps[i]];
-		openStep = j;
+		[steps[stepIndex], steps[j]] = [steps[j], steps[stepIndex]];
+		stepIndex = j;
 	}
 
-	function toggleSkill(s: Skill) {
+	function removeTaskStep() {
 		if (!lesson) return;
-		lesson.skills = lesson.skills.includes(s) ? lesson.skills.filter((x) => x !== s) : [...lesson.skills, s];
+		lesson.task.steps.splice(stepIndex, 1);
+		stepIndex = Math.max(0, Math.min(stepIndex, lesson.task.steps.length - 1));
 	}
 
-	const SKILLS: [Skill, string][] = [
-		['tools', 'Инструменты'],
-		['line', 'Линия'],
-		['form', 'Форма'],
-		['light', 'Свет и тень'],
-		['color', 'Цвет'],
-		['composition', 'Композиция']
-	];
-	const SECTIONS = [
-		['about', 'Описание'],
-		['theory', 'Теория'],
-		['guide', 'Гайд и видео'],
-		['quiz', 'Вопросы'],
-		['task', 'Задание']
-	] as const;
-	const aspect = $derived(lesson?.task.canvas ? lesson.task.canvas.width / lesson.task.canvas.height : 1.5);
+	// Live check: re-proved shortly after the checks or pictures change.
+	let proveTimer: ReturnType<typeof setTimeout> | null = null;
+	$effect(() => {
+		if (!lesson) return;
+		const snapshot = JSON.stringify(lesson.task);
+		void snapshot;
+		if (proveTimer) clearTimeout(proveTimer);
+		proveTimer = setTimeout(async () => {
+			try {
+				proofs = await api.prove(dir, cleanLesson());
+			} catch {
+				proofs = [];
+			}
+		}, 500);
+	});
+
+	// ---------------------------------------------------------------- guide mode
+	let guideStep = $state(-1);
+	let playhead = $state(0);
+	let playing = $state(false);
+	let guideTool = $state<CanvasTool>('select');
+	let brush = $state<BrushSettings>({ size: 40, hardness: 0.2, opacity: 0.5, color: '#3B3A40' });
+	let raf = 0;
+	const total = $derived(times(script.steps).total);
+
+	function play() {
+		if (playing) {
+			playing = false;
+			cancelAnimationFrame(raf);
+			return;
+		}
+		if (playhead >= total) playhead = 0;
+		playing = true;
+		let last = performance.now();
+		const tick = (now: number) => {
+			playhead = Math.min(total, playhead + (now - last));
+			last = now;
+			guideStep = frameAt(script.steps, playhead).step;
+			if (playhead >= total) playing = false;
+			else raf = requestAnimationFrame(tick);
+		};
+		raf = requestAnimationFrame(tick);
+	}
+
+	function selectGuideStep(i: number) {
+		guideStep = i;
+		const { starts } = times(script.steps);
+		if (i >= 0) playhead = starts[i] + (script.steps[i].pause ?? 600) - 1;
+	}
+
+	/** Strokes drawn by the guide up to the playhead, the current one partly. */
+	const demo = $derived.by<DemoStroke[]>(() => {
+		if (mode !== 'guide') return [];
+		const { step: now, progress } = frameAt(script.steps, playhead);
+		const out: DemoStroke[] = [];
+		script.steps.forEach((s, i) => {
+			if (i > now) return;
+			for (const c of s.calls.filter(isStroke)) {
+				const p = (c.params.params ?? {}) as { size?: number; color?: string; opacity?: number };
+				out.push({ points: strokePoints(c), size: p.size ?? 30, color: p.color ?? '#000000', opacity: Math.max(0.15, p.opacity ?? 1), progress: i === now ? progress : 1 });
+			}
+		});
+		return out;
+	});
+
+	function addStroke(points: number[][]) {
+		const at = guideStep >= 0 ? guideStep + 1 : script.steps.length;
+		script.steps = insertStep(script.steps, at, strokeStep(points, $state.snapshot(brush) as BrushSettings));
+		selectGuideStep(at);
+	}
+
+	function addCaption() {
+		const at = guideStep >= 0 ? guideStep + 1 : script.steps.length;
+		script.steps = insertStep(script.steps, at, { caption: 'Новая подпись', calls: [], pause: 1500 });
+		selectGuideStep(at);
+	}
+
+	function removeGuideStep() {
+		if (guideStep < 0) return;
+		script.steps = removeStep(script.steps, guideStep);
+		guideStep = Math.min(guideStep, script.steps.length - 1);
+	}
+
+	function ghostFromGuide(taskStep: number, shapes: Shape[]) {
+		if (!lesson) return;
+		const s = lesson.task.steps[taskStep];
+		s.hint = { ...(s.hint ?? { text: '' }), shapes: [...(s.hint?.shapes ?? []), ...shapes] };
+		note = `Линия добавлена в подсказку шага ${taskStep + 1}.`;
+	}
+
+	// ---------------------------------------------------------------- PhotoCraft
+	type Live = 'record' | 'hint' | 'guide' | null;
+	let live = $state<Live>(null);
+	let liveNote = $state('');
+	let tick = $state<RecordTick | null>(null);
+	let note = $state('');
+	let unlisten: UnlistenFn[] = [];
+
+	async function openLive(kind: Live) {
+		live = kind;
+		await api.editorLayout(preferEmbedded()).catch(() => {});
+	}
+
+	async function closeLive() {
+		if (live === 'record') await stopRecording();
+		if (live === 'guide') await api.guideStop().catch(() => {});
+		live = null;
+		liveNote = '';
+	}
+
+	async function showHintInEditor() {
+		if (!lesson) return;
+		await openLive('hint');
+		liveNote = 'Открываем задание в PhotoCraft…';
+		try {
+			const r = await api.hintPreview(dir, cleanLesson(), stepIndex);
+			liveNote = `Подсказка шага ${stepIndex + 1}: ${r.shapes} ${count(r.shapes, ['линия', 'линии', 'линий']).split(' ')[1]} на слое «FUDE · подсказка».`;
+		} catch (e) {
+			liveNote = errorText(e);
+		}
+	}
+
+	async function playInEditor() {
+		if (!script.steps.length) return;
+		if (!(await save())) return;
+		await openLive('guide');
+		liveNote = 'Открываем PhotoCraft…';
+		try {
+			await api.guidePlayDraft(dir);
+		} catch (e) {
+			liveNote = errorText(e);
+		}
+	}
+
+	async function toggleRecording() {
+		if (live === 'record') {
+			await stopRecording();
+			live = null;
+			return;
+		}
+		if (!lesson) return;
+		await openLive('record');
+		tick = null;
+		liveNote = 'Открываем задание в PhotoCraft…';
+		try {
+			await api.recordStart(dir, cleanLesson());
+			liveNote = 'Идёт запись: рисуйте в PhotoCraft — FUDE пишет каждое действие.';
+		} catch (e) {
+			liveNote = errorText(e);
+		}
+	}
+
+	async function stopRecording() {
+		try {
+			const r = await api.recordStop();
+			const at = guideStep >= 0 ? guideStep + 1 : script.steps.length;
+			let steps = script.steps;
+			r.steps.forEach((s, i) => (steps = insertStep(steps, at + i, s)));
+			script.steps = steps;
+			note = r.steps.length
+				? `Записано: ${count(r.steps.length, ['шаг', 'шага', 'шагов'])}, ${count(r.strokes, ['штрих', 'штриха', 'штрихов'])}.${r.skipped.length ? ` Пропущено (гайду нельзя): ${r.skipped.join(', ')}.` : ''} Добавьте подписи к сценам.`
+				: 'Ничего не записано.';
+			if (r.steps.length) selectGuideStep(at);
+		} catch (e) {
+			note = errorText(e);
+		}
+	}
+
+	async function preview() {
+		if (!lesson || !(await save())) return;
+		goto(`/practice/${encodeURIComponent(lesson.id)}?preview=${encodeURIComponent(dir)}`);
+	}
+
+	// ---------------------------------------------------------------- keys and lifecycle
+	function onkeydown(e: KeyboardEvent) {
+		const typing = (e.target as HTMLElement | null)?.closest?.('input, textarea, select, [contenteditable="true"]');
+		if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+			e.preventDefault();
+			save();
+			return;
+		}
+		if (typing || live) return;
+		if (mode === 'task') {
+			const keys: Record<string, CanvasTool> = { v: 'select', b: 'path', l: 'line', a: 'arrow', o: 'ellipse', r: 'rect', m: 'region', e: 'eraser' };
+			const t = keys[e.key.toLowerCase()];
+			if (t && !e.ctrlKey && !e.metaKey) tool = t;
+			if ((e.key === 'Delete' || e.key === 'Backspace') && selectedShape >= 0 && step?.hint?.shapes) {
+				setShapes(step.hint.shapes.filter((_, i) => i !== selectedShape));
+				selectedShape = -1;
+			}
+		}
+		if (mode === 'guide') {
+			if (e.key === ' ') {
+				e.preventDefault();
+				play();
+			}
+			if (e.key.toLowerCase() === 'b') guideTool = 'brush';
+			if (e.key.toLowerCase() === 'v') guideTool = 'select';
+		}
+	}
+
+	// Leaving with unsaved edits asks first: the studio keeps nothing it has not saved.
+	beforeNavigate(({ cancel }) => {
+		if (dirty && !saving && !confirm('В уроке есть несохранённые изменения. Уйти без сохранения?')) cancel();
+	});
+
+	onMount(async () => {
+		await load();
+		unlisten.push(await listen<RecordTick>('guide-record', (e) => (tick = e.payload)));
+		unlisten.push(
+			await listen<GuideEvent>('guide', (e) => {
+				if (live !== 'guide') return;
+				const g = e.payload;
+				liveNote = g.state === 'step' ? `Шаг ${g.index + 1} из ${g.total}: ${g.caption}` : g.state === 'done' ? 'Гайд закончился.' : g.state === 'error' ? (g.message ?? 'Ошибка') : g.caption;
+			})
+		);
+	});
+
+	onDestroy(() => {
+		cancelAnimationFrame(raf);
+		for (const u of unlisten) u();
+		if (live === 'record') api.recordStop().catch(() => {});
+		api.editorClose().catch(() => {});
+	});
+
+	// ---------------------------------------------------------------- readiness
 	const errors = $derived(issues.filter((i) => i.severity === 'error'));
-	const warnings = $derived(issues.filter((i) => i.severity === 'warning'));
-	const issuesFor = (prefix: string) => issues.filter((i) => i.field.startsWith(prefix));
-	const sectionOf = (field: string) =>
-		field.startsWith('task') ? 'task' : field.startsWith('quiz') ? 'quiz' : field.startsWith('guide') || field.includes('.json') ? 'guide' : field.startsWith('theory') ? 'theory' : 'about';
+	const badProofs = $derived(proofs.filter((p) => p.verdict === 'passesUntouched' || p.verdict === 'failsReference'));
+	const readiness = $derived.by(() => {
+		if (!lesson) return [];
+		const list: { ok: boolean | null; text: string }[] = [];
+		const texts = [lesson.summary.trim() ? '' : 'описание', theory.trim() ? '' : 'теория'].filter(Boolean);
+		list.push(texts.length ? { ok: false, text: `Не заполнено: ${texts.join(', ')}` } : { ok: true, text: `Описание и теория${lesson.quiz?.length ? `, ${count(lesson.quiz.length, ['вопрос', 'вопроса', 'вопросов'])}` : ''}` });
+		list.push(script.steps.length || lesson.guide.video ? { ok: true, text: script.steps.length ? `Гайд: ${count(script.steps.length, ['шаг', 'шага', 'шагов'])}, ${Math.round(total / 100) / 10} с` : 'Видеогайд' } : { ok: false, text: 'Нет гайда: запишите его или загрузите видео' });
+		list.push(lesson.task.steps.length ? { ok: true, text: `Задание: ${count(lesson.task.steps.length, ['шаг', 'шага', 'шагов'])}` } : { ok: false, text: 'В задании нет шагов' });
+		for (const p of badProofs.slice(0, 2)) {
+			const n = lesson.task.steps.findIndex((s) => s.id === p.step) + 1;
+			list.push({ ok: false, text: p.verdict === 'passesUntouched' ? `Шаг ${n}: проверка проходит и на пустом задании` : `Шаг ${n}: проверка не проходит на эталоне` });
+		}
+		if (errors.length) list.push({ ok: false, text: `${count(errors.length, ['ошибка', 'ошибки', 'ошибок'])} в файле урока — пока не в каталоге` });
+		return list;
+	});
+
+	const card = $derived<LessonCard | null>(
+		lesson && draft
+			? {
+					id: lesson.id,
+					title: lesson.title || 'Без названия',
+					summary: lesson.summary,
+					category: draft.category.id,
+					categoryTitle: draft.category.title,
+					kanji: draft.category.kanji ?? null,
+					accent: draft.category.accent,
+					difficulty: lesson.difficulty,
+					difficultyLabel: ['', 'Первый шаг', 'Лёгкий', 'Средний', 'Сложный', 'Мастер'][lesson.difficulty] ?? '',
+					minutes: lesson.minutes,
+					number: lesson.order,
+					of: 0,
+					skills: lesson.skills,
+					status: 'open',
+					after: null,
+					stage: null,
+					editable: true
+				}
+			: null
+	);
+
+	const TASK_TOOLS: { id: CanvasTool; label: string; key: string; svg: string }[] = [
+		{ id: 'select', label: 'Выбор и перемещение', key: 'V', svg: 'M5 3l14 8-6 2-3 6z' },
+		{ id: 'path', label: 'Линия от руки', key: 'B', svg: 'M3 17c3-6 6-9 9-5s6 1 9-5' },
+		{ id: 'line', label: 'Прямая (Shift — под 45°)', key: 'L', svg: 'M4 20 20 4' },
+		{ id: 'arrow', label: 'Стрелка', key: 'A', svg: 'M4 20 20 4M10 4h10v10' },
+		{ id: 'ellipse', label: 'Овал', key: 'O', svg: 'M12 6c5 0 9 2.7 9 6s-4 6-9 6-9-2.7-9-6 4-6 9-6z' },
+		{ id: 'rect', label: 'Прямоугольник', key: 'R', svg: 'M4 6h16v12H4z' },
+		{ id: 'region', label: 'Область проверки', key: 'M', svg: 'M3 8V4h4M17 4h4v4M21 16v4h-4M7 20H3v-4M8 8h8v8H8z' },
+		{ id: 'eraser', label: 'Удалить линию', key: 'E', svg: 'M7 20 3 16l10-10 6 6-8 8zM21 20H8' }
+	];
+	const GUIDE_TOOLS: { id: CanvasTool; label: string; key: string; svg: string }[] = [
+		{ id: 'select', label: 'Выбор', key: 'V', svg: 'M5 3l14 8-6 2-3 6z' },
+		{ id: 'brush', label: 'Кисть показа', key: 'B', svg: 'M14.5 3.5 20.5 9.5l-7.5 7.5-6-6zM7 11l-1.5 1.5c-1.5 1.5-1 3-2 4.5-.5.8-1 1.5-1 2.5 1 0 1.7-.5 2.5-1 1.5-1 3-.5 4.5-2L11 15' }
+	];
+	const tools = $derived(mode === 'guide' ? GUIDE_TOOLS : TASK_TOOLS);
+	const activeTool = $derived(mode === 'guide' ? guideTool : tool);
+	const hint = $derived(
+		mode === 'guide'
+			? guideTool === 'brush'
+				? 'Кисть показа: рисуйте — штрих станет клипом на дорожке «Штрихи». Пробел — проиграть.'
+				: 'Выберите клип на дорожке или возьмите кисть показа (B).'
+			: (
+					{
+						select: 'Выбор: щёлкните линию или область и тяните. Delete — удалить линию.',
+						path: 'Линия от руки: ведите мышью или пером. Alt — пунктир.',
+						line: 'Прямая: тяните. Shift — под 45°, Alt — пунктир.',
+						arrow: 'Стрелка: тяните от начала к острию.',
+						ellipse: 'Овал: растяните рамку.',
+						rect: 'Прямоугольник: растяните рамку.',
+						region: 'Область проверки: растяните рамку — проверка смотрит только внутрь неё.',
+						eraser: 'Щёлкните линию, чтобы удалить её.',
+						brush: ''
+					} as Record<CanvasTool, string>
+				)[tool]
+	);
 </script>
 
-<div class="page reveal">
-	<header class="page-head">
-		<div>
-			<a class="back" href="/studio"><Icon name="back" size={16} /> Мастерская</a>
-			<h1 class="display-l">{lesson?.title || 'Урок'}</h1>
-			{#if draft}<p>{draft.category.title} · <span class="mono">{lesson?.id}</span></p>{/if}
+<svelte:window {onkeydown} />
+
+<div class="studio">
+	<header class="top">
+		<a class="back" href="/studio" aria-label="В мастерскую"><Icon name="back" size={18} /></a>
+		<div class="title">
+			<h1>{lesson?.title || 'Урок'}</h1>
+			<p>Мастерская{draft ? ` · ${draft.category.title}` : ''}</p>
 		</div>
-		<div class="head-actions">
-			{#if lesson && !errors.length && draft}<a class="btn btn-quiet" href="/lesson/{lesson.id}">Открыть как ученик</a>{/if}
-			<button class="btn btn-accent" onclick={saveAll} disabled={saving || !lesson}>{saving ? 'Сохраняем…' : 'Сохранить'}</button>
+		<span class="grow"></span>
+		<div class="modes" role="tablist" aria-label="Режим студии">
+			<button role="tab" aria-selected={mode === 'lesson'} onclick={() => (mode = 'lesson')}>Урок</button>
+			<button role="tab" aria-selected={mode === 'guide'} onclick={() => (mode = 'guide')}>Гайд</button>
+			<button role="tab" aria-selected={mode === 'task'} onclick={() => (mode = 'task')}>Задание</button>
 		</div>
+		<span class="grow"></span>
+		<span class="saved" aria-live="polite">{saving ? 'Сохраняем…' : dirty ? 'Есть несохранённые изменения' : savedAt ? `Сохранено · ${savedAt}` : ''}</span>
+		{#if mode === 'guide'}
+			<button class="btn-o" onclick={playInEditor} disabled={!script.steps.length}>Проиграть в PhotoCraft</button>
+		{:else if mode === 'task'}
+			<button class="btn-o" onclick={showHintInEditor} disabled={!step?.hint}>Показать в PhotoCraft</button>
+		{/if}
+		<button class="btn-q" onclick={preview} disabled={!lesson?.task.steps.length}>Глазами ученика</button>
+		<button class="btn-p" onclick={save} disabled={saving || !lesson}>Сохранить</button>
 	</header>
 
-	{#if error}<div class="banner warn" role="alert"><Icon name="alert" size={18} /> {error}</div>{/if}
-	{#if saved}<div class="banner {errors.length ? 'warn' : 'ok'}" role="status">{saved}</div>{/if}
+	{#if error}<p class="error" role="alert"><Icon name="alert" size={16} /> {error}</p>{/if}
 
 	{#if lesson}
-		<div class="layout">
-			<nav class="sections card" aria-label="Разделы урока">
-				{#each SECTIONS as [key, label] (key)}
-					{@const n = issues.filter((i) => i.severity === 'error' && sectionOf(i.field) === key).length}
-					<button aria-pressed={section === key} onclick={() => (section = key)}>
-						{label}
-						{#if n}<span class="pill pill-kaki">{n}</span>{/if}
+		<div class="body" class:lessonmode={mode === 'lesson'}>
+			<!-- left -->
+			<aside class="left">
+				{#if mode === 'lesson'}
+					<p class="sec">Разделы урока</p>
+					{#each [['about', 'Описание и карточка', 'как урок выглядит в каталоге'], ['theory', 'Теория', `${theory.trim().split(/\s+/).filter(Boolean).length} слов`], ['quiz', 'Вопросы после теории', count(lesson.quiz?.length ?? 0, ['вопрос', 'вопроса', 'вопросов'])]] as [key, name, meta] (key)}
+						<button class="item" class:on={section === key} onclick={() => (section = key as LessonSection)}>
+							<span class="item-name">{name}</span><span class="item-meta">{meta}</span>
+						</button>
+					{/each}
+				{:else if mode === 'guide'}
+					<p class="sec">С чего начинается</p>
+					<div class="item static"><span class="item-name">{lesson.task.open ? 'Картинка задания' : 'Чистый холст'}</span><span class="item-meta">{lesson.task.open ?? `${size.w} × ${size.h}`}</span></div>
+					<button class="item" onclick={() => attach('video')}>
+						<span class="item-name">Видео урока</span><span class="item-meta">{lesson.guide.video ?? 'необязательно · mp4 или webm'}</span>
 					</button>
-				{/each}
-				<div class="summary body-s">
-					{#if errors.length}
-						<p class="bad">{count(errors.length, ['ошибка', 'ошибки', 'ошибок'])} — урок не в каталоге</p>
-					{:else}
-						<p class="good">Ошибок нет</p>
-					{/if}
-					{#if warnings.length}<p class="muted">{count(warnings.length, ['предупреждение', 'предупреждения', 'предупреждений'])}</p>{/if}
-				</div>
-			</nav>
-
-			<section class="card body">
-				{#if section === 'about'}
-					<h2 class="h2">Описание</h2>
-					<label class="field">Название <input type="text" bind:value={lesson.title} maxlength="120" /></label>
-					<label class="field">Кратко <textarea rows="2" bind:value={lesson.summary}></textarea></label>
-					<div class="grid3">
-						<label class="field">
-							Сложность
-							<select bind:value={lesson.difficulty}>
-								{#each [[1, 'Первый шаг'], [2, 'Лёгкий'], [3, 'Средний'], [4, 'Сложный'], [5, 'Мастер']] as [v, l] (v)}<option value={v}>{v} — {l}</option>{/each}
-							</select>
-						</label>
-						<label class="field">Минут <input type="number" min="1" max="600" bind:value={lesson.minutes} /></label>
-						<label class="field">Порядок в категории <input type="number" min="0" bind:value={lesson.order} /></label>
-					</div>
-					<fieldset>
-						<legend class="label">Стороны навыка (для статистики)</legend>
-						<div class="chips">
-							{#each SKILLS as [s, l] (s)}<button type="button" class="chip" aria-pressed={lesson.skills.includes(s)} onclick={() => toggleSkill(s)}>{l}</button>{/each}
-						</div>
-					</fieldset>
-					<label class="field">
-						Открывается после урока
-						<select value={lesson.requires?.[0] ?? ''} onchange={(e) => lesson && (lesson.requires = e.currentTarget.value ? [e.currentTarget.value] : [])}>
-							<option value="">— сразу открыт —</option>
-							{#each draft?.lessonIds.filter(([id]) => id !== lesson?.id) ?? [] as [id, title] (id)}<option value={id}>{title}</option>{/each}
-						</select>
-					</label>
-					<label class="field">Автор <input type="text" value={lesson.author ?? ''} onchange={(e) => lesson && (lesson.author = e.currentTarget.value.trim() || undefined)} /></label>
-				{:else if section === 'theory'}
-					<div class="row-head">
-						<h2 class="h2">Теория</h2>
-						<div class="segmented">
-							<button aria-pressed={!preview} onclick={() => (preview = false)}>Текст</button>
-							<button aria-pressed={preview} onclick={() => (preview = true)}>Как увидит ученик</button>
-						</div>
-					</div>
-					{#if preview}
-						<div class="preview"><Markdown text={theory} /></div>
-					{:else}
-						<textarea class="theory mono" rows="24" bind:value={theory} aria-label="Теория в Markdown"></textarea>
-						<p class="body-s muted">Markdown: <span class="mono"># заголовок</span>, <span class="mono">**жирный**</span>, списки <span class="mono">- пункт</span>, таблицы. Завершите разделом «## Совет сэнсэя».</p>
-					{/if}
-				{:else if section === 'guide'}
-					<h2 class="h2">Видео</h2>
-					{#if lesson.guide.video && draft?.video}
-						<!-- svelte-ignore a11y_media_has_caption -->
-						<video src={convertFileSrc(draft.video)} controls></video>
-					{/if}
-					<div class="row">
-						<button class="btn btn-quiet" onclick={() => attach('video', 'video')}><Icon name="video" size={18} /> {lesson.guide.video ? 'Заменить видео' : 'Загрузить видео'}</button>
-						<button class="btn btn-quiet" onclick={() => attach('image', 'poster')}><Icon name="upload" size={18} /> Обложка видео</button>
-						{#if lesson.guide.video}<button class="btn btn-quiet" onclick={() => lesson && delete lesson.guide.video}>Убрать видео</button>{/if}
-					</div>
-					<p class="body-s muted">mp4 или webm до 1 ГиБ. Файл копируется в папку урока.</p>
-					<h2 class="h2 gap">Анимированный гайд в редакторе</h2>
-					<p class="body-s muted">Сценарий команд PhotoCraft в JSON (формат — docs/lesson-format.md). Гайд может только рисовать: файлы и сеть ему недоступны.</p>
-					<textarea class="theory mono" rows="16" bind:value={guide} placeholder={'{\n  "format": 1,\n  "steps": [ { "caption": "…", "calls": [] } ]\n}'} aria-label="Сценарий гайда"></textarea>
-					{#each issuesFor('guide') as i (i.field + i.message)}<p class="issue">{i.field}: {i.message}</p>{/each}
-				{:else if section === 'quiz'}
-					<h2 class="h2">Вопросы после теории</h2>
-					{#each lesson.quiz ?? [] as q, qi (qi)}
-						<div class="question">
-							<div class="row-head">
-								<label class="field grow">Вопрос {qi + 1} <input type="text" bind:value={q.question} /></label>
-								<button class="icon" onclick={() => lesson?.quiz?.splice(qi, 1)} aria-label="Удалить вопрос"><Icon name="trash" size={16} /></button>
-							</div>
-							{#each q.options as _, oi (oi)}
-								<div class="option">
-									<input type="radio" name="answer-{qi}" checked={q.answer === oi} onchange={() => (q.answer = oi)} aria-label="Верный ответ" />
-									<input type="text" bind:value={q.options[oi]} />
-									<button class="icon" onclick={() => (q.options.splice(oi, 1), (q.answer = Math.min(q.answer, q.options.length - 1)))} aria-label="Удалить вариант"><Icon name="close" size={14} /></button>
-								</div>
-							{/each}
-							<button class="btn btn-quiet btn-s" onclick={() => q.options.push('')} disabled={q.options.length >= 8}><Icon name="plus" size={14} /> Вариант</button>
-							<label class="field">Пояснение <input type="text" value={q.explain ?? ''} onchange={(e) => (q.explain = e.currentTarget.value.trim() || undefined)} /></label>
-						</div>
-					{/each}
-					<button class="btn btn-quiet" onclick={() => lesson?.quiz?.push({ question: '', options: ['', ''], answer: 0 })}><Icon name="plus" size={16} /> Добавить вопрос</button>
-					{#each issuesFor('quiz') as i (i.field + i.message)}<p class="issue">{i.field}: {i.message}</p>{/each}
-				{:else}
-					<h2 class="h2">Задание</h2>
-					<label class="field">Что нужно сделать <textarea rows="2" bind:value={lesson.task.brief}></textarea></label>
-					<div class="start">
-						<div>
-							<p class="label">Начало</p>
-							{#if lesson.task.canvas}
-								<div class="grid3">
-									<label class="field">Ширина <input type="number" min="16" max="8192" bind:value={lesson.task.canvas.width} /></label>
-									<label class="field">Высота <input type="number" min="16" max="8192" bind:value={lesson.task.canvas.height} /></label>
-									<label class="field">Фон <input type="color" bind:value={lesson.task.canvas.background} /></label>
-								</div>
-							{:else if taskImage}
-								<img src={taskImage} alt="Картинка задания" />
-							{/if}
-							<div class="row">
-								<button class="btn btn-quiet btn-s" onclick={() => attach('image', 'open')}><Icon name="upload" size={16} /> Картинка задания</button>
-								{#if !lesson.task.canvas}<button class="btn btn-quiet btn-s" onclick={useCanvas}>Чистый холст</button>{/if}
-							</div>
-						</div>
-						<div>
-							<p class="label">Эталон</p>
-							{#if referenceImage}<img src={referenceImage} alt="Эталон" />{:else}<p class="body-s muted">Необязательно. Показывается ученику и нужен для проверки «похоже на эталон».</p>{/if}
-							<button class="btn btn-quiet btn-s" onclick={() => attach('image', 'reference')}><Icon name="upload" size={16} /> {referenceImage ? 'Заменить' : 'Загрузить'} эталон</button>
-						</div>
-					</div>
-
-					<h3 class="h3 gap">Шаги</h3>
-					{#each lesson.task.steps as step, si (step.id + si)}
-						<div class="step" class:open={openStep === si}>
-							<button class="step-head" onclick={() => (openStep = openStep === si ? -1 : si)} aria-expanded={openStep === si}>
-								<span class="n">{si + 1}</span>
-								<span class="grow">
-									<span class="label">{step.text || 'Новый шаг'}</span>
-									<span class="body-s muted">{step.checks.map(describe).join(' · ') || 'без проверок — кнопка «Готово»'}</span>
-								</span>
-								{#if issuesFor(`task.steps[${si}]`).some((i) => i.severity === 'error')}<span class="pill pill-kaki">ошибки</span>{/if}
+					<p class="sec">Сцены гайда</p>
+					{#each script.steps as s, i (i)}
+						{#if s.caption.trim()}
+							<button class="item scene" class:on={guideStep === i} onclick={() => selectGuideStep(i)}>
+								<span class="num">{String(i + 1).padStart(2, '0')}</span><span class="item-name">{s.caption}</span>
 							</button>
-							{#if openStep === si}
-								<div class="step-body">
-									<label class="field">Текст шага <input type="text" bind:value={step.text} /></label>
-									<details open={!!step.hint}>
-										<summary class="label">Подсказка</summary>
-										<label class="field">Текст подсказки <input type="text" value={step.hint?.text ?? ''} onchange={(e) => (step.hint = e.currentTarget.value.trim() ? { ...(step.hint ?? {}), text: e.currentTarget.value.trim() } : undefined)} /></label>
-										{#if step.hint}
-											<label class="field">Куда показать (tool:Brush, panel:Layers, menu:edit.undo) <input type="text" value={step.hint.target ?? ''} onchange={(e) => step.hint && (step.hint.target = e.currentTarget.value.trim() || undefined)} /></label>
-											<p class="body-s muted">Теневая фигура на холсте (необязательно):</p>
-											{#if step.hint.shapes?.length && (step.hint.shapes[0].kind === 'ellipse' || step.hint.shapes[0].kind === 'rect')}
-												{@const shape = step.hint.shapes[0]}
-												<RegionPicker label="Овал подсказки" bind:value={shape.rect} image={taskImage} {aspect} color="var(--ai-500)" />
-												<button class="btn btn-quiet btn-s" onclick={() => step.hint && (step.hint.shapes = [])}>Убрать фигуру</button>
-											{:else}
-												<button class="btn btn-quiet btn-s" onclick={() => step.hint && (step.hint.shapes = [{ kind: 'ellipse', rect: [0.35, 0.35, 0.3, 0.3] }])}><Icon name="plus" size={14} /> Овал на холсте</button>
-											{/if}
-										{/if}
-									</details>
-									<p class="label">Проверки — шаг засчитан, когда проходят все</p>
-									{#each step.checks as _, ci (ci)}
-										<CheckEditor bind:check={step.checks[ci]} image={taskImage} {aspect} onremove={() => step.checks.splice(ci, 1)} />
-									{/each}
-									<div class="row">
-										<button class="btn btn-quiet btn-s" onclick={() => step.checks.push(defaultCheck('coverage'))}><Icon name="plus" size={14} /> Проверка</button>
-										<button class="btn btn-quiet btn-s" onclick={() => moveStep(si, -1)} disabled={si === 0}>Выше</button>
-										<button class="btn btn-quiet btn-s" onclick={() => moveStep(si, 1)} disabled={si === lesson!.task.steps.length - 1}>Ниже</button>
-										<button class="btn btn-quiet btn-s danger" onclick={() => lesson?.task.steps.splice(si, 1)}><Icon name="trash" size={14} /> Удалить шаг</button>
-									</div>
-									{#each issuesFor(`task.steps[${si}]`) as i (i.field + i.message)}<p class="issue" class:warn-only={i.severity === 'warning'}>{i.field.replace(`task.steps[${si}].`, '')}: {i.message}</p>{/each}
-								</div>
+						{/if}
+					{/each}
+					{#if !script.steps.some((s) => s.caption.trim())}
+						<p class="muted-note">Сцены появятся, когда у шагов гайда будут подписи: выберите клип и впишите подпись справа.</p>
+					{/if}
+				{:else}
+					<p class="sec">Холст задания</p>
+					<button class="item" onclick={() => attach('open')}>
+						<span class="item-name">{lesson.task.open ? 'Картинка задания' : 'Чистый холст'}</span>
+						<span class="item-meta">{lesson.task.open ? `${lesson.task.open} · ${size.w} × ${size.h}` : 'щёлкните, чтобы загрузить картинку'}</span>
+					</button>
+					{#if lesson.task.canvas}
+						<div class="canvas-size">
+							<label>Ширина <input type="number" min="16" max="8192" bind:value={lesson.task.canvas.width} onchange={measure} /></label>
+							<label>Высота <input type="number" min="16" max="8192" bind:value={lesson.task.canvas.height} onchange={measure} /></label>
+							<label>Фон <input type="color" bind:value={lesson.task.canvas.background} /></label>
+						</div>
+					{:else}
+						<button class="link" onclick={useCanvas}>Начать с чистого холста</button>
+					{/if}
+					<button class="item" onclick={() => attach('reference')}>
+						<span class="item-name">Эталон</span><span class="item-meta">{lesson.task.reference ?? 'нужен для живой проверки'}</span>
+					</button>
+					<p class="sec row">Шаги · {lesson.task.steps.length} <button class="mini" onclick={addStep} aria-label="Добавить шаг"><Icon name="plus" size={14} /></button></p>
+					{#each lesson.task.steps as s, i (s.id + i)}
+						{@const bad = proofs.some((p) => p.step === s.id && (p.verdict === 'passesUntouched' || p.verdict === 'failsReference'))}
+						<button class="step" class:on={stepIndex === i} onclick={() => ((stepIndex = i), (selectedShape = -1), (selectedRegion = null))}>
+							<span class="seal" class:filled={stepIndex === i}>{i + 1}</span>
+							<span class="grow">
+								<span class="item-name">{s.text || 'Новый шаг'}</span>
+								<span class="item-meta">{count(s.hint?.shapes?.length ?? 0, ['линия', 'линии', 'линий'])}{s.hint?.target ? ' · куда нажать' : ''} · {count(s.checks.length, ['проверка', 'проверки', 'проверок'])}</span>
+							</span>
+							{#if bad}<span class="warn-dot" aria-label="проверку стоит поправить"></span>{/if}
+						</button>
+					{/each}
+					<button class="add" onclick={addStep}><Icon name="plus" size={14} /> Добавить шаг</button>
+				{/if}
+				<div class="ready">
+					<p class="ready-title">Готовность урока</p>
+					{#each readiness as r, i (i)}
+						<p class="ready-line" class:bad={r.ok === false}><Icon name={r.ok ? 'check' : 'alert'} size={14} /> {r.text}</p>
+					{/each}
+				</div>
+			</aside>
+
+			<!-- center -->
+			<section class="center">
+				{#if live}
+					<div class="livebar" class:rec={live === 'record'}>
+						{#if live === 'record'}<span class="dot"></span><b class="mono">{tick ? (tick.elapsedMs / 1000).toFixed(0) : 0} с</b>{/if}
+						<span class="grow">{liveNote}{#if live === 'record' && tick} · штрихов: {tick.strokes}, действий: {tick.actions}{/if}</span>
+						{#if live === 'record'}
+							<button class="btn-w" onclick={toggleRecording}>Остановить и добавить в гайд</button>
+						{:else}
+							<button class="btn-w" onclick={closeLive}>Вернуться к холсту</button>
+						{/if}
+					</div>
+					<div class="slot" use:editorSlot aria-label="Редактор PhotoCraft"></div>
+				{:else if mode === 'lesson'}
+					<div class="texts" class:pad={section !== 'theory'}>
+						<LessonTexts bind:lesson bind:theory {section} lessonIds={draft?.lessonIds ?? []} />
+					</div>
+				{:else}
+					<div class="stage">
+						<div class="toolbar-top">
+							{#if mode === 'task'}
+								<button class="vis" aria-pressed={showHints} onclick={() => (showHints = !showHints)}><span class="d shu"></span> Подсказки шага</button>
+								<button class="vis" aria-pressed={showOthers} onclick={() => (showOthers = !showOthers)}><span class="d"></span> Другие шаги</button>
+								<button class="vis" aria-pressed={showRegions} onclick={() => (showRegions = !showRegions)}><span class="d ai"></span> Области проверок</button>
+							{/if}
+							{#if referenceImage}
+								<label class="vis ref">Эталон <input type="range" min="0" max="100" step="5" value={refOpacity * 100} oninput={(e) => (refOpacity = Number(e.currentTarget.value) / 100)} /> <b>{Math.round(refOpacity * 100)}%</b></label>
 							{/if}
 						</div>
-					{/each}
-					<button class="btn btn-primary" onclick={addStep}><Icon name="plus" size={16} /> Добавить шаг</button>
+						<div class="tools" role="toolbar" aria-label="Инструменты автора">
+							{#each tools as t (t.id)}
+								<button class="tool" class:on={activeTool === t.id} onclick={() => (mode === 'guide' ? (guideTool = t.id) : (tool = t.id))} title="{t.label} · {t.key}" aria-label={t.label}>
+									<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d={t.svg} /></svg>
+								</button>
+							{/each}
+						</div>
+						<div class="paper-wrap">
+							<StudioCanvas
+								image={taskImage}
+								reference={referenceImage}
+								referenceOpacity={refOpacity}
+								width={size.w}
+								height={size.h}
+								background={lesson.task.canvas?.background ?? '#FFFFFF'}
+								tool={activeTool}
+								shapes={mode === 'task' && showHints ? (step?.hint?.shapes ?? []) : []}
+								dimShapes={mode === 'task' && showOthers ? lesson.task.steps.flatMap((s, i) => (i === stepIndex ? [] : (s.hint?.shapes ?? []))) : []}
+								selected={selectedShape}
+								regions={mode === 'task' && showRegions ? regionMarks : []}
+								{selectedRegion}
+								{demo}
+								caption={mode === 'guide' ? captionAt(script.steps, playhead) : ''}
+								onshapes={setShapes}
+								onselect={(i) => (selectedShape = i)}
+								onregion={setRegion}
+								onregionselect={(k) => ((selectedRegion = k), k && (tab = 'checks'))}
+								onregiondraw={drawRegion}
+								onstroke={addStroke}
+							/>
+						</div>
+						<p class="hintbar">{hint}</p>
+						{#if note}<p class="note" role="status">{note} <button onclick={() => (note = '')} aria-label="Скрыть"><Icon name="close" size={12} /></button></p>{/if}
+					</div>
 				{/if}
-
-				{#if section !== 'task' && section !== 'quiz' && section !== 'guide'}
-					{#each issues.filter((i) => sectionOf(i.field) === section) as i (i.field + i.message)}<p class="issue" class:warn-only={i.severity === 'warning'}>{i.field}: {i.message}</p>{/each}
+				{#if mode === 'guide' || live === 'record'}
+					<GuideTimeline
+						steps={script.steps}
+						selected={guideStep}
+						{playhead}
+						{playing}
+						recording={live === 'record'}
+						onselect={selectGuideStep}
+						onseek={(ms) => ((playhead = ms), (guideStep = frameAt(script.steps, ms).step))}
+						onsteps={(s) => (script.steps = s)}
+						onplay={play}
+						onrecord={toggleRecording}
+						onaddcaption={addCaption}
+						onremove={removeGuideStep}
+					/>
+				{:else if mode === 'task'}
+					<button class="collapsed" onclick={() => (mode = 'guide')}>
+						<Icon name="video" size={16} /> Гайд · {count(script.steps.length, ['шаг', 'шага', 'шагов'])} · {Math.round(total / 100) / 10} с
+						<span class="grow"></span> Открыть дорожки
+					</button>
 				{/if}
 			</section>
+
+			<!-- right -->
+			{#if mode !== 'lesson' || section === 'about'}
+				<aside class="right">
+					{#if mode === 'task'}
+						{#if step}
+							<TaskPanel
+								bind:lesson
+								step={stepIndex}
+								bind:tab
+								{selectedShape}
+								{selectedRegion}
+								width={size.w}
+								height={size.h}
+								{proofs}
+								letters={lettersOf}
+								onselectshape={(i) => (selectedShape = i)}
+								onfocusregion={(k) => (selectedRegion = k)}
+								onmap={() => (mapFor = 'hint')}
+								onhintpreview={showHintInEditor}
+								onremovestep={removeTaskStep}
+								onmovestep={moveTaskStep}
+							/>
+						{:else}
+							<p class="empty">В задании пока нет шагов. <button class="link" onclick={addStep}>Добавить первый шаг</button></p>
+						{/if}
+					{:else if mode === 'guide'}
+						<GuidePanel bind:script bind:brush selected={guideStep} {lesson} width={size.w} height={size.h} onmap={() => (mapFor = 'guide')} onghost={ghostFromGuide} />
+					{:else if card}
+						<p class="sec">Карточка в каталоге</p>
+						<div class="card-preview" inert><LessonTile {card} /></div>
+						{#if issues.length}
+							<p class="sec">Замечания</p>
+							{#each issues as i (i.field + i.message)}<p class="issue" class:err={i.severity === 'error'}><span class="mono">{i.field}</span> {i.message}</p>{/each}
+						{/if}
+					{/if}
+				</aside>
+			{/if}
 		</div>
 	{/if}
 </div>
 
+{#if mapFor && lesson}
+	<InterfaceMap
+		value={mapFor === 'hint' ? (step?.hint?.target ?? null) : (script.steps[guideStep]?.highlight ?? null)}
+		step={mapFor === 'hint' ? `шаг ${stepIndex + 1}` : `шаг гайда ${guideStep + 1}`}
+		onclose={() => (mapFor = null)}
+		onpick={(t) => {
+			if (mapFor === 'hint' && lesson) {
+				const s = lesson.task.steps[stepIndex];
+				s.hint = { ...(s.hint ?? { text: '' }), target: t ?? undefined };
+				if (!t) delete s.hint.target;
+			} else if (guideStep >= 0) {
+				if (t) script.steps[guideStep].highlight = t;
+				else delete script.steps[guideStep].highlight;
+			}
+			mapFor = null;
+		}}
+	/>
+{/if}
+
 <style>
+	.studio {
+		display: flex;
+		flex-direction: column;
+		height: 100vh;
+		background: var(--sumi-bg);
+		color: var(--sumi-text);
+		font-family: var(--font-ui);
+	}
+
+	.top {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		height: 60px;
+		padding: 0 16px;
+		background: var(--sumi-panel);
+		border-bottom: 1px solid var(--sumi-line);
+	}
+
 	.back {
-		display: inline-flex;
-		align-items: center;
-		gap: 6px;
-		margin-bottom: 8px;
-		font-size: 13px;
-		font-weight: 600;
-	}
-
-	.head-actions {
-		display: flex;
-		gap: 10px;
-	}
-
-	.banner {
-		display: flex;
-		align-items: center;
-		gap: 10px;
-		margin-bottom: 16px;
-		padding: 12px 16px;
-		border-radius: 12px;
-		font-size: 14px;
-	}
-
-	.warn {
-		background: var(--kaki-100);
-		color: var(--kaki-700);
-	}
-
-	.ok {
-		background: var(--ai-100);
-		color: var(--ai-700);
-	}
-
-	.layout {
 		display: grid;
-		grid-template-columns: 220px minmax(0, 1fr);
-		gap: 24px;
-		align-items: start;
+		place-items: center;
+		width: 36px;
+		height: 36px;
+		border-radius: 8px;
+		background: var(--sumi-raised);
+		color: var(--sumi-text);
 	}
 
-	.sections {
-		position: sticky;
-		top: 20px;
-		display: grid;
-		gap: 4px;
-		padding: 12px;
-	}
-
-	.sections button {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		padding: 10px 12px;
-		border: 0;
-		border-radius: 10px;
-		background: transparent;
-		font-weight: 600;
-		font-size: 14px;
-		text-align: left;
-		cursor: pointer;
-	}
-
-	.sections button[aria-pressed='true'] {
-		background: var(--paper-sunken);
-		box-shadow: inset 3px 0 0 var(--shu-500);
-	}
-
-	.summary {
-		margin-top: 10px;
-		padding: 10px 12px;
-		border-top: 1px solid var(--paper-line);
-	}
-
-	.bad {
-		color: var(--kaki-700);
-	}
-
-	.good {
-		color: var(--ai-700);
-	}
-
-	.body {
-		display: grid;
-		gap: 16px;
-		padding: 28px;
-	}
-
-	.grid3 {
-		display: grid;
-		grid-template-columns: repeat(3, 1fr);
-		gap: 12px;
-	}
-
-	fieldset {
+	.title h1 {
 		margin: 0;
-		padding: 0;
-		border: 0;
+		font: 600 16px/1.3 var(--font-ui);
 	}
 
-	.chips {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 8px;
-		margin-top: 8px;
-	}
-
-	.row-head {
-		display: flex;
-		align-items: end;
-		justify-content: space-between;
-		gap: 12px;
+	.title p {
+		margin: 0;
+		color: var(--sumi-muted);
+		font: 600 12px var(--font-ui);
 	}
 
 	.grow {
@@ -459,140 +819,550 @@
 		min-width: 0;
 	}
 
-	.theory {
-		font-size: 13px;
-	}
-
-	.preview {
-		padding: 20px;
-		border-radius: 12px;
-		background: var(--paper-base);
-	}
-
-	video,
-	.start img {
-		width: 100%;
-		border-radius: 10px;
-	}
-
-	.row {
+	.modes {
 		display: flex;
-		flex-wrap: wrap;
-		gap: 8px;
-	}
-
-	.gap {
-		margin-top: 14px;
-	}
-
-	.question {
-		display: grid;
-		gap: 10px;
-		padding: 16px;
-		border-radius: 12px;
-		background: var(--paper-base);
-	}
-
-	.option {
-		display: grid;
-		grid-template-columns: auto 1fr auto;
-		align-items: center;
-		gap: 10px;
-	}
-
-	.icon {
-		display: grid;
-		place-items: center;
-		width: 34px;
-		height: 34px;
-		border: 0;
+		gap: 2px;
+		padding: 3px;
 		border-radius: 8px;
-		background: transparent;
-		color: var(--ink-500);
+		background: var(--sumi-bg);
+	}
+
+	.modes button {
+		padding: 6px 14px;
+		border: 0;
+		border-radius: 6px;
+		background: none;
+		color: var(--sumi-muted);
+		font: 600 13px var(--font-ui);
 		cursor: pointer;
 	}
 
-	.start {
+	.modes button[aria-selected='true'] {
+		background: var(--sumi-line);
+		color: var(--sumi-text);
+	}
+
+	.saved {
+		color: var(--sumi-muted);
+		font: 600 12px var(--font-ui);
+	}
+
+	.btn-o,
+	.btn-q,
+	.btn-p,
+	.btn-w {
+		padding: 8px 14px;
+		border-radius: 8px;
+		border: 1px solid var(--sumi-line);
+		background: transparent;
+		color: var(--sumi-text);
+		font: 600 13px var(--font-ui);
+		cursor: pointer;
+		white-space: nowrap;
+	}
+
+	.btn-q {
+		border-color: transparent;
+		background: var(--sumi-raised);
+	}
+
+	.btn-p {
+		border-color: transparent;
+		background: var(--shu-500);
+		color: #fff;
+	}
+
+	.btn-w {
+		border-color: transparent;
+		background: #fff;
+		color: var(--shu-700);
+	}
+
+	button:disabled {
+		opacity: 0.45;
+		cursor: default;
+	}
+
+	.error {
+		display: flex;
+		gap: 8px;
+		align-items: center;
+		margin: 0;
+		padding: 8px 16px;
+		background: var(--shu-700);
+		color: #fff;
+		font-size: 13px;
+	}
+
+	.body {
+		flex: 1;
+		min-height: 0;
 		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 20px;
+		grid-template-columns: 288px 1fr 336px;
 	}
 
-	.start > div {
-		display: grid;
-		align-content: start;
-		gap: 10px;
+	.body.lessonmode:not(:has(.right)) {
+		grid-template-columns: 288px 1fr;
 	}
 
-	.step {
-		border-radius: 12px;
-		box-shadow: inset 0 0 0 1px var(--paper-line);
+	.left,
+	.right {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		min-height: 0;
+		overflow-y: auto;
+		padding: 16px 12px;
+		background: var(--sumi-panel);
+		scrollbar-color: var(--sumi-line) transparent;
 	}
 
-	.step.open {
-		box-shadow: inset 0 0 0 2px var(--ai-300);
+	.left {
+		border-right: 1px solid var(--sumi-line);
 	}
 
-	.step-head {
+	.right {
+		padding: 16px;
+		border-left: 1px solid var(--sumi-line);
+	}
+
+	.sec {
+		margin: 10px 0 4px;
+		color: var(--sumi-muted);
+		font: 700 12px var(--font-ui);
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+	}
+
+	.sec:first-child {
+		margin-top: 0;
+	}
+
+	.sec.row {
 		display: flex;
 		align-items: center;
-		gap: 14px;
+		justify-content: space-between;
+	}
+
+	.item,
+	.step {
+		display: flex;
+		flex-direction: column;
+		gap: 1px;
 		width: 100%;
-		padding: 14px 16px;
-		border: 0;
-		background: transparent;
+		padding: 8px 10px;
+		border: 1px solid transparent;
+		border-radius: 8px;
+		background: none;
+		color: var(--sumi-text);
 		text-align: left;
 		cursor: pointer;
 	}
 
-	.step-head .grow {
-		display: grid;
+	.item:hover,
+	.step:hover {
+		background: var(--sumi-raised);
 	}
 
-	.n {
+	.item.static {
+		cursor: default;
+	}
+
+	.item.on,
+	.step.on {
+		border-color: var(--shu-500);
+		background: var(--sumi-raised);
+	}
+
+	.item.scene {
+		flex-direction: row;
+		align-items: center;
+		gap: 10px;
+	}
+
+	.num {
+		color: var(--sumi-muted);
+		font: 500 12px var(--font-mono);
+	}
+
+	.item-name {
+		display: block;
+		font: 600 13px var(--font-ui);
+	}
+
+	.item-meta {
+		display: block;
+		color: var(--sumi-muted);
+		font: 500 12px var(--font-ui);
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.step {
+		flex-direction: row;
+		align-items: center;
+		gap: 12px;
+	}
+
+	.seal {
+		flex: none;
 		display: grid;
 		place-items: center;
-		flex: none;
-		width: 30px;
-		height: 30px;
+		width: 26px;
+		height: 26px;
+		border: 1.5px solid var(--shu-500);
 		border-radius: 50%;
-		box-shadow: inset 0 0 0 2px var(--ink-900);
-		font-weight: 700;
-		font-size: 13px;
+		color: var(--shu-500);
+		font: 700 13px var(--font-ui);
 	}
 
-	.step-body {
+	.seal.filled {
+		background: var(--shu-500);
+		color: #fff;
+	}
+
+	.warn-dot {
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		background: var(--kaki-500);
+	}
+
+	.mini {
 		display: grid;
-		gap: 12px;
-		padding: 0 16px 16px;
-	}
-
-	details {
-		display: grid;
-		gap: 10px;
-		padding: 12px;
-		border-radius: 10px;
-		background: var(--ai-100);
-	}
-
-	details[open] > :not(summary) {
-		margin-top: 10px;
-	}
-
-	summary {
+		place-items: center;
+		width: 24px;
+		height: 24px;
+		border: 0;
+		border-radius: 6px;
+		background: none;
+		color: var(--sumi-muted);
 		cursor: pointer;
 	}
 
-	.danger {
-		color: var(--shu-700);
+	.add {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding: 10px 12px;
+		border: 1px dashed var(--sumi-line);
+		border-radius: 8px;
+		background: none;
+		color: var(--sumi-muted);
+		font: 600 13px var(--font-ui);
+		cursor: pointer;
+	}
+
+	.link {
+		align-self: flex-start;
+		padding: 2px 10px;
+		border: 0;
+		background: none;
+		color: var(--ai-300);
+		font: 600 12px var(--font-ui);
+		cursor: pointer;
+	}
+
+	.canvas-size {
+		display: grid;
+		grid-template-columns: 1fr 1fr 48px;
+		gap: 6px;
+		padding: 0 10px;
+	}
+
+	.canvas-size label {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		color: var(--sumi-muted);
+		font: 600 11px var(--font-ui);
+	}
+
+	.canvas-size input {
+		min-width: 0;
+		padding: 6px;
+		border: 1px solid var(--sumi-line);
+		border-radius: 6px;
+		background: var(--sumi-bg);
+		color: var(--sumi-text);
+	}
+
+	.muted-note,
+	.empty {
+		color: var(--sumi-muted);
+		font: 13px/1.5 var(--font-ui);
+	}
+
+	.ready {
+		margin-top: auto;
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		padding: 12px;
+		border-radius: 8px;
+		background: var(--sumi-raised);
+	}
+
+	.ready-title {
+		margin: 0 0 2px;
+		font: 600 13px var(--font-ui);
+	}
+
+	.ready-line {
+		display: flex;
+		gap: 8px;
+		align-items: flex-start;
+		margin: 0;
+		color: var(--sumi-muted);
+		font: 500 12px/1.4 var(--font-ui);
+	}
+
+	.ready-line :global(svg) {
+		flex: none;
+		color: var(--ai-300);
+	}
+
+	.ready-line.bad {
+		color: var(--sumi-text);
+	}
+
+	.ready-line.bad :global(svg) {
+		color: var(--kaki-500);
+	}
+
+	.center {
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
+		min-height: 0;
+	}
+
+	.stage {
+		position: relative;
+		flex: 1;
+		min-height: 0;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		padding: 16px 16px 12px 72px;
+	}
+
+	.toolbar-top {
+		display: flex;
+		gap: 6px;
+		padding: 6px;
+		border: 1px solid var(--sumi-line);
+		border-radius: 10px;
+		background: var(--sumi-panel);
+	}
+
+	.vis {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		padding: 5px 10px;
+		border: 0;
+		border-radius: 6px;
+		background: none;
+		color: var(--sumi-muted);
+		font: 600 12px var(--font-ui);
+		cursor: pointer;
+	}
+
+	.vis[aria-pressed='true'] {
+		background: var(--sumi-raised);
+		color: var(--sumi-text);
+	}
+
+	.vis .d {
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		background: var(--sumi-muted);
+	}
+
+	.d.shu {
+		background: var(--shu-500);
+	}
+
+	.d.ai {
+		background: var(--ai-500);
+	}
+
+	.vis.ref input {
+		width: 90px;
+		accent-color: var(--kin-500);
+	}
+
+	.vis.ref b {
+		color: var(--sumi-text);
+		font: 500 12px var(--font-mono);
+	}
+
+	.tools {
+		position: absolute;
+		left: 14px;
+		top: 50%;
+		transform: translateY(-50%);
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		padding: 6px;
+		border: 1px solid var(--sumi-line);
+		border-radius: 14px;
+		background: var(--sumi-panel);
+		box-shadow: 0 12px 32px rgb(0 0 0 / 35%);
+	}
+
+	.tool {
+		display: grid;
+		place-items: center;
+		width: 36px;
+		height: 36px;
+		border: 0;
+		border-radius: 8px;
+		background: none;
+		color: var(--sumi-text);
+		cursor: pointer;
+	}
+
+	.tool svg {
+		fill: none;
+		stroke: currentColor;
+		stroke-width: 2;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+	}
+
+	.tool:hover {
+		background: var(--sumi-raised);
+	}
+
+	.tool.on {
+		background: var(--shu-500);
+		color: #fff;
+	}
+
+	.paper-wrap {
+		flex: 1;
+		min-height: 0;
+		width: 100%;
+		display: grid;
+		place-items: center;
+		padding: 20px 0 12px;
+	}
+
+	.paper-wrap :global(.frame) {
+		height: min(100%, 640px);
+		width: auto;
+	}
+
+	.hintbar {
+		margin: 0;
+		padding: 7px 14px;
+		border: 1px solid var(--sumi-line);
+		border-radius: 999px;
+		background: var(--sumi-panel);
+		color: var(--sumi-muted);
+		font: 500 12px var(--font-ui);
+	}
+
+	.note {
+		position: absolute;
+		top: 64px;
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		margin: 0;
+		padding: 8px 8px 8px 14px;
+		border-radius: 8px;
+		background: var(--ai-700);
+		color: #fff;
+		font: 600 13px var(--font-ui);
+		box-shadow: 0 12px 32px rgb(0 0 0 / 35%);
+	}
+
+	.note button {
+		display: grid;
+		place-items: center;
+		width: 22px;
+		height: 22px;
+		border: 0;
+		border-radius: 6px;
+		background: rgb(255 255 255 / 15%);
+		color: #fff;
+		cursor: pointer;
+	}
+
+	.collapsed {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		height: 44px;
+		padding: 0 16px;
+		border: 0;
+		border-top: 1px solid var(--sumi-line);
+		background: var(--sumi-panel);
+		color: var(--sumi-text);
+		font: 600 13px var(--font-ui);
+		cursor: pointer;
+	}
+
+	.livebar {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		padding: 8px 12px;
+		background: var(--ai-700);
+		color: #fff;
+		font: 600 13px var(--font-ui);
+	}
+
+	.livebar.rec {
+		background: var(--shu-700);
+	}
+
+	.livebar .dot {
+		width: 10px;
+		height: 10px;
+		border-radius: 50%;
+		background: #fff;
+		animation: blink 1s steps(2) infinite;
+	}
+
+	@keyframes blink {
+		50% {
+			opacity: 0.3;
+		}
+	}
+
+	.slot {
+		flex: 1;
+		min-height: 0;
+		background: var(--sumi-bg);
+	}
+
+	.texts {
+		flex: 1;
+		min-height: 0;
+		overflow-y: auto;
+	}
+
+	.texts.pad {
+		padding: 24px;
+	}
+
+	.card-preview {
+		pointer-events: none;
 	}
 
 	.issue {
-		font-size: 13px;
-		color: var(--kaki-700);
+		margin: 0;
+		color: var(--sumi-muted);
+		font: 12px/1.5 var(--font-ui);
 	}
 
-	.warn-only {
-		color: var(--ink-500);
+	.issue.err {
+		color: var(--kaki-500);
 	}
 </style>

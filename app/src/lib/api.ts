@@ -85,11 +85,45 @@ export interface Range {
 	max?: number;
 }
 
-export type Shape =
+export type Point = [number, number];
+
+/** How a ghost shape looks to the student; absent fields are the hint defaults. */
+export interface ShapeStyle {
+	color?: string;
+	/** Stroke width in pixels of the task picture. */
+	width?: number;
+	opacity?: number;
+	dashed?: boolean;
+}
+
+export type Shape = (
 	| { kind: 'ellipse'; rect: Region }
 	| { kind: 'rect'; rect: Region }
-	| { kind: 'line'; from: [number, number]; to: [number, number] }
-	| { kind: 'path'; points: [number, number][] };
+	| { kind: 'line'; from: Point; to: Point }
+	| { kind: 'arrow'; from: Point; to: Point }
+	| { kind: 'path'; points: Point[] }
+) & { style?: ShapeStyle };
+
+/** One control call of a guide (docs/lesson-format.md, «guide.json»). */
+export interface GuideCall {
+	method: string;
+	params: Record<string, unknown>;
+}
+
+export interface GuideStep {
+	caption: string;
+	highlight?: string;
+	calls: GuideCall[];
+	pause?: number;
+}
+
+export interface GuideScript {
+	format: number;
+	title?: string;
+	open?: string;
+	canvas?: { width: number; height: number; background: string };
+	steps: GuideStep[];
+}
 
 export type CheckKind =
 	| { kind: 'tool'; tool: string }
@@ -335,6 +369,30 @@ export interface CheckResult {
 	hints: number;
 }
 
+export interface CheckProof {
+	step: string;
+	index: number;
+	kind: string;
+	canvas: boolean;
+	onReference: CheckOutcome | null;
+	onTask: CheckOutcome | null;
+	verdict: 'works' | 'passesUntouched' | 'failsReference' | 'noReference' | 'editorState';
+	suggestion: number | null;
+}
+
+export interface Recording {
+	steps: GuideStep[];
+	strokes: number;
+	skipped: string[];
+}
+
+export interface RecordTick {
+	elapsedMs: number;
+	strokes: number;
+	actions: number;
+	tool: string | null;
+}
+
 export interface HintReport {
 	step: string;
 	text: string;
@@ -416,6 +474,7 @@ export const api = {
 	guidePlay: (id: string) => invoke<void>('guide_play', { id }),
 	guideStop: () => invoke<void>('guide_stop'),
 	practiceStart: (id: string) => invoke<{ attempt: number; steps: StepView[] }>('practice_start', { id }),
+	practicePreview: (dir: string) => invoke<{ attempt: number; steps: StepView[] }>('practice_preview', { dir }),
 	practiceCheck: () => invoke<CheckResult>('practice_check'),
 	practiceHint: () => invoke<HintReport>('practice_hint'),
 	practiceHideHint: () => invoke<void>('practice_hide_hint'),
@@ -436,6 +495,11 @@ export const api = {
 	picture: (dir: string, path: string) => invoke<string | null>('studio_picture', { dir, path }),
 	duplicate: (lesson: string, categoryDir: string) => invoke<string>('studio_duplicate', { lesson, categoryDir }),
 	remove: (dir: string) => invoke<void>('studio_remove', { dir }),
+	prove: (dir: string, lesson: Lesson) => invoke<CheckProof[]>('studio_prove', { dir, lesson }),
+	hintPreview: (dir: string, lesson: Lesson, step: number) => invoke<HintReport>('studio_hint_preview', { dir, lesson, step }),
+	recordStart: (dir: string, lesson: Lesson) => invoke<void>('guide_record_start', { dir, lesson }),
+	recordStop: () => invoke<Recording>('guide_record_stop'),
+	guidePlayDraft: (dir: string) => invoke<void>('guide_play_draft', { dir }),
 	packageExport: (category: string, lessons: string[], out: string) => invoke<number>('package_export', { category, lessons, out }),
 	packageInspect: (path: string) => invoke<PackageInfo>('package_inspect', { path }),
 	packageImport: (path: string, replace: boolean) => invoke<ImportReport>('package_import', { path, replace }),

@@ -11,6 +11,10 @@
 	import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 
 	const id = $derived(page.params.id ?? '');
+	// «Глазами ученика» from the studio: the draft in this folder, nothing recorded.
+	const previewDir = $derived(page.url.searchParams.get('preview'));
+	const backHref = $derived(previewDir ? `/studio/edit?dir=${encodeURIComponent(previewDir)}` : `/lesson/${id}`);
+	let previewDone = $state(false);
 
 	let view = $state<LessonView | null>(null);
 	let steps = $state<StepView[]>([]);
@@ -47,8 +51,9 @@
 		failure = '';
 		try {
 			await setLayout(embedded);
-			view ??= await api.lesson(id);
-			const r = await api.practiceStart(id);
+			view ??= previewDir ? await draftView(previewDir) : await api.lesson(id);
+			previewDone = false;
+			const r = previewDir ? await api.practicePreview(previewDir) : await api.practiceStart(id);
 			steps = r.steps;
 			result = null;
 			hint = null;
@@ -58,6 +63,17 @@
 			failure = errorText(e);
 			phase = 'failed';
 		}
+	}
+
+	/** The bits of the lesson view this screen shows, from a studio draft. */
+	async function draftView(dir: string): Promise<LessonView> {
+		const d = await api.draft(dir);
+		return {
+			card: { title: d.lesson.title, categoryTitle: d.category.title },
+			lesson: d.lesson,
+			taskImage: d.taskImage,
+			referenceImage: d.referenceImage
+		} as unknown as LessonView;
 	}
 
 	function startTimer() {
@@ -84,8 +100,12 @@
 			if (!quiet && !advanced && !r.finished) note = 'Пока не получилось — смотрите подсказку под шагом.';
 			if (r.finished) {
 				stopTimer();
-				await refreshSession();
-				goto(`/result/${r.attempt}`);
+				if (previewDir) {
+					previewDone = true;
+				} else {
+					await refreshSession();
+					goto(`/result/${r.attempt}`);
+				}
 			}
 		} catch (e) {
 			if (!quiet) note = errorText(e);
@@ -206,7 +226,14 @@
 {/snippet}
 
 <div class="practice">
-	<LessonHeader dark title={view?.card.title ?? 'Практика'} subtitle="{view?.card.categoryTitle ?? ''} · практика" stage={2} back="/lesson/{id}" onclose={leave} />
+	<LessonHeader dark title={view?.card.title ?? 'Практика'} subtitle="{view?.card.categoryTitle ?? ''} · {previewDir ? 'глазами ученика' : 'практика'}" stage={2} back={backHref} onclose={leave} />
+	{#if previewDir}
+		<div class="preview-bar" role="status">
+			<Icon name="eye" size={16} />
+			<span>{previewDone ? 'Все шаги пройдены — так урок закончится у ученика.' : 'Глазами ученика: так урок пройдёт ученик. Прогресс и статистика не записываются.'}</span>
+			<a class="preview-back" href={backHref} onclick={leave}>К редактированию</a>
+		</div>
+	{/if}
 
 	{#if phase === 'failed'}
 		<section class="failed reveal">
@@ -217,7 +244,7 @@
 				<p class="body-s muted">Урок сохранён: гайд и теория доступны, а к заданию можно вернуться в любой момент.</p>
 				<div class="row">
 					<button class="btn btn-accent" onclick={start}><Icon name="refresh" size={18} /> Попробовать снова</button>
-					<a class="btn btn-quiet" href="/lesson/{id}">К теории</a>
+					<a class="btn btn-quiet" href={backHref}>{previewDir ? 'К редактированию' : 'К теории'}</a>
 				</div>
 			</div>
 		</section>
@@ -629,5 +656,27 @@
 	.row {
 		display: flex;
 		gap: 10px;
+	}
+
+	.preview-bar {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		padding: 8px 16px;
+		background: var(--ai-700);
+		color: #fff;
+		font: 600 13px var(--font-ui);
+	}
+
+	.preview-bar span {
+		flex: 1;
+	}
+
+	.preview-back {
+		padding: 6px 12px;
+		border-radius: 8px;
+		background: rgb(255 255 255 / 14%);
+		color: #fff;
+		text-decoration: none;
 	}
 </style>
