@@ -1,7 +1,7 @@
 <script lang="ts" module>
 	import type { Point, Region, Shape } from '../api.ts';
 
-	export type CanvasTool = 'select' | 'path' | 'line' | 'arrow' | 'ellipse' | 'rect' | 'region' | 'eraser' | 'brush';
+	export type CanvasTool = 'select' | 'hand' | 'path' | 'line' | 'arrow' | 'ellipse' | 'rect' | 'region' | 'eraser' | 'brush';
 
 	export interface RegionMark {
 		key: string;
@@ -22,7 +22,7 @@
 </script>
 
 <script lang="ts">
-	import { hit, moveRegion, moveShape, regionFromDrag, round3, shapeFromDrag, styleOf, svgPath, clamp01, type DrawTool } from './geometry.ts';
+	import { handles, hit, moveHandle, moveRegion, moveShape, regionFromDrag, round3, shapeFromDrag, styleOf, svgPath, clamp01, type DrawTool } from './geometry.ts';
 
 	// The task picture with everything the author puts on it, drawn in picture pixels.
 	let {
@@ -40,6 +40,7 @@
 		selectedRegion = null,
 		demo = [],
 		caption = '',
+		scale = null,
 		onshapes,
 		onselect,
 		onregion,
@@ -61,6 +62,8 @@
 		selectedRegion?: string | null;
 		demo?: DemoStroke[];
 		caption?: string;
+		/** Screen pixels per picture pixel; `null` fits the frame by CSS. */
+		scale?: number | null;
 		onshapes?: (shapes: Shape[]) => void;
 		onselect?: (index: number) => void;
 		onregion?: (key: string, region: Region) => void;
@@ -73,6 +76,7 @@
 	type Drag =
 		| { kind: 'draw'; start: Point; trail: Point[] }
 		| { kind: 'move'; index: number; last: Point; original: Shape[] }
+		| { kind: 'handle'; index: number; which: number }
 		| { kind: 'region-move'; key: string; last: Point; region: Region }
 		| { kind: 'region-resize'; key: string; region: Region }
 		| { kind: 'region-draw'; start: Point; now: Point }
@@ -103,6 +107,12 @@
 			return;
 		}
 		if (tool === 'select') {
+			const current = shapes[selected];
+			const grab = current ? handles(current).findIndex(([hx, hy]) => Math.hypot(hx - p[0], hy - p[1]) <= tolerance() * 1.2) : -1;
+			if (grab >= 0) {
+				drag = { kind: 'handle', index: selected, which: grab };
+				return;
+			}
 			const i = hit(shapes, p, tolerance());
 			onselect?.(i);
 			if (i >= 0) {
@@ -124,6 +134,9 @@
 		} else if (drag.kind === 'draw') {
 			drag.trail.push(p);
 			preview = shapeFromDrag(tool as DrawTool, drag.start, constrain(drag.start, p, e.shiftKey), drag.trail);
+		} else if (drag.kind === 'handle') {
+			const { index, which } = drag;
+			onshapes?.(shapes.map((s, j) => (j === index ? moveHandle(s, which, p) : s)));
 		} else if (drag.kind === 'move') {
 			const [dx, dy] = [p[0] - drag.last[0], p[1] - drag.last[1]];
 			drag.last = p;
@@ -147,9 +160,11 @@
 		if (drag.kind === 'draw') {
 			const shape = shapeFromDrag(tool as DrawTool, drag.start, constrain(drag.start, p, e.shiftKey), drag.trail);
 			if (shape) {
+				// The new shape's index, read before the list grows.
+				const index = shapes.length;
 				const style = e.altKey ? { dashed: true } : undefined;
 				onshapes?.([...shapes, style ? { ...shape, style } : shape]);
-				onselect?.(shapes.length);
+				onselect?.(index);
 			}
 		}
 		if (drag.kind === 'region-draw') {
@@ -177,6 +192,11 @@
 	function regionDown(e: PointerEvent, mark: RegionMark, resize = false) {
 		// With the region tool a drag always draws a new area, even over an existing one.
 		if (tool !== 'select') return;
+		// Ghost lines and their handles lie above the areas: let the canvas take those.
+		const p = at(e);
+		const current = shapes[selected];
+		const onHandle = current && handles(current).some(([hx, hy]) => Math.hypot(hx - p[0], hy - p[1]) <= tolerance() * 1.2);
+		if (onHandle || hit(shapes, p, tolerance()) >= 0) return;
 		e.stopPropagation();
 		svg!.setPointerCapture(e.pointerId);
 		onregionselect?.(mark.key);
@@ -185,7 +205,7 @@
 	}
 
 	const firstPoint = (s: Shape): Point => (s.kind === 'line' || s.kind === 'arrow' ? s.from : s.kind === 'path' ? s.points[0] : [s.rect[0], s.rect[1]]);
-	const scale = $derived(Math.max(width, height) / 1000);
+	const scale0 = $derived(Math.max(width, height) / 1000);
 	const dash = (s: Shape) => {
 		const st = styleOf(s, width, height);
 		return st.dashed ? `${st.width * 4} ${st.width * 3}` : undefined;
@@ -202,7 +222,7 @@
 	const brushTrail = $derived(drag?.kind === 'brush' ? drag.points.map(([x, y], i) => `${i ? 'L' : 'M'}${x} ${y}`).join(' ') : '');
 </script>
 
-<div class="frame" style:aspect-ratio="{width} / {height}">
+<div class="frame" style:aspect-ratio="{width} / {height}" style:width={scale ? `${width * scale}px` : null} style:height={scale ? `${height * scale}px` : null}>
 	{#if image}
 		<img src={image} alt="Картинка задания" draggable="false" />
 	{:else}
@@ -229,19 +249,19 @@
 		{#each demo as d, i (i)}
 			<path d={demoPath(d)} class="demo" stroke={d.color} stroke-width={d.size} stroke-opacity={d.opacity} />
 		{/each}
-		{#if brushTrail}<path d={brushTrail} class="demo live" stroke-width={12 * scale} />{/if}
+		{#if brushTrail}<path d={brushTrail} class="demo live" stroke-width={12 * scale0} />{/if}
 
 		{#each regions as m (m.key)}
 			{@const [x, y, w, h] = m.region}
 			<g class="region" class:on={selectedRegion === m.key} style:--c={m.color}>
 				<rect x={x * width} y={y * height} width={w * width} height={h * height} onpointerdown={(e) => regionDown(e, m)} role="presentation" />
-				<g transform="translate({x * width} {y * height - 26 * scale}) scale({scale})">
+				<g transform="translate({x * width} {y * height - 26 * scale0}) scale({scale0})">
 					<rect class="tag" width={30 + m.name.length * 7.2} height="22" rx="6" />
 					<text x="8" y="15" class="tag-key">{m.label}</text>
 					<text x="24" y="15" class="tag-name">{m.name}</text>
 				</g>
 				{#if selectedRegion === m.key}
-					<rect class="handle" x={(x + w) * width - 7 * scale} y={(y + h) * height - 7 * scale} width={14 * scale} height={14 * scale} onpointerdown={(e) => regionDown(e, m, true)} role="presentation" />
+					<rect class="handle" x={(x + w) * width - 7 * scale0} y={(y + h) * height - 7 * scale0} width={14 * scale0} height={14 * scale0} onpointerdown={(e) => regionDown(e, m, true)} role="presentation" />
 				{/if}
 			</g>
 		{/each}
@@ -257,9 +277,14 @@
 			{@const st = styleOf(preview, width, height)}
 			<path d={svgPath(preview, width, height)} class="ghost" stroke={st.color} stroke-opacity="0.5" stroke-width={st.width} />
 		{/if}
+		{#if tool === 'select' && shapes[selected]}
+			{#each handles(shapes[selected]) as [hx, hy], k (k)}
+				<rect class="shape-handle" x={hx * width - 6 * scale0} y={hy * height - 6 * scale0} width={12 * scale0} height={12 * scale0} />
+			{/each}
+		{/if}
 		{#each shapes as s, i (i)}
 			{@const [px, py] = firstPoint(s)}
-			<g class="seal" class:on={selected === i} transform="translate({px * width} {py * height}) scale({scale})">
+			<g class="seal" class:on={selected === i} transform="translate({px * width} {py * height}) scale({scale0})">
 				<circle r="12" />
 				<text y="4.5">{i + 1}</text>
 			</g>
@@ -271,8 +296,7 @@
 <style>
 	.frame {
 		position: relative;
-		max-width: 100%;
-		max-height: 100%;
+		flex: none;
 		box-shadow: 0 24px 60px rgb(0 0 0 / 45%);
 		user-select: none;
 	}
@@ -302,6 +326,18 @@
 
 	svg.tool-eraser {
 		cursor: not-allowed;
+	}
+
+	svg.tool-hand {
+		pointer-events: none;
+	}
+
+	.shape-handle {
+		fill: #fff;
+		stroke: var(--ai-500);
+		stroke-width: 2;
+		vector-effect: non-scaling-stroke;
+		pointer-events: none;
 	}
 
 	.ghost,

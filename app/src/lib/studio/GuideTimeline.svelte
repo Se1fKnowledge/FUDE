@@ -18,7 +18,9 @@
 		onplay,
 		onrecord,
 		onaddcaption,
-		onremove
+		onremove,
+		onsplit,
+		taskLabels = {}
 	}: {
 		steps: GuideStep[];
 		selected?: number;
@@ -33,6 +35,8 @@
 		onrecord: () => void;
 		onaddcaption: () => void;
 		onremove: () => void;
+		onsplit: () => void;
+		taskLabels?: Record<string, string>;
 	} = $props();
 
 	const LABEL = 116;
@@ -40,7 +44,7 @@
 	let laneWidth = $state(600);
 
 	const layout = $derived(times(steps));
-	const all = $derived(clips(steps));
+	const all = $derived(clips(steps, taskLabels));
 	const total = $derived(Math.max(layout.total, 4000));
 	const pxPerMs = $derived(Math.max(laneWidth / total, 0.03));
 	const width = $derived(total * pxPerMs);
@@ -75,7 +79,7 @@
 		if (e.key === 'Delete') onremove();
 	}
 
-	const ICON: Record<Track, 'pencil' | 'target' | 'sparkle' | 'brush'> = { caption: 'pencil', highlight: 'target', action: 'sparkle', stroke: 'brush' };
+	const ICON: Record<Track, 'pencil' | 'target' | 'sparkle' | 'brush' | 'book'> = { caption: 'pencil', highlight: 'target', action: 'sparkle', stroke: 'brush', task: 'book' };
 </script>
 
 <section class="timeline" aria-label="Дорожки гайда">
@@ -87,6 +91,7 @@
 		<span class="count">{steps.length ? count(steps.length, ['шаг', 'шага', 'шагов']) : 'Гайд пуст'}</span>
 		<span class="grow"></span>
 		<button class="tbtn" onclick={onaddcaption} disabled={recording}><Icon name="plus" size={14} /> Подпись</button>
+		<button class="tbtn" onclick={onsplit} disabled={!steps.length || recording} title="Разрезать шаг под плейхедом: штрих делится на два, иначе пауза"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M6 3a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM6 15a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM20 4 8.1 15.9M14.5 14.5 20 20M8.1 8.1 12 12" /></svg> Разрезать</button>
 		<button class="tbtn" onclick={onremove} disabled={selected < 0 || recording} aria-label="Удалить выбранный шаг"><Icon name="trash" size={14} /></button>
 		<button class="rec" class:on={recording} onclick={onrecord}>
 			<span class="dot"></span>{recording ? recordLabel || 'Остановить запись' : 'Записать в PhotoCraft'}
@@ -329,6 +334,18 @@
 
 	.clip.stroke {
 		background: var(--shu-700);
+	}
+
+	.clip.task {
+		background: var(--sumi-raised);
+		box-shadow: inset 0 0 0 1px var(--sumi-line);
+	}
+
+	.tbtn svg {
+		fill: none;
+		stroke: currentColor;
+		stroke-width: 2;
+		stroke-linecap: round;
 	}
 
 	.clip.on,

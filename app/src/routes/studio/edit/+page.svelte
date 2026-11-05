@@ -16,7 +16,8 @@
 	import InterfaceMap from '#lib/studio/InterfaceMap.svelte';
 	import LessonTexts, { type LessonSection } from '#lib/studio/LessonTexts.svelte';
 	import TaskPanel, { type TaskTab } from '#lib/studio/TaskPanel.svelte';
-	import { captionAt, emptyScript, frameAt, insertStep, isStroke, parseScript, removeStep, strokePoints, strokeStep, times, type BrushSettings } from '#lib/studio/timeline.ts';
+	import { captionAt, emptyScript, frameAt, insertStep, isStroke, moveStep, parseScript, removeStep, splitStep, strokePoints, strokeStep, taskStepStart, times, type BrushSettings } from '#lib/studio/timeline.ts';
+	import { History } from '#lib/studio/history.ts';
 
 	const dir = $derived(page.url.searchParams.get('dir') ?? '');
 
@@ -54,6 +55,7 @@
 			referenceImage = d.referenceImage;
 			await measure();
 			if (!editable.task.steps.length) mode = 'lesson';
+			history.reset(snapshot());
 			loaded = true;
 		} catch (e) {
 			error = errorText(e);
@@ -72,11 +74,59 @@
 		}
 	}
 
+	// ---------------------------------------------------------------- undo and redo
+	const history = new History();
+	let canUndo = $state(false);
+	let canRedo = $state(false);
+	let restoring = false;
+	let historyTimer: ReturnType<typeof setTimeout> | null = null;
+	const snapshot = () => JSON.stringify({ lesson: $state.snapshot(lesson), theory, script: $state.snapshot(script) });
+
 	$effect(() => {
-		// Any edit after loading marks the draft unsaved.
-		void JSON.stringify([lesson, theory, script]);
-		if (loaded) dirty = true;
+		// Any edit after loading marks the draft unsaved and, once edits pause, becomes an undo step.
+		const now = JSON.stringify([lesson, theory, script]);
+		void now;
+		if (!loaded) return;
+		dirty = true;
+		if (restoring) {
+			restoring = false;
+			return;
+		}
+		if (historyTimer) clearTimeout(historyTimer);
+		historyTimer = setTimeout(() => {
+			history.record(snapshot());
+			canUndo = history.canUndo;
+			canRedo = history.canRedo;
+		}, 350);
 	});
+
+	function restore(text: string | null) {
+		if (!text) return;
+		const v = JSON.parse(text) as { lesson: Lesson; theory: string; script: GuideScript };
+		restoring = true;
+		lesson = v.lesson;
+		theory = v.theory;
+		script = v.script;
+		canUndo = history.canUndo;
+		canRedo = history.canRedo;
+		selectedShape = -1;
+		selectedRegion = null;
+		if (lesson && stepIndex >= lesson.task.steps.length) stepIndex = Math.max(0, lesson.task.steps.length - 1);
+		if (guideStep >= script.steps.length) guideStep = script.steps.length - 1;
+	}
+
+	function undo() {
+		if (historyTimer) {
+			clearTimeout(historyTimer);
+			historyTimer = null;
+			history.record(snapshot());
+		}
+		restore(history.undo());
+	}
+
+	function redo() {
+		restore(history.redo());
+	}
 
 	function cleanLesson(): Lesson {
 		const clean = $state.snapshot(lesson) as Lesson;
@@ -154,6 +204,33 @@
 	let showHints = $state(true);
 	let refOpacity = $state(0);
 	let proofs = $state<CheckProof[]>([]);
+	let zoom = $state(1);
+	let wrapW = $state(800);
+	let wrapH = $state(600);
+	const fit = $derived(Math.max(0.05, Math.min((wrapW - 40) / size.w, (wrapH - 40) / size.h)));
+	const scale = $derived(fit * zoom);
+	const ZOOMS = [0.5, 0.75, 1, 1.5, 2, 3, 4];
+	const zoomBy = (dir: number) => (zoom = dir > 0 ? (ZOOMS.find((z) => z > zoom + 1e-6) ?? 4) : ([...ZOOMS].reverse().find((z) => z < zoom - 1e-6) ?? 0.5));
+	let wrap: HTMLDivElement | undefined = $state();
+	let pan: { x: number; y: number; left: number; top: number } | null = null;
+
+	function wheel(e: WheelEvent) {
+		if (!e.ctrlKey) return;
+		e.preventDefault();
+		zoomBy(e.deltaY < 0 ? 1 : -1);
+	}
+
+	function panDown(e: PointerEvent) {
+		if (activeTool !== 'hand' || !wrap) return;
+		pan = { x: e.clientX, y: e.clientY, left: wrap.scrollLeft, top: wrap.scrollTop };
+		wrap.setPointerCapture(e.pointerId);
+	}
+
+	function panMove(e: PointerEvent) {
+		if (!pan || !wrap) return;
+		wrap.scrollLeft = pan.left - (e.clientX - pan.x);
+		wrap.scrollTop = pan.top - (e.clientY - pan.y);
+	}
 	let mapFor = $state<'hint' | 'guide' | null>(null);
 
 	const step = $derived<Step | null>(lesson?.task.steps[stepIndex] ?? null);
@@ -303,6 +380,22 @@
 		selectGuideStep(at);
 	}
 
+	function splitAtPlayhead() {
+		const { step: i } = frameAt(script.steps, playhead);
+		if (i < 0) return;
+		const before = script.steps.length;
+		script.steps = splitStep(script.steps, i, playhead - times(script.steps).starts[i]);
+		note = script.steps.length > before ? `Шаг ${i + 1} разрезан на два.` : 'Здесь резать нечего: шаг слишком короткий.';
+		selectGuideStep(i);
+	}
+
+	function moveGuideStep(by: number) {
+		const to = guideStep + by;
+		if (guideStep < 0 || to < 0 || to >= script.steps.length) return;
+		script.steps = moveStep(script.steps, guideStep, to);
+		selectGuideStep(to);
+	}
+
 	function removeGuideStep() {
 		if (guideStep < 0) return;
 		script.steps = removeStep(script.steps, guideStep);
@@ -321,6 +414,8 @@
 	let live = $state<Live>(null);
 	let liveNote = $state('');
 	let tick = $state<RecordTick | null>(null);
+	let keepPauses = $state(false);
+	let keepUndo = $state(false);
 	let note = $state('');
 	let unlisten: UnlistenFn[] = [];
 
@@ -380,7 +475,7 @@
 
 	async function stopRecording() {
 		try {
-			const r = await api.recordStop();
+			const r = await api.recordStop(keepPauses, keepUndo);
 			const at = guideStep >= 0 ? guideStep + 1 : script.steps.length;
 			let steps = script.steps;
 			r.steps.forEach((s, i) => (steps = insertStep(steps, at + i, s)));
@@ -408,8 +503,20 @@
 			return;
 		}
 		if (typing || live) return;
+		if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'z' || e.key.toLowerCase() === 'y')) {
+			e.preventDefault();
+			if (e.key.toLowerCase() === 'y' || e.shiftKey) redo();
+			else undo();
+			return;
+		}
+		if ((e.ctrlKey || e.metaKey) && (e.key === '=' || e.key === '+' || e.key === '-' || e.key === '0')) {
+			e.preventDefault();
+			if (e.key === '0') zoom = 1;
+			else zoomBy(e.key === '-' ? -1 : 1);
+			return;
+		}
 		if (mode === 'task') {
-			const keys: Record<string, CanvasTool> = { v: 'select', b: 'path', l: 'line', a: 'arrow', o: 'ellipse', r: 'rect', m: 'region', e: 'eraser' };
+			const keys: Record<string, CanvasTool> = { v: 'select', h: 'hand', b: 'path', l: 'line', a: 'arrow', o: 'ellipse', r: 'rect', m: 'region', e: 'eraser' };
 			const t = keys[e.key.toLowerCase()];
 			if (t && !e.ctrlKey && !e.metaKey) tool = t;
 			if ((e.key === 'Delete' || e.key === 'Backspace') && selectedShape >= 0 && step?.hint?.shapes) {
@@ -424,6 +531,7 @@
 			}
 			if (e.key.toLowerCase() === 'b') guideTool = 'brush';
 			if (e.key.toLowerCase() === 'v') guideTool = 'select';
+			if (e.key.toLowerCase() === 'h') guideTool = 'hand';
 		}
 	}
 
@@ -456,16 +564,29 @@
 	const badProofs = $derived(proofs.filter((p) => p.verdict === 'passesUntouched' || p.verdict === 'failsReference'));
 	const readiness = $derived.by(() => {
 		if (!lesson) return [];
-		const list: { ok: boolean | null; text: string }[] = [];
+		const list: { ok: boolean | null; text: string; go?: () => void }[] = [];
+		const toLesson = (s: LessonSection) => () => ((mode = 'lesson'), (section = s));
 		const texts = [lesson.summary.trim() ? '' : 'описание', theory.trim() ? '' : 'теория'].filter(Boolean);
-		list.push(texts.length ? { ok: false, text: `Не заполнено: ${texts.join(', ')}` } : { ok: true, text: `Описание и теория${lesson.quiz?.length ? `, ${count(lesson.quiz.length, ['вопрос', 'вопроса', 'вопросов'])}` : ''}` });
-		list.push(script.steps.length || lesson.guide.video ? { ok: true, text: script.steps.length ? `Гайд: ${count(script.steps.length, ['шаг', 'шага', 'шагов'])}, ${Math.round(total / 100) / 10} с` : 'Видеогайд' } : { ok: false, text: 'Нет гайда: запишите его или загрузите видео' });
-		list.push(lesson.task.steps.length ? { ok: true, text: `Задание: ${count(lesson.task.steps.length, ['шаг', 'шага', 'шагов'])}` } : { ok: false, text: 'В задании нет шагов' });
-		for (const p of badProofs.slice(0, 2)) {
-			const n = lesson.task.steps.findIndex((s) => s.id === p.step) + 1;
-			list.push({ ok: false, text: p.verdict === 'passesUntouched' ? `Шаг ${n}: проверка проходит и на пустом задании` : `Шаг ${n}: проверка не проходит на эталоне` });
+		list.push(
+			texts.length
+				? { ok: false, text: `Не заполнено: ${texts.join(', ')}`, go: toLesson(lesson.summary.trim() ? 'theory' : 'about') }
+				: { ok: true, text: `Описание и теория${lesson.quiz?.length ? `, ${count(lesson.quiz.length, ['вопрос', 'вопроса', 'вопросов'])}` : ''}` }
+		);
+		list.push(
+			script.steps.length || lesson.guide.video
+				? { ok: true, text: script.steps.length ? `Гайд: ${count(script.steps.length, ['шаг', 'шага', 'шагов'])}, ${Math.round(total / 100) / 10} с` : 'Видеогайд' }
+				: { ok: false, text: 'Нет гайда: запишите его или загрузите видео', go: () => (mode = 'guide') }
+		);
+		list.push(lesson.task.steps.length ? { ok: true, text: `Задание: ${count(lesson.task.steps.length, ['шаг', 'шага', 'шагов'])}` } : { ok: false, text: 'В задании нет шагов', go: () => ((mode = 'task'), addStep()) });
+		for (const p of badProofs.slice(0, 3)) {
+			const i = lesson.task.steps.findIndex((s) => s.id === p.step);
+			list.push({
+				ok: false,
+				text: p.verdict === 'passesUntouched' ? `Шаг ${i + 1}: проверка проходит и на пустом задании` : `Шаг ${i + 1}: проверка не проходит на эталоне`,
+				go: () => ((mode = 'task'), (stepIndex = Math.max(0, i)), (tab = 'checks'))
+			});
 		}
-		if (errors.length) list.push({ ok: false, text: `${count(errors.length, ['ошибка', 'ошибки', 'ошибок'])} в файле урока — пока не в каталоге` });
+		if (errors.length) list.push({ ok: false, text: `${count(errors.length, ['ошибка', 'ошибки', 'ошибок'])} в файле урока — пока не в каталоге`, go: toLesson('about') });
 		return list;
 	});
 
@@ -495,6 +616,7 @@
 
 	const TASK_TOOLS: { id: CanvasTool; label: string; key: string; svg: string }[] = [
 		{ id: 'select', label: 'Выбор и перемещение', key: 'V', svg: 'M5 3l14 8-6 2-3 6z' },
+		{ id: 'hand', label: 'Рука — двигать холст', key: 'H', svg: 'M18 11V6a2 2 0 0 0-4 0v5M14 10V4a2 2 0 0 0-4 0v6M10 10.5V6a2 2 0 0 0-4 0v8M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.9-5.9-2.4L3.4 16a2 2 0 0 1 3-2.6L8 15' },
 		{ id: 'path', label: 'Линия от руки', key: 'B', svg: 'M3 17c3-6 6-9 9-5s6 1 9-5' },
 		{ id: 'line', label: 'Прямая (Shift — под 45°)', key: 'L', svg: 'M4 20 20 4' },
 		{ id: 'arrow', label: 'Стрелка', key: 'A', svg: 'M4 20 20 4M10 4h10v10' },
@@ -505,6 +627,7 @@
 	];
 	const GUIDE_TOOLS: { id: CanvasTool; label: string; key: string; svg: string }[] = [
 		{ id: 'select', label: 'Выбор', key: 'V', svg: 'M5 3l14 8-6 2-3 6z' },
+		{ id: 'hand', label: 'Рука — двигать холст', key: 'H', svg: 'M18 11V6a2 2 0 0 0-4 0v5M14 10V4a2 2 0 0 0-4 0v6M10 10.5V6a2 2 0 0 0-4 0v8M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.9-5.9-2.4L3.4 16a2 2 0 0 1 3-2.6L8 15' },
 		{ id: 'brush', label: 'Кисть показа', key: 'B', svg: 'M14.5 3.5 20.5 9.5l-7.5 7.5-6-6zM7 11l-1.5 1.5c-1.5 1.5-1 3-2 4.5-.5.8-1 1.5-1 2.5 1 0 1.7-.5 2.5-1 1.5-1 3-.5 4.5-2L11 15' }
 	];
 	const tools = $derived(mode === 'guide' ? GUIDE_TOOLS : TASK_TOOLS);
@@ -513,10 +636,13 @@
 		mode === 'guide'
 			? guideTool === 'brush'
 				? 'Кисть показа: рисуйте — штрих станет клипом на дорожке «Штрихи». Пробел — проиграть.'
-				: 'Выберите клип на дорожке или возьмите кисть показа (B).'
+				: guideTool === 'hand'
+					? 'Рука: тяните холст. Ctrl+колесо — масштаб.'
+					: 'Выберите клип на дорожке или возьмите кисть показа (B).'
 			: (
 					{
-						select: 'Выбор: щёлкните линию или область и тяните. Delete — удалить линию.',
+						select: 'Выбор: щёлкните линию или область и тяните; у выбранной линии тяните ручки. Delete — удалить, Ctrl+Z — отменить.',
+						hand: 'Рука: тяните холст. Ctrl+колесо — масштаб.',
 						path: 'Линия от руки: ведите мышью или пером. Alt — пунктир.',
 						line: 'Прямая: тяните. Shift — под 45°, Alt — пунктир.',
 						arrow: 'Стрелка: тяните от начала к острию.',
@@ -573,8 +699,9 @@
 					<p class="sec">С чего начинается</p>
 					<div class="item static"><span class="item-name">{lesson.task.open ? 'Картинка задания' : 'Чистый холст'}</span><span class="item-meta">{lesson.task.open ?? `${size.w} × ${size.h}`}</span></div>
 					<button class="item" onclick={() => attach('video')}>
-						<span class="item-name">Видео урока</span><span class="item-meta">{lesson.guide.video ?? 'необязательно · mp4 или webm'}</span>
+						<span class="item-name">Видео урока</span><span class="item-meta">{lesson.guide.video ? `${lesson.guide.video} · щёлкните, чтобы заменить` : 'необязательно · mp4 или webm'}</span>
 					</button>
+					{#if lesson.guide.video}<button class="link" onclick={() => lesson && delete lesson.guide.video}>Убрать видео</button>{/if}
 					<p class="sec">Сцены гайда</p>
 					{#each script.steps as s, i (i)}
 						{#if s.caption.trim()}
@@ -621,7 +748,11 @@
 				<div class="ready">
 					<p class="ready-title">Готовность урока</p>
 					{#each readiness as r, i (i)}
-						<p class="ready-line" class:bad={r.ok === false}><Icon name={r.ok ? 'check' : 'alert'} size={14} /> {r.text}</p>
+						{#if r.go}
+							<button class="ready-line bad link-line" onclick={r.go}><Icon name="alert" size={14} /> {r.text}</button>
+						{:else}
+							<p class="ready-line" class:bad={r.ok === false}><Icon name={r.ok ? 'check' : 'alert'} size={14} /> {r.text}</p>
+						{/if}
 					{/each}
 				</div>
 			</aside>
@@ -633,6 +764,8 @@
 						{#if live === 'record'}<span class="dot"></span><b class="mono">{tick ? (tick.elapsedMs / 1000).toFixed(0) : 0} с</b>{/if}
 						<span class="grow">{liveNote}{#if live === 'record' && tick} · штрихов: {tick.strokes}, действий: {tick.actions}{/if}</span>
 						{#if live === 'record'}
+							<label class="opt"><input type="checkbox" bind:checked={keepPauses} /> Паузы как есть</label>
+							<label class="opt"><input type="checkbox" bind:checked={keepUndo} /> Писать отмены</label>
 							<button class="btn-w" onclick={toggleRecording}>Остановить и добавить в гайд</button>
 						{:else}
 							<button class="btn-w" onclick={closeLive}>Вернуться к холсту</button>
@@ -662,8 +795,10 @@
 								</button>
 							{/each}
 						</div>
-						<div class="paper-wrap">
+						<div class="paper-wrap" class:panning={activeTool === 'hand'} bind:this={wrap} bind:clientWidth={wrapW} bind:clientHeight={wrapH} onwheel={wheel} onpointerdown={panDown} onpointermove={panMove} onpointerup={() => (pan = null)} role="presentation">
+							<div class="paper-inner">
 							<StudioCanvas
+								{scale}
 								image={taskImage}
 								reference={referenceImage}
 								referenceOpacity={refOpacity}
@@ -685,6 +820,15 @@
 								onregiondraw={drawRegion}
 								onstroke={addStroke}
 							/>
+							</div>
+						</div>
+						<div class="zoombar" role="toolbar" aria-label="Масштаб и история">
+							<button onclick={undo} disabled={!canUndo} title="Отменить · Ctrl+Z" aria-label="Отменить"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M9 14 4 9l5-5M4 9h10.5a5.5 5.5 0 0 1 0 11H11" /></svg></button>
+							<button onclick={redo} disabled={!canRedo} title="Повторить · Ctrl+Shift+Z" aria-label="Повторить"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="m15 14 5-5-5-5M20 9H9.5a5.5 5.5 0 0 0 0 11H13" /></svg></button>
+							<span class="sep"></span>
+							<button onclick={() => zoomBy(-1)} aria-label="Уменьшить" title="Уменьшить · Ctrl+−"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M5 12h14" /></svg></button>
+							<button class="pct mono" onclick={() => (zoom = 1)} title="Вписать · Ctrl+0">{Math.round(zoom * 100)}%</button>
+							<button onclick={() => zoomBy(1)} aria-label="Увеличить" title="Увеличить · Ctrl++"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg></button>
 						</div>
 						<p class="hintbar">{hint}</p>
 						{#if note}<p class="note" role="status">{note} <button onclick={() => (note = '')} aria-label="Скрыть"><Icon name="close" size={12} /></button></p>{/if}
@@ -704,10 +848,15 @@
 						onrecord={toggleRecording}
 						onaddcaption={addCaption}
 						onremove={removeGuideStep}
+						onsplit={splitAtPlayhead}
+						taskLabels={Object.fromEntries(lesson.task.steps.map((s, i) => [s.id, `${i + 1} · ${s.text || s.id}`]))}
 					/>
 				{:else if mode === 'task'}
 					<button class="collapsed" onclick={() => (mode = 'guide')}>
 						<Icon name="video" size={16} /> Гайд · {count(script.steps.length, ['шаг', 'шага', 'шагов'])} · {Math.round(total / 100) / 10} с
+						{#if step && taskStepStart(script.steps, step.id) !== null}
+							<span class="muted-inline">· шаг {stepIndex + 1} задания показан в гайде с {(taskStepStart(script.steps, step.id)! / 1000).toFixed(1).replace('.', ',')} с</span>
+						{/if}
 						<span class="grow"></span> Открыть дорожки
 					</button>
 				{/if}
@@ -734,12 +883,16 @@
 								onhintpreview={showHintInEditor}
 								onremovestep={removeTaskStep}
 								onmovestep={moveTaskStep}
+								{taskImage}
+								{referenceImage}
+								marks={regionMarks}
+								background={lesson.task.canvas?.background ?? '#FFFFFF'}
 							/>
 						{:else}
 							<p class="empty">В задании пока нет шагов. <button class="link" onclick={addStep}>Добавить первый шаг</button></p>
 						{/if}
 					{:else if mode === 'guide'}
-						<GuidePanel bind:script bind:brush selected={guideStep} {lesson} width={size.w} height={size.h} onmap={() => (mapFor = 'guide')} onghost={ghostFromGuide} />
+						<GuidePanel bind:script bind:brush selected={guideStep} {lesson} width={size.w} height={size.h} onmap={() => (mapFor = 'guide')} onghost={ghostFromGuide} onmove={moveGuideStep} />
 					{:else if card}
 						<p class="sec">Карточка в каталоге</p>
 						<div class="card-preview" inert><LessonTile {card} /></div>
@@ -1247,14 +1400,94 @@
 		flex: 1;
 		min-height: 0;
 		width: 100%;
-		display: grid;
-		place-items: center;
-		padding: 20px 0 12px;
+		display: flex;
+		overflow: auto;
+		margin: 12px 0 8px;
+		scrollbar-color: var(--sumi-line) transparent;
 	}
 
-	.paper-wrap :global(.frame) {
-		height: min(100%, 640px);
-		width: auto;
+	.paper-wrap.panning {
+		cursor: grab;
+	}
+
+	.paper-inner {
+		margin: auto;
+		padding: 20px;
+	}
+
+	.zoombar {
+		position: absolute;
+		left: 14px;
+		bottom: 14px;
+		display: flex;
+		align-items: center;
+		gap: 2px;
+		padding: 4px;
+		border: 1px solid var(--sumi-line);
+		border-radius: 10px;
+		background: var(--sumi-panel);
+	}
+
+	.zoombar button {
+		display: grid;
+		place-items: center;
+		min-width: 30px;
+		height: 30px;
+		padding: 0 6px;
+		border: 0;
+		border-radius: 6px;
+		background: none;
+		color: var(--sumi-text);
+		font: 600 15px var(--font-ui);
+		cursor: pointer;
+	}
+
+	.zoombar button:hover:not(:disabled) {
+		background: var(--sumi-raised);
+	}
+
+	.zoombar .pct {
+		font: 500 12px var(--font-mono);
+		min-width: 52px;
+	}
+
+	.zoombar svg {
+		fill: none;
+		stroke: currentColor;
+		stroke-width: 2;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+	}
+
+	.zoombar .sep {
+		width: 1px;
+		height: 18px;
+		margin: 0 4px;
+		background: var(--sumi-line);
+	}
+
+	.muted-inline {
+		color: var(--sumi-muted);
+		font-weight: 500;
+	}
+
+	.opt {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		font: 600 12px var(--font-ui);
+		white-space: nowrap;
+	}
+
+	.link-line {
+		border: 0;
+		background: none;
+		padding: 0;
+		text-align: left;
+		cursor: pointer;
+		text-decoration: underline;
+		text-decoration-color: var(--sumi-line);
+		text-underline-offset: 3px;
 	}
 
 	.hintbar {

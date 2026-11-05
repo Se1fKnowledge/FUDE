@@ -13,7 +13,8 @@
 		width,
 		height,
 		onmap,
-		onghost
+		onghost,
+		onmove
 	}: {
 		script: GuideScript;
 		brush: BrushSettings;
@@ -23,6 +24,7 @@
 		height: number;
 		onmap: () => void;
 		onghost: (taskStep: number, shapes: Shape[]) => void;
+		onmove: (by: number) => void;
 	} = $props();
 
 	const step = $derived(script.steps[selected] ?? null);
@@ -65,6 +67,14 @@
 				{#if step.highlight}<button class="quiet" onclick={() => delete script.steps[selected].highlight}>Убрать</button>{/if}
 			</div>
 		</div>
+		{#if lesson.task.steps.length}
+			<label class="field">Показывает шаг задания
+				<select value={step.task_step ?? ''} onchange={(e) => (e.currentTarget.value ? (script.steps[selected].task_step = e.currentTarget.value) : delete script.steps[selected].task_step)}>
+					<option value="">— не связан —</option>
+					{#each lesson.task.steps as st, i (st.id)}<option value={st.id}>Шаг {i + 1}: {st.text || st.id}</option>{/each}
+				</select>
+			</label>
+		{/if}
 		<label class="field">Пауза после шага, мс
 			<input type="number" min="0" max="15000" step="100" value={pauseOf(step)} onchange={(e) => (script.steps[selected].pause = Math.max(0, Math.min(15000, Number(e.currentTarget.value))))} />
 		</label>
@@ -92,6 +102,10 @@
 				</div>
 			{/if}
 		{/if}
+		<div class="row">
+			<button class="quiet" onclick={() => onmove(-1)} disabled={selected === 0}>← Раньше</button>
+			<button class="quiet" onclick={() => onmove(1)} disabled={selected === script.steps.length - 1}>Позже →</button>
+		</div>
 		<div class="field">
 			<span>Что делает шаг</span>
 			{#each step.calls as c, i (i)}
@@ -184,6 +198,11 @@
 
 	.grow {
 		flex: 1;
+	}
+
+	.quiet:disabled {
+		opacity: 0.45;
+		cursor: default;
 	}
 
 	.target,

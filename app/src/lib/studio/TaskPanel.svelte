@@ -27,7 +27,11 @@
 		onmap,
 		onhintpreview,
 		onremovestep,
-		onmovestep
+		onmovestep,
+		taskImage = null,
+		referenceImage = null,
+		marks = [],
+		background = '#FFFFFF'
 	}: {
 		lesson: Lesson;
 		step: number;
@@ -44,6 +48,10 @@
 		onhintpreview: () => void;
 		onremovestep: () => void;
 		onmovestep: (by: number) => void;
+		taskImage?: string | null;
+		referenceImage?: string | null;
+		marks?: { key: string; label: string; region: [number, number, number, number]; color: string }[];
+		background?: string;
 	} = $props();
 
 	const s = $derived(lesson.task.steps[step]);
@@ -98,7 +106,7 @@
 			<button role="tab" aria-selected={tab === 'text'} onclick={() => (tab = 'text')}>Текст</button>
 			<button role="tab" aria-selected={tab === 'hint'} onclick={() => (tab = 'hint')}>Подсказка</button>
 			<button role="tab" aria-selected={tab === 'checks'} onclick={() => (tab = 'checks')}>
-				Проверки · {s.checks.length}{#if badChecks}<span class="warn-dot" aria-label="есть проблемы"></span>{/if}
+				Проверки {s.checks.length}{#if badChecks}<span class="warn-dot" aria-label="есть проблемы"></span>{/if}
 			</button>
 		</div>
 
@@ -157,11 +165,41 @@
 					<label class="prop">Толщина
 						<span class="slider"><input type="range" min="1" max="40" step="1" value={style.width} oninput={(e) => setStyle({ width: Number(e.currentTarget.value) })} /><b>{style.width} px</b></span>
 					</label>
-					<label class="prop inline"><input type="checkbox" checked={style.dashed} onchange={(e) => setStyle({ dashed: e.currentTarget.checked })} /> Пунктир</label>
+					<label class="prop inline"><input type="checkbox" checked={style.dashed} onchange={(e) => setStyle({ dashed: e.currentTarget.checked, ...(e.currentTarget.checked ? { reveal: false } : {}) })} /> Пунктир</label>
+					<label class="prop inline"><input type="checkbox" checked={style.reveal} disabled={style.dashed} onchange={(e) => setStyle({ reveal: e.currentTarget.checked })} /> Прорисовкой — линия появляется постепенно, как от руки</label>
 				</div>
 			{/if}
 			<button class="wide" onclick={onhintpreview} disabled={!s.hint}><Icon name="play" size={14} /> Показать подсказку в PhotoCraft</button>
 		{:else}
+			{#if stepProofs.some((p) => p.canvas)}
+				{@const works = stepProofs.filter((p) => p.verdict === 'works').length}
+				<div class="live">
+					<p class="box-title row-between">Живая проверка <span class="meta">{works} из {stepProofs.filter((p) => p.canvas).length} работают</span></p>
+					<div class="thumbs">
+						{#each [['Эталон', referenceImage, 'onReference'], ['Пустое задание', taskImage, 'onTask']] as [title, img, side] (title)}
+							<figure>
+								<div class="thumb" style:aspect-ratio="{width} / {height}" style:background>
+									{#if img}<img src={img as string} alt={title as string} />{:else if title === 'Эталон'}<span class="noref">нет эталона</span>{/if}
+									{#each marks as m (m.key)}
+										<span class="mark" style:left="{m.region[0] * 100}%" style:top="{m.region[1] * 100}%" style:width="{m.region[2] * 100}%" style:height="{m.region[3] * 100}%" style:border-color={m.color}></span>
+									{/each}
+								</div>
+								<figcaption>
+									{title}
+									{#each stepProofs.filter((p) => p.canvas) as p (p.index)}
+										{@const o = side === 'onReference' ? p.onReference : p.onTask}
+										{#if o}
+											{@const good = side === 'onReference' ? o.passed : !o.passed}
+											<span class:good class:bad={!good} aria-label={good ? 'как надо' : 'не так'}><Icon name={good ? 'check' : 'alert'} size={10} /></span>
+										{/if}
+									{/each}
+								</figcaption>
+							</figure>
+						{/each}
+					</div>
+					<p class="note">Хорошая проверка проходит на эталоне и не проходит на нетронутом задании.</p>
+				</div>
+			{/if}
 			{#each s.checks as check, i (i)}
 				{@const l = letters(i)}
 				<CheckCard
@@ -421,6 +459,83 @@
 
 	.swatch.on {
 		border-color: #fff;
+	}
+
+	.live {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+		padding: 12px;
+		border: 1px solid var(--sumi-line);
+		border-radius: 8px;
+		background: var(--sumi-bg);
+	}
+
+	.thumbs {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 10px;
+	}
+
+	figure {
+		margin: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+
+	.thumb {
+		position: relative;
+		overflow: hidden;
+		border-radius: 6px;
+	}
+
+	.thumb img {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+	}
+
+	.noref {
+		position: absolute;
+		inset: 0;
+		display: grid;
+		place-items: center;
+		color: var(--ink-500);
+		font: 600 11px var(--font-ui);
+	}
+
+	.mark {
+		position: absolute;
+		border: 1.5px dashed;
+	}
+
+	figcaption {
+		display: flex;
+		gap: 4px;
+		align-items: center;
+		color: var(--sumi-text);
+		font: 600 12px var(--font-ui);
+	}
+
+	figcaption span {
+		display: grid;
+		place-items: center;
+		width: 16px;
+		height: 16px;
+		border-radius: 50%;
+		font-size: 10px;
+	}
+
+	figcaption .good {
+		background: var(--ai-900);
+		color: var(--ai-100);
+	}
+
+	figcaption .bad {
+		background: var(--kaki-500);
+		color: var(--ink-900);
 	}
 
 	.slider {

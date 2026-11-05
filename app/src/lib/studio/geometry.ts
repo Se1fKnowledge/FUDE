@@ -17,7 +17,7 @@ export function defaultWidth(w: number, h: number): number {
 /** A shape's look with the defaults filled in. */
 export function styleOf(shape: Shape, w: number, h: number): Required<ShapeStyle> {
 	const s = shape.style ?? {};
-	return { color: s.color ?? GHOST_COLOR, width: s.width ?? defaultWidth(w, h), opacity: s.opacity ?? GHOST_OPACITY, dashed: s.dashed ?? false };
+	return { color: s.color ?? GHOST_COLOR, width: s.width ?? defaultWidth(w, h), opacity: s.opacity ?? GHOST_OPACITY, dashed: s.dashed ?? false, reveal: s.reveal ?? false };
 }
 
 /** Drops the style keys that equal the defaults, so lesson files stay short. */
@@ -27,6 +27,7 @@ export function cleanStyle(style: ShapeStyle, w: number, h: number): ShapeStyle 
 	if (style.width !== undefined && style.width !== defaultWidth(w, h)) out.width = style.width;
 	if (style.opacity !== undefined && Math.abs(style.opacity - GHOST_OPACITY) > 1e-9) out.opacity = style.opacity;
 	if (style.dashed) out.dashed = true;
+	if (style.reveal) out.reveal = true;
 	return Object.keys(out).length ? out : undefined;
 }
 
@@ -172,6 +173,28 @@ export function moveShape(shape: Shape, dx: number, dy: number): Shape {
 			return { ...shape, rect: [round3(x + mx), round3(y + my), w, h] };
 		}
 	}
+}
+
+/** Handles of a selected shape: its ends, or the corners of its box. Paths have none. */
+export function handles(shape: Shape): Point[] {
+	if (shape.kind === 'line' || shape.kind === 'arrow') return [shape.from, shape.to];
+	if (shape.kind === 'rect' || shape.kind === 'ellipse') {
+		const [x, y, w, h] = shape.rect;
+		return [[x, y], [x + w, y], [x + w, y + h], [x, y + h]];
+	}
+	return [];
+}
+
+/** The shape with handle `which` dragged to `p`: an end moves, or the box grows from the opposite corner. */
+export function moveHandle(shape: Shape, which: number, p: Point): Shape {
+	const q = pt(p);
+	if (shape.kind === 'line' || shape.kind === 'arrow') return which === 0 ? { ...shape, from: q } : { ...shape, to: q };
+	if (shape.kind === 'rect' || shape.kind === 'ellipse') {
+		const corners = handles(shape);
+		const opposite = corners[(which + 2) % 4];
+		return { ...shape, rect: regionFromDrag(opposite, q) };
+	}
+	return shape;
 }
 
 /** A region moved by `[dx, dy]`, kept inside the picture. */

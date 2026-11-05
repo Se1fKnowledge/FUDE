@@ -182,6 +182,20 @@
 			{/each}
 		</ol>
 
+		{#if previewDir && currentOutcome}
+			<div class="author" aria-label="Что видит проверка">
+				<p class="label">Что видит проверка <span class="author-note">— видно только автору</span></p>
+				{#each currentOutcome.checks as c, i (i)}
+					<p class="body-s check-line" class:ok={c.passed}>
+						<Icon name={c.passed ? 'check' : 'alert'} size={14} />
+						<span>{c.message}</span>
+					</p>
+				{:else}
+					<p class="body-s muted">У шага нет проверок: он засчитывается кнопкой «Готово».</p>
+				{/each}
+			</div>
+		{/if}
+
 		{#if failing.length && result}
 			<div class="almost" role="status">
 				<p class="label">Почти получилось</p>
@@ -678,5 +692,35 @@
 		background: rgb(255 255 255 / 14%);
 		color: #fff;
 		text-decoration: none;
+	}
+
+	.author {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		padding: 12px 14px;
+		border: 1px dashed var(--ai-300);
+		border-radius: var(--radius-m);
+	}
+
+	.author-note {
+		color: var(--sumi-muted);
+		font-weight: 500;
+	}
+
+	.check-line {
+		display: flex;
+		gap: 8px;
+		align-items: flex-start;
+		margin: 0;
+		color: var(--kaki-500);
+	}
+
+	.check-line.ok {
+		color: var(--ai-300);
+	}
+
+	.check-line span {
+		color: var(--sumi-text);
 	}
 </style>

@@ -32,7 +32,7 @@ describe('shapes on the canvas', () => {
 
 	it('styles default to the hint look and only differences are saved', () => {
 		const s: Shape = { kind: 'line', from: [0, 0], to: [1, 1] };
-		expect(styleOf(s, 1000, 500)).toEqual({ color: '#BC3823', width: 3, opacity: 0.35, dashed: false });
+		expect(styleOf(s, 1000, 500)).toEqual({ color: '#BC3823', width: 3, opacity: 0.35, dashed: false, reveal: false });
 		expect(defaultWidth(100, 100)).toBe(2);
 		expect(cleanStyle({ color: '#bc3823', width: 3, opacity: 0.35, dashed: false }, 1000, 500)).toBeUndefined();
 		expect(cleanStyle({ color: '#2f5d8c', width: 8, opacity: 0.6, dashed: true }, 1000, 500)).toEqual({ color: '#2F5D8C', width: 8, opacity: 0.6, dashed: true });

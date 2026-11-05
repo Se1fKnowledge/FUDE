@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Icon from '../components/Icon.svelte';
 	import { TOOLS } from '../checks.ts';
-	import { GROUP_LABELS, OPTIONS, PANELS, search, type TargetGroup } from './targets.ts';
+	import { GROUP_LABELS, OPTIONS, PANELS, search, TOOL_ICONS, type TargetGroup } from './targets.ts';
 	import { targetLabel } from './timeline.ts';
 
 	// «Куда нажать»: the author points at a place on a map of the PhotoCraft window, or finds it
@@ -47,7 +47,7 @@
 				<div class="tools">
 					{#each toolbar as [id, label] (id)}
 						<button class="tool" class:on={isOn(`tool:${id}`)} onclick={() => (picked = `tool:${id}`)} title={label} aria-label={label}>
-							<span>{label.slice(0, 2)}</span>
+							<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d={TOOL_ICONS[id] ?? 'M6 6h12v12H6z'} /></svg>
 						</button>
 					{/each}
 				</div>
@@ -193,7 +193,17 @@
 		background: #1a1b20;
 	}
 
+	.tool svg {
+		fill: none;
+		stroke: currentColor;
+		stroke-width: 2;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+	}
+
 	.tool {
+		display: grid;
+		place-items: center;
 		height: 26px;
 		border-radius: 6px;
 		color: var(--sumi-muted);

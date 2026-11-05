@@ -8,12 +8,13 @@ export const DEFAULT_PAUSE = 600;
 export const MAX_PAUSE = 15000;
 export const MIN_PAUSE = 100;
 
-export type Track = 'caption' | 'highlight' | 'action' | 'stroke';
+export type Track = 'caption' | 'highlight' | 'action' | 'stroke' | 'task';
 export const TRACKS: { id: Track; label: string }[] = [
 	{ id: 'caption', label: 'Подписи' },
 	{ id: 'highlight', label: 'Подсветка' },
 	{ id: 'action', label: 'Действия' },
-	{ id: 'stroke', label: 'Штрихи' }
+	{ id: 'stroke', label: 'Штрихи' },
+	{ id: 'task', label: 'Шаги задания' }
 ];
 
 export interface Clip {
@@ -46,8 +47,10 @@ export function strokePoints(c: GuideCall): number[][] {
 	return Array.isArray(inner.points) ? inner.points : [];
 }
 
-/** The clips of every track. A caption stays on screen until the next one. */
-export function clips(steps: GuideStep[]): Clip[] {
+/** The clips of every track. A caption stays on screen until the next one; neighbouring
+ * steps that show the same task step make one clip on the task track. `taskLabels` names the
+ * task steps by id. */
+export function clips(steps: GuideStep[], taskLabels: Record<string, string> = {}): Clip[] {
 	const { starts, total } = times(steps);
 	const out: Clip[] = [];
 	steps.forEach((s, i) => {
@@ -62,8 +65,44 @@ export function clips(steps: GuideStep[]): Clip[] {
 		const actions = s.calls.filter((c) => !isStroke(c));
 		if (strokes) out.push({ track: 'stroke', step: i, start, end, label: strokes === 1 ? 'Штрих' : `Штрихи ×${strokes}` });
 		if (actions.length) out.push({ track: 'action', step: i, start, end, label: actions.map(describeCall).join(' · ') });
+		if (s.task_step) {
+			const last = out.findLast((c) => c.track === 'task');
+			if (last && steps[i - 1]?.task_step === s.task_step) last.end = end;
+			else out.push({ track: 'task', step: i, start, end, label: taskLabels[s.task_step] ?? s.task_step });
+		}
 	});
 	return out;
+}
+
+/** When the guide first shows task step `id`, in milliseconds; `null` if it never does. */
+export function taskStepStart(steps: GuideStep[], id: string): number | null {
+	const i = steps.findIndex((s) => s.task_step === id);
+	return i === -1 ? null : times(steps).starts[i];
+}
+
+/** Cuts step `i` at `at` milliseconds into it. A step that is one stroke splits the stroke;
+ * any other step keeps its calls and hands the rest of its pause to a new empty step. */
+export function splitStep(steps: GuideStep[], i: number, at: number): GuideStep[] {
+	const s = steps[i];
+	if (!s) return steps;
+	const pause = pauseOf(s);
+	const first = Math.round(Math.min(Math.max(at, MIN_PAUSE), pause - MIN_PAUSE));
+	if (pause < MIN_PAUSE * 2 || first <= 0) return steps;
+	const rest = pause - first;
+	if (s.calls.length === 1 && isStroke(s.calls[0])) {
+		const points = strokePoints(s.calls[0]);
+		const cut = Math.round((points.length - 1) * (first / pause));
+		if (cut >= 1 && cut < points.length - 1) {
+			const inner = (s.calls[0].params.params ?? {}) as Record<string, unknown>;
+			const part = (pts: number[][]): GuideCall => ({ method: 'engine.execute', params: { command: 'paint.stroke', params: { ...inner, points: pts } } });
+			const a: GuideStep = { ...s, calls: [part(points.slice(0, cut + 1))], pause: first };
+			const b: GuideStep = { caption: '', calls: [part(points.slice(cut))], pause: rest, ...(s.task_step ? { task_step: s.task_step } : {}) };
+			return [...steps.slice(0, i), a, b, ...steps.slice(i + 1)];
+		}
+	}
+	const a: GuideStep = { ...s, pause: first };
+	const b: GuideStep = { caption: '', calls: [], pause: rest, ...(s.task_step ? { task_step: s.task_step } : {}) };
+	return [...steps.slice(0, i), a, b, ...steps.slice(i + 1)];
 }
 
 /** The step running at `ms` and how far into it, 0–1. */

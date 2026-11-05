@@ -94,6 +94,8 @@ export interface ShapeStyle {
 	width?: number;
 	opacity?: number;
 	dashed?: boolean;
+	/** Drawn bit by bit, as if by hand. */
+	reveal?: boolean;
 }
 
 export type Shape = (
@@ -115,6 +117,8 @@ export interface GuideStep {
 	highlight?: string;
 	calls: GuideCall[];
 	pause?: number;
+	/** The task step this part of the guide shows (`task.steps[].id`). */
+	task_step?: string;
 }
 
 export interface GuideScript {
@@ -498,7 +502,7 @@ export const api = {
 	prove: (dir: string, lesson: Lesson) => invoke<CheckProof[]>('studio_prove', { dir, lesson }),
 	hintPreview: (dir: string, lesson: Lesson, step: number) => invoke<HintReport>('studio_hint_preview', { dir, lesson, step }),
 	recordStart: (dir: string, lesson: Lesson) => invoke<void>('guide_record_start', { dir, lesson }),
-	recordStop: () => invoke<Recording>('guide_record_stop'),
+	recordStop: (keepPauses = false, keepUndo = false) => invoke<Recording>('guide_record_stop', { keepPauses, keepUndo }),
 	guidePlayDraft: (dir: string) => invoke<void>('guide_play_draft', { dir }),
 	packageExport: (category: string, lessons: string[], out: string) => invoke<number>('package_export', { category, lessons, out }),
 	packageInspect: (path: string) => invoke<PackageInfo>('package_inspect', { path }),
