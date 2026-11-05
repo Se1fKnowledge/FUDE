@@ -1,0 +1,67 @@
+# Tests and lints of FUDE (fude-core, the app's Rust side and its Svelte front end) on every
+# push and pull request. The editor in photocraft/ has its own checks and is not built here.
+name: CI
+
+on:
+  push:
+    branches: [main, SelfKnowledge]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: test (windows)
+    # The app embeds the editor with Win32 calls, and its window tests run only there.
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ". -> target"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install front-end packages
+        working-directory: app
+        run: npm ci
+
+      - name: Svelte check
+        working-directory: app
+        run: npm run check
+
+      - name: Front-end tests
+        working-directory: app
+        run: npm test
+
+      # tauri::generate_context! reads the built front end, so it must exist before cargo runs.
+      - name: Build the front end
+        working-directory: app
+        run: npm run build
+
+      - name: Format
+        run: cargo fmt --all --check
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+
+      - name: Rust tests
+        run: cargo test --workspace --locked

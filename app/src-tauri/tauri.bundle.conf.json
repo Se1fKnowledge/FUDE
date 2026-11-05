@@ -1,0 +1,9 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "bundle": {
+    "resources": {
+      "../../lessons/": "lessons/",
+      "../../photocraft/target/release/photocraft.exe": "photocraft.exe"
+    }
+  }
+}
