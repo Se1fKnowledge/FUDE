@@ -671,8 +671,8 @@ mod tests {
     #[test]
     fn ghost_styles_are_checked() {
         let mut l = sample();
-        let bad = Style { color: Some("red".into()), width: Some(0.1), opacity: Some(1.5), dashed: true };
-        let good = Style { color: Some("#2F5D8C".into()), width: Some(6.0), opacity: Some(0.35), dashed: true };
+        let bad = Style { color: Some("red".into()), width: Some(0.1), opacity: Some(1.5), dashed: true, reveal: false };
+        let good = Style { color: Some("#2F5D8C".into()), width: Some(6.0), opacity: Some(0.35), dashed: true, reveal: true };
         l.task.steps[0].hint = Some(Hint {
             text: "x".into(),
             target: None,

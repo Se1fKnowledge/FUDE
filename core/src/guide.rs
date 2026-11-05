@@ -76,6 +76,10 @@ pub struct Step {
     /// Milliseconds to wait after the step; [`DEFAULT_PAUSE_MS`] when absent.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pause: Option<u32>,
+    /// The task step this part of the guide shows (`task.steps[].id`), for the author's
+    /// timeline. The player ignores it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub task_step: Option<String>,
 }
 
 impl Step {
@@ -342,7 +346,7 @@ mod tests {
 
     #[test]
     fn pauses_are_capped() {
-        let step = Step { caption: String::new(), highlight: None, calls: vec![], pause: Some(u32::MAX) };
+        let step = Step { caption: String::new(), highlight: None, calls: vec![], pause: Some(u32::MAX), task_step: None };
         assert_eq!(step.pause_ms(), MAX_PAUSE_MS);
     }
 

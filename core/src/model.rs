@@ -311,6 +311,9 @@ pub struct Style {
     pub opacity: Option<f64>,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub dashed: bool,
+    /// Drawn bit by bit, as if by hand, instead of all at once.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub reveal: bool,
 }
 
 impl Style {

@@ -23,14 +23,32 @@ const ELLIPSE_SEGMENTS: usize = 64;
 /// The layer takes the opacity of the most opaque shape; each stroke carries the rest, so a
 /// faint shape next to a strong one keeps its own look.
 pub fn show(hint: &Hint, width: u32, height: u32, return_to: Option<u64>) -> Vec<Call> {
+    show_paced(hint, width, height, return_to).into_iter().map(|p| p.call).collect()
+}
+
+/// One call of a hint and how long to wait after it, so shapes with `reveal` appear as if
+/// drawn by hand.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Paced {
+    pub call: Call,
+    pub pause_ms: u32,
+}
+
+/// Pieces a revealed line is drawn in, and the wait after each.
+pub const REVEAL_PIECES: usize = 10;
+pub const REVEAL_PAUSE_MS: u32 = 45;
+
+/// [`show`] with the waits that make revealed shapes draw themselves.
+pub fn show_paced(hint: &Hint, width: u32, height: u32, return_to: Option<u64>) -> Vec<Paced> {
     if hint.shapes.is_empty() {
         return vec![];
     }
+    let now = |call: Call| Paced { call, pause_ms: 0 };
     let (w, h) = (f64::from(width.max(1)), f64::from(height.max(1)));
     let default_size = (w.min(h) * 0.006).round().max(2.0);
     let opacity = |s: &Shape| s.style().opacity.unwrap_or(OPACITY).clamp(0.05, 1.0);
     let layer_opacity = hint.shapes.iter().map(opacity).fold(0.0, f64::max);
-    let mut calls = vec![Call::engine("layer.new.layer", json!({ "name": LAYER_NAME, "opacity": round2(layer_opacity), "color": "red" }))];
+    let mut calls = vec![now(Call::engine("layer.new.layer", json!({ "name": LAYER_NAME, "opacity": round2(layer_opacity), "color": "red" })))];
     for shape in &hint.shapes {
         let style = shape.style();
         let size = style.width.map_or(default_size, |v| v.clamp(0.5, 200.0));
@@ -43,19 +61,52 @@ pub fn show(hint: &Hint, width: u32, height: u32, return_to: Option<u64>) -> Vec
         }
         if style.dashed {
             lines = lines.iter().flat_map(|l| dashes(l, size * 4.0, size * 3.0)).collect();
+        } else if style.reveal {
+            lines = lines.iter().flat_map(|l| pieces(l, REVEAL_PIECES)).collect();
         }
+        let pause_ms = if style.reveal { REVEAL_PAUSE_MS } else { 0 };
         for line in lines {
             let points: Vec<Value> = line.into_iter().map(|[x, y]| json!([round(x), round(y), 1.0])).collect();
-            calls.push(Call::engine(
+            let call = Call::engine(
                 "paint.stroke",
                 json!({ "points": points, "size": size, "hardness": 1.0, "opacity": stroke_opacity, "flow": 1.0, "color": color }),
-            ));
+            );
+            calls.push(Paced { call, pause_ms });
         }
     }
     if let Some(layer) = return_to {
-        calls.push(Call::engine("layer.select", json!({ "layer": layer })));
+        calls.push(now(Call::engine("layer.select", json!({ "layer": layer }))));
     }
     calls
+}
+
+/// A polyline cut into `n` consecutive pieces of equal length.
+pub fn pieces(line: &[[f64; 2]], n: usize) -> Vec<Vec<[f64; 2]>> {
+    let total: f64 = line.windows(2).map(|w| (w[1][0] - w[0][0]).hypot(w[1][1] - w[0][1])).sum();
+    if line.len() < 2 || total <= 1e-9 || n <= 1 {
+        return vec![line.to_vec()];
+    }
+    let step = total / n as f64;
+    let mut out = Vec::with_capacity(n);
+    let mut current = vec![line[0]];
+    let mut limit = step;
+    let mut walked = 0.0;
+    for pair in line.windows(2) {
+        let (a, b) = (pair[0], pair[1]);
+        let len = (b[0] - a[0]).hypot(b[1] - a[1]);
+        // Cut this segment wherever a piece ends inside it; each piece starts where the last ended.
+        while out.len() + 1 < n && walked + len >= limit - 1e-9 {
+            let t = if len > 0.0 { (limit - walked) / len } else { 0.0 };
+            let cut = [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+            current.push(cut);
+            out.push(std::mem::replace(&mut current, vec![cut]));
+            limit += step;
+        }
+        current.push(b);
+        walked += len;
+    }
+    out.push(current);
+    out
 }
 
 /// The two short lines of an arrow head at `to`, in pixels.
@@ -200,7 +251,7 @@ mod tests {
 
     #[test]
     fn each_shape_keeps_its_own_colour_width_and_opacity() {
-        let blue = Style { color: Some("#2F5D8C".into()), width: Some(12.0), opacity: Some(0.7), dashed: false };
+        let blue = Style { color: Some("#2F5D8C".into()), width: Some(12.0), opacity: Some(0.7), dashed: false, reveal: false };
         let calls = show(&hint(vec![line([0.0, 0.0], [1.0, 0.0]), Shape::Line { from: [0.0, 1.0], to: [1.0, 1.0], style: blue }]), 100, 100, None);
         assert_eq!(calls[0].params["params"]["opacity"], 0.7, "the layer takes the most opaque shape");
         assert_eq!(calls[1].params["params"]["opacity"], 0.5, "35% of 70%: the default shape stays as faint as before");
@@ -256,5 +307,31 @@ mod tests {
         let calls = hide(&layers);
         assert_eq!(calls, vec![Call::engine("layer.delete", json!({"layer": 4})), Call::engine("layer.delete", json!({"layer": 9}))]);
         assert!(hide(&json!(null)).is_empty());
+    }
+
+    #[test]
+    fn a_revealed_shape_draws_in_pieces_with_waits() {
+        let style = Style { reveal: true, ..Style::default() };
+        let paced = show_paced(&hint(vec![Shape::Line { from: [0.0, 0.5], to: [1.0, 0.5], style }]), 1000, 1000, Some(2));
+        let strokes: Vec<&Paced> = paced.iter().filter(|p| p.call.command() == Some("paint.stroke")).collect();
+        assert_eq!(strokes.len(), REVEAL_PIECES);
+        assert!(strokes.iter().all(|p| p.pause_ms == REVEAL_PAUSE_MS));
+        assert_eq!(paced[0].pause_ms, 0, "the layer appears at once");
+        let first = &strokes[0].call.params["params"]["points"];
+        let last = strokes[REVEAL_PIECES - 1].call.params["params"]["points"].as_array().cloned().unwrap_or_default();
+        assert_eq!(first[0], json!([0.0, 500.0, 1.0]));
+        assert_eq!(last.last(), Some(&json!([1000.0, 500.0, 1.0])), "the pieces reach the end");
+        assert_eq!(show(&hint(vec![line([0.0, 0.0], [1.0, 1.0])]), 10, 10, None).len(), 2, "plain shapes stay one stroke");
+    }
+
+    #[test]
+    fn pieces_cover_the_line_end_to_end() {
+        let p = pieces(&[[0.0, 0.0], [10.0, 0.0], [10.0, 10.0]], 4);
+        assert_eq!(p.len(), 4);
+        assert_eq!(p[0][0], [0.0, 0.0]);
+        assert!((p[1][0][0] - 5.0).abs() < 1e-6);
+        let end = p[3].last().copied().unwrap_or_default();
+        assert!((end[0] - 10.0).abs() < 1e-6 && (end[1] - 10.0).abs() < 1e-6);
+        assert_eq!(pieces(&[[1.0, 1.0]], 4), vec![vec![[1.0, 1.0]]]);
     }
 }

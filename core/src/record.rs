@@ -53,12 +53,26 @@ pub struct Recording {
     pub skipped: Vec<String>,
 }
 
-/// Shortest and longest pause kept between recorded steps.
+/// Shortest pause kept between recorded steps.
 const MIN_PAUSE_MS: u64 = 150;
 
-/// Builds guide steps from recorded events. Pauses longer than `longest_pause_ms` (the author
-/// thinking) shrink to it.
-pub fn to_guide(events: &[Recorded], start: &Brush, longest_pause_ms: u32) -> Recording {
+/// What the author chose before recording.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Options {
+    /// Pauses longer than this (the author thinking) shrink to it; [`MAX_PAUSE_MS`] keeps them.
+    pub longest_pause_ms: u32,
+    /// Leave out undo and redo, so the guide shows only the work that stayed.
+    pub skip_undo: bool,
+}
+
+impl Default for Options {
+    fn default() -> Self {
+        Options { longest_pause_ms: 2000, skip_undo: true }
+    }
+}
+
+/// Builds guide steps from recorded events.
+pub fn to_guide(events: &[Recorded], start: &Brush, options: Options) -> Recording {
     let mut brush = start.clone();
     let mut steps: Vec<(u64, Step, bool)> = Vec::new(); // (start time, step, holds a stroke)
     let mut skipped: Vec<String> = Vec::new();
@@ -69,7 +83,7 @@ pub fn to_guide(events: &[Recorded], start: &Brush, longest_pause_ms: u32) -> Re
             step.calls.push(call);
             return;
         }
-        steps.push((at, Step { caption: String::new(), highlight, calls: vec![call], pause: None }, stroke));
+        steps.push((at, Step { caption: String::new(), highlight, calls: vec![call], pause: None, task_step: None }, stroke));
     };
     for e in events {
         match &e.event {
@@ -109,12 +123,13 @@ pub fn to_guide(events: &[Recorded], start: &Brush, longest_pause_ms: u32) -> Re
                 }
                 // Recording starts on the lesson's own picture; a new document would leave it.
                 "file.new" => note(&mut skipped, id),
+                "edit.undo" | "edit.redo" if options.skip_undo => {}
                 _ if ALLOWED_COMMANDS.contains(&id.as_str()) => push(&mut steps, e.at_ms, Call::engine(id, params.clone()), None, false),
                 _ => note(&mut skipped, id),
             },
         }
     }
-    let longest = u64::from(longest_pause_ms.clamp(MIN_PAUSE_MS as u32, MAX_PAUSE_MS));
+    let longest = u64::from(options.longest_pause_ms.clamp(MIN_PAUSE_MS as u32, MAX_PAUSE_MS));
     let times: Vec<u64> = steps.iter().map(|(t, ..)| *t).collect();
     let mut out: Vec<Step> = steps.into_iter().map(|(_, s, _)| s).collect();
     for (i, step) in out.iter_mut().enumerate() {
@@ -186,7 +201,7 @@ mod tests {
             cmd(9500, "file.open", json!({"path": "C:/x.png"})),
             cmd(9600, "app.quit", json!({})),
         ];
-        let r = to_guide(&events, &Brush { color: "#3B3A40".into(), ..Brush::default() }, 2000);
+        let r = to_guide(&events, &Brush { color: "#3B3A40".into(), ..Brush::default() }, Options::default());
         assert_eq!(r.strokes, 2);
         assert_eq!(r.skipped, vec!["file.open".to_string(), "app.quit".to_string()]);
         assert_eq!(r.steps.len(), 4, "tool with its brush settings, two strokes, the new layer");
@@ -214,7 +229,7 @@ mod tests {
             cmd(20, "paint.stroke", json!({"points": [[0, 0]]})),
             cmd(30, "paint.stroke", json!({"points": []})),
         ];
-        let r = to_guide(&events, &Brush::default(), 2000);
+        let r = to_guide(&events, &Brush::default(), Options::default());
         assert_eq!(r.steps.len(), 2);
         assert_eq!(r.steps[1].calls[0].params["params"]["color"], "#BC3823");
         assert_eq!(r.strokes, 1, "a stroke without points is dropped");
@@ -223,10 +238,26 @@ mod tests {
     #[test]
     fn long_strokes_are_thinned_to_the_guide_limit_keeping_the_end() {
         let points: Vec<Value> = (0..12_001).map(|i| json!([f64::from(i), 0.0, 1.0])).collect();
-        let r = to_guide(&[cmd(0, "paint.stroke", json!({ "points": points }))], &Brush::default(), 2000);
+        let r = to_guide(&[cmd(0, "paint.stroke", json!({ "points": points }))], &Brush::default(), Options::default());
         let kept = r.steps[0].calls[0].params["params"]["points"].as_array().unwrap().clone();
         assert!(kept.len() <= MAX_POINTS);
         assert_eq!(kept.last().unwrap()[0], 12_000.0);
         assert_eq!(check_call(&r.steps[0].calls[0]), Ok(()));
+    }
+
+    #[test]
+    fn undo_is_left_out_by_default_and_long_pauses_can_stay() {
+        let events = vec![
+            cmd(0, "layer.new.layer", json!({})),
+            cmd(100, "edit.undo", json!({})),
+            cmd(200, "edit.redo", json!({})),
+            cmd(9000, "paint.stroke", json!({"points": [[0, 0], [1, 1]]})),
+        ];
+        let r = to_guide(&events, &Brush::default(), Options::default());
+        assert_eq!(r.steps[0].calls.len(), 1, "undo and redo are not in the guide");
+        assert!(r.skipped.is_empty(), "leaving them out is a choice, not a refusal");
+        let kept = to_guide(&events, &Brush::default(), Options { longest_pause_ms: MAX_PAUSE_MS, skip_undo: false });
+        assert_eq!(kept.steps[0].calls.len(), 3);
+        assert_eq!(kept.steps[0].pause, Some(9000), "the pause before the stroke stays as recorded");
     }
 }
