@@ -115,12 +115,13 @@ pub async fn guide_record_start(app: AppHandle, dir: String, lesson: Lesson) -> 
 
 /// Stops recording and returns the guide steps made of what the author did.
 #[tauri::command]
-pub async fn guide_record_stop(app: AppHandle) -> AppResult<Recording> {
+pub async fn guide_record_stop(app: AppHandle, keep_pauses: bool, keep_undo: bool) -> AppResult<Recording> {
     tauri::async_runtime::spawn_blocking(move || {
         let state = app.state::<AppState>();
         let recorder = stop_recorder(&state).ok_or_else(|| AppError::msg("запись не идёт"))?;
         let events = lock(&recorder.events).clone();
-        Ok(record::to_guide(&events, &recorder.brush, LONGEST_PAUSE_MS))
+        let options = record::Options { longest_pause_ms: if keep_pauses { fude_core::guide::MAX_PAUSE_MS } else { LONGEST_PAUSE_MS }, skip_undo: !keep_undo };
+        Ok(record::to_guide(&events, &recorder.brush, options))
     })
     .await
     .map_err(|e| AppError::msg(e.to_string()))?

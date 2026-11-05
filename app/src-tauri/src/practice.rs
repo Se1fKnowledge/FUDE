@@ -195,8 +195,12 @@ impl Practice {
             let width = doc.and_then(|d| d.get("width")).and_then(Value::as_u64).unwrap_or(1200) as u32;
             let height = doc.and_then(|d| d.get("height")).and_then(Value::as_u64).unwrap_or(800) as u32;
             let active = doc.and_then(|d| d.get("activeLayer")).and_then(Value::as_u64);
-            for call in hint::show(&h, width, height, active) {
-                ch.call(&call)?;
+            // Shapes with `reveal` draw piece by piece, as if by hand.
+            for step in hint::show_paced(&h, width, height, active) {
+                ch.call(&step.call)?;
+                if step.pause_ms > 0 {
+                    std::thread::sleep(std::time::Duration::from_millis(u64::from(step.pause_ms)));
+                }
             }
             self.hint_shown = true;
         }
