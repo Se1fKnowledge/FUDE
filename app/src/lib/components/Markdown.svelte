@@ -90,7 +90,7 @@
 	.md :global(h2:last-of-type + p) {
 		padding: 14px 16px;
 		border-radius: 12px;
-		background: var(--ink-900);
+		background: var(--night);
 		color: var(--sumi-text);
 	}
 </style>

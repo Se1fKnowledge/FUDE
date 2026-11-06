@@ -441,8 +441,8 @@
 	}
 
 	.chapters li.current {
-		background: var(--ink-900);
-		color: var(--paper-raised);
+		background: var(--night);
+		color: var(--night-text);
 	}
 
 	.chapters li.current .muted {

@@ -26,7 +26,7 @@
 </script>
 
 <div class="welcome reveal">
-	<div class="enso"><Enso size={520} width={34} color="rgb(22 22 26 / 7%)" seed={9} /></div>
+	<div class="enso"><Enso size={520} width={34} color="color-mix(in srgb, var(--ink-900) 7%, transparent)" seed={9} /></div>
 	<form class="card" onsubmit={save}>
 		<Hanko kanji="筆" size={52} />
 		<h1 class="display-l">Добро пожаловать в FUDE</h1>

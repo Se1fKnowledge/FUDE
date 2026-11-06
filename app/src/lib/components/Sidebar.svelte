@@ -7,6 +7,9 @@
 	import Icon, { type IconName } from './Icon.svelte';
 	import { session } from '#lib/session.svelte.ts';
 	import { count } from '#lib/format.ts';
+	import { THEME_LABELS, next, setTheme, theme } from '#lib/theme.svelte.ts';
+
+	const themeIcon = $derived(theme.choice === 'light' ? 'sun' : theme.choice === 'dark' ? 'moon' : 'contrast');
 
 	const items: { href: string; label: string; icon: IconName; seed: number }[] = [
 		{ href: '/', label: 'Главная', icon: 'home', seed: 11 },
@@ -103,6 +106,9 @@
 				<span class="me-name">{boot.profile.name || 'Ученик'}</span>
 				<span class="rank">{boot.rank.name} · {boot.rank.title}</span>
 			</span>
+			<button class="theme" onclick={() => setTheme(next(theme.choice))} title="Тема: {THEME_LABELS[theme.choice].toLowerCase()}. Нажмите, чтобы сменить" aria-label="Тема: {THEME_LABELS[theme.choice]}">
+				<Icon name={themeIcon} size={18} />
+			</button>
 		</div>
 	{/if}
 </aside>
@@ -116,7 +122,7 @@
 		width: var(--sidebar);
 		height: 100vh;
 		padding: 36px 20px 24px;
-		background: var(--ink-900);
+		background: var(--night);
 		color: var(--sumi-text);
 		overflow: hidden;
 	}
@@ -314,5 +320,25 @@
 	.rank {
 		font-size: 13px;
 		color: var(--kaki-500);
+	}
+
+	.theme {
+		margin-left: auto;
+		display: grid;
+		place-items: center;
+		flex: none;
+		width: 32px;
+		height: 32px;
+		border: 0;
+		border-radius: 8px;
+		background: none;
+		color: var(--sumi-muted);
+		cursor: pointer;
+		transition: background 160ms var(--ease-out), color 160ms var(--ease-out);
+	}
+
+	.theme:hover {
+		background: rgb(255 255 255 / 6%);
+		color: var(--sumi-text);
 	}
 </style>

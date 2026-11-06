@@ -367,7 +367,7 @@
 	}
 
 	.cat li:hover {
-		background: rgb(22 22 26 / 3%);
+		background: color-mix(in srgb, var(--ink-900) 3%, transparent);
 	}
 
 	.cat li a {

@@ -239,7 +239,7 @@
 	</div>
 {/snippet}
 
-<div class="practice">
+<div class="practice sumi-scope">
 	<LessonHeader dark title={view?.card.title ?? 'Практика'} subtitle="{view?.card.categoryTitle ?? ''} · {previewDir ? 'глазами ученика' : 'практика'}" stage={2} back={backHref} onclose={leave} />
 	{#if previewDir}
 		<div class="preview-bar" role="status">

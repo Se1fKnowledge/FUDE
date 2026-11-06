@@ -658,7 +658,7 @@
 
 <svelte:window {onkeydown} />
 
-<div class="studio">
+<div class="studio sumi-scope">
 	<header class="top">
 		<a class="back" href="/studio" aria-label="В мастерскую"><Icon name="back" size={18} /></a>
 		<div class="title">

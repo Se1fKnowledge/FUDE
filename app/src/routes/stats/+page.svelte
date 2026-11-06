@@ -299,7 +299,7 @@
 		gap: 14px;
 		padding: 26px 28px;
 		border-radius: var(--radius-card);
-		background: var(--ink-900);
+		background: var(--night);
 		color: var(--sumi-text);
 	}
 

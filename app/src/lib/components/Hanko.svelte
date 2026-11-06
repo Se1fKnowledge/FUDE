@@ -45,7 +45,7 @@
 	}
 
 	.ink {
-		background: var(--ink-900);
+		background: var(--night);
 	}
 
 	.ai {

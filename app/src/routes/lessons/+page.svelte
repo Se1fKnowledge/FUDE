@@ -177,7 +177,7 @@
 	}
 
 	.cat:hover {
-		background: rgb(22 22 26 / 4%);
+		background: color-mix(in srgb, var(--ink-900) 4%, transparent);
 	}
 
 	.cat.active {
@@ -225,11 +225,11 @@
 		padding: 34px 36px 28px;
 		border-radius: var(--radius-card);
 		background: var(--ai-900);
-		color: var(--paper-raised);
+		color: var(--night-text);
 	}
 
 	.banner.search {
-		background: var(--ink-900);
+		background: var(--night);
 	}
 
 	.banner p {

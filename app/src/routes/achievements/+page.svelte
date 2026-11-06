@@ -200,7 +200,7 @@
 		gap: 16px;
 		padding: 28px;
 		border-radius: var(--radius-card);
-		background: var(--ink-900);
+		background: var(--night);
 		color: var(--sumi-text);
 	}
 
@@ -266,8 +266,8 @@
 		width: 24px;
 		height: 24px;
 		border-radius: 50%;
-		background: var(--ink-900);
-		color: #fff;
+		background: var(--night);
+		color: var(--night-text);
 	}
 
 	.progress {

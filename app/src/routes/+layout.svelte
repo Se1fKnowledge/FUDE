@@ -7,16 +7,19 @@
 	import Welcome from '#lib/components/Welcome.svelte';
 	import { refreshSession, session } from '#lib/session.svelte.ts';
 	import { api } from '#lib/api.ts';
+	import { initTheme } from '#lib/theme.svelte.ts';
 
 	let { children }: { children: Snippet } = $props();
 
 	let splash = $state(true);
 
 	onMount(() => {
+		const stopTheme = initTheme();
 		// The splash plays once per launch, not on every reload while developing.
 		if (sessionStorage.getItem('fude-splash')) splash = false;
 		sessionStorage.setItem('fude-splash', '1');
 		refreshSession();
+		return stopTheme;
 	});
 
 	// The lesson path takes the whole window, like the mockup screens 06–08.
