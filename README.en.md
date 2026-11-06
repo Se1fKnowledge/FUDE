@@ -94,7 +94,7 @@ npm install
 npm run tauri dev                     # the FUDE app
 ```
 
-GitHub Actions builds the Windows installer ([`build.yml`](.github/workflows/build.yml)): on every push to `main`, on a `v*` tag (then also a release) or by hand. The files are in the `FUDE-windows-x64` artifact on the run page: `.exe` and `.msi` installers and a portable `.zip`. Tests and clippy run on every push ([`ci.yml`](.github/workflows/ci.yml)).
+GitHub Actions builds the Windows installer ([`build.yml`](.github/workflows/build.yml)): on every push to `main` and `SelfKnowledge`, on a `v*` tag (then also a release) or by hand. The files are in the `FUDE-windows-x64` artifact on the run page: `.exe` and `.msi` installers and a portable `.zip`. Tests and clippy run on every push ([`ci.yml`](.github/workflows/ci.yml)).
 
 To launch with a click: [`app/run-dev.cmd`](app/run-dev.cmd) does the same in a minimised console (and runs `npm install` if needed). A shortcut to it with the `app/src-tauri/icons/icon.ico` icon is handy; closing the FUDE window stops everything.
 

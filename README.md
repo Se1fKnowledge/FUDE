@@ -94,7 +94,7 @@ npm install
 npm run tauri dev                     # приложение FUDE
 ```
 
-Готовый установщик для Windows собирает GitHub Actions ([`build.yml`](.github/workflows/build.yml)): на каждый push в `main`, по тегу `v*` (тогда ещё и релиз) или вручную. Файлы лежат в артефакте `FUDE-windows-x64` на странице запуска: установщики `.exe` и `.msi` и переносная `.zip`. Тесты и clippy идут на каждый push ([`ci.yml`](.github/workflows/ci.yml)). Подробности — в [docs/app.md](docs/app.md#сборка-на-github).
+Готовый установщик для Windows собирает GitHub Actions ([`build.yml`](.github/workflows/build.yml)): на каждый push в `main` и `SelfKnowledge`, по тегу `v*` (тогда ещё и релиз) или вручную. Файлы лежат в артефакте `FUDE-windows-x64` на странице запуска: установщики `.exe` и `.msi` и переносная `.zip`. Тесты и clippy идут на каждый push ([`ci.yml`](.github/workflows/ci.yml)). Подробности — в [docs/app.md](docs/app.md#сборка-на-github).
 
 Запускать кликом: [`app/run-dev.cmd`](app/run-dev.cmd) делает то же самое в свёрнутой консоли (и `npm install`, если нужно). На него удобно сделать ярлык с иконкой `app/src-tauri/icons/icon.ico`; закрытие окна FUDE останавливает всё.
 

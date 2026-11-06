@@ -1,11 +1,12 @@
 # Builds the Windows installers of FUDE with PhotoCraft inside: the editor lands next to
-# fude.exe, where the app looks for it first. Runs on main, on version tags (which also make a
-# GitHub release) and by hand from the Actions tab.
+# fude.exe, where the app looks for it first. Runs on main and the SelfKnowledge development
+# branch (a newer push cancels an older build), on version tags (which also make a GitHub
+# release) and by hand from the Actions tab once this file is on main.
 name: Build
 
 on:
   push:
-    branches: [main]
+    branches: [main, SelfKnowledge]
     tags: ["v*"]
   workflow_dispatch:
 

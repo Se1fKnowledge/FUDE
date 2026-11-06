@@ -202,7 +202,7 @@ cd app && npm run check                                       # Svelte and TypeS
 | Workflow | When | What it does |
 |---|---|---|
 | [`ci.yml`](../../.github/workflows/ci.yml) | every push to `main` and `SelfKnowledge`, every pull request | `npm run check`, interface tests, interface build, `cargo fmt --check`, clippy with `-D warnings`, `cargo test --workspace` |
-| [`build.yml`](../../.github/workflows/build.yml) | a push to `main`, `v*` tags, by hand (Actions → Build → Run workflow) | builds PhotoCraft in release and the FUDE installers with the editor inside; uploads the `FUDE-windows-x64` artifact: the `.exe` and `.msi` installers plus the portable `FUDE-portable-windows-x64.zip` (`fude.exe`, `photocraft.exe`, `lessons/`) |
+| [`build.yml`](../../.github/workflows/build.yml) | a push to `main` and `SelfKnowledge` (a newer push cancels the previous build), `v*` tags, by hand (Actions → Build → Run workflow — once the file is on `main`) | builds PhotoCraft in release and the FUDE installers with the editor inside; uploads the `FUDE-windows-x64` artifact: the `.exe` and `.msi` installers plus the portable `FUDE-portable-windows-x64.zip` (`fude.exe`, `photocraft.exe`, `lessons/`) |
 
 A tag like `v0.1.0` also creates a GitHub release with these files:
 
