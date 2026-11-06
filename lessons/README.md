@@ -1,6 +1,8 @@
 # Встроенные уроки FUDE
 
-Две категории по шесть уроков. Формат — [docs/lesson-format.md](../docs/lesson-format.md). Проверить:
+**Русский** · [English](README.en.md)
+
+Две категории по шесть уроков, на русском и английском. Формат — [docs/lesson-format.md](../docs/lesson-format.md). Проверить:
 
 ```bash
 cargo run -p fude-core --bin fude-cli -- validate lessons
@@ -34,6 +36,7 @@ cargo run -p fude-core --bin fude-cli -- validate lessons
 - `theory.md` — теория с «Советом сэнсэя»;
 - `guide.json` — анимированный гайд: команды PhotoCraft с подписями;
 - `assets/task.png` — с чего начинается задание (если не чистый холст);
-- `assets/reference.png` — эталон: так может выглядеть выполненное задание.
+- `assets/reference.png` — эталон: так может выглядеть выполненное задание;
+- `en.toml` и `theory.en.md` — урок на английском ([docs/lesson-format.md](../docs/lesson-format.md#языки)).
 
 Картинки и гайды рисует генератор [`core/examples/lesson_art.rs`](../core/examples/lesson_art.rs). Теорию, вопросы и задания пишут руками.

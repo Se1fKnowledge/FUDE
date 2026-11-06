@@ -1,5 +1,7 @@
 # Приложение FUDE
 
+**Русский** · [English](en/app.md)
+
 Десктопное приложение на **Tauri 2**: интерфейс на **SvelteKit 3 + Svelte 5 + TypeScript** в webview, бэкенд на Rust поверх ядра [`fude-core`](../core/). Редактор PhotoCraft запускается отдельным процессом и управляется через свой JSON-канал.
 
 ## Запуск
@@ -161,8 +163,9 @@ Ctrl+S сохраняет; уход со студии с несохранённ�
 app/
 ├── src/                     интерфейс (SvelteKit)
 │   ├── lib/api.ts           типы и вызовы команд бэкенда
-│   ├── lib/ink.ts           мазок, энсо и горы, нарисованные кодом
-│   ├── lib/format.ts        русские числа, падежи, даты
+│   ├── lib/ink.ts           картинки туши из настоящих мазков: мазки, энсо, горы
+│   ├── lib/format.ts        числа, падежи, даты на языке интерфейса
+│   ├── lib/i18n.svelte.ts   язык интерфейса и t(); словарь — lib/i18n/en.ts
 │   ├── lib/checks.ts        виды проверок для редактора урока
 │   ├── lib/shortcuts.ts     клавиши практики: F1 подсказка, Ctrl+Enter проверка
 │   ├── lib/editor-slot.ts   место под встроенный редактор, выбор режима
@@ -179,15 +182,16 @@ app/
     ├── src/play.rs          команды гайда и практики
     ├── src/studio.rs        команды мастерской и пакетов
     ├── src/author.rs        студия: живая проверка, подсказка в редакторе, запись гайда
+    ├── src/lang.rs          язык: хранение, редактор, журнал на языке интерфейса
     └── tests/real_editor.rs все гайды в настоящем PhotoCraft
 ```
 
 ## Тесты
 
 ```bash
-cargo test -p fude-app                                        # бэкенд, 49 тестов (с поддельным редактором)
+cargo test -p fude-app                                        # бэкенд, 52 теста (с поддельным редактором)
 cargo test -p fude-app --test real_editor -- --ignored        # 12 гайдов в настоящем PhotoCraft
-cd app && npm test                                            # интерфейс, 55 тестов
+cd app && npm test                                            # интерфейс, 67 тестов
 cd app && npm run check                                       # типы Svelte и TypeScript
 ```
 
