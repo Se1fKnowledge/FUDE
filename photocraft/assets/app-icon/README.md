@@ -1,40 +1,40 @@
-# PhotoCraft app icon
+# Editor app icon (FUDE build)
 
-A **nine-tailed kitsune with a brow diamond**: an engraving portrait, seated, looking back at the
-viewer, in the Crafting Apps' owl-template framing (full-bleed field, head and body filling the
-tile, tails running off the edges).
+The FUDE build of PhotoCraft shows the **FUDE editor icon** instead of PhotoCraft's own: the
+character 筆 ("brush", read *fude*) written in the Yuji Syuku brush face, washi white on an indigo
+tile, with a small vermilion seal in the corner. It matches the FUDE app's seal icon (the same
+character and face) while staying recognisably the editor next to it in the taskbar.
 
 ## Palette
 
-Exactly three colours:
-
 | Colour | Hex | Used for |
 |---|---|---|
-| Ink | `#0b0b0c` | line work and contours |
-| Paper | `#efe9dc` | the figure |
-| PhotoCraft blue (app colour) | `#2f7bf5` | the full-bleed field |
+| Indigo (FUDE `ai/700` → `ai/900`) | `#1F4470` → `#1B3A60` | the field |
+| Washi (FUDE `paper/base`) | `#F3EEE4` | the character, the seal's frame |
+| Vermilion (FUDE `shu/500`) | `#BC3823` | the seal |
 
 ## Geometry
 
-A 512-unit tile (`viewBox="0 0 512 512"`), rounded square with `rx=112`, no border. The macOS
-renders pad it onto Apple's 824/1024 icon grid; the Windows and Linux renders crop 22 units off
-each side so the figure reads at 16–48 px.
+A 512-unit tile (`viewBox="0 0 512 512"`), rounded square with `rx=112` as a clip path. The
+character takes 74% of the tile; the seal is 15% of the tile at the bottom right and is left out
+below 32 px, where it would only be a speck. The macOS render sits on Apple's 824/1024 grid.
 
 ## Provenance
 
-The owner's original drawing, made in ArtCraft (2880 px, engraving style, keyed to the palette),
-vectorised with craftrules `assets/logo-options/_tools/vectorize_tile.py`. The source PNG stays in
-craftrules at `assets/app-icons/photocraft/source.png`. License: see `LICENSE.txt`.
+Made for FUDE (`https://github.com/Se1fKnowledge/FUDE`). The character's outline comes from Yuji
+Syuku by Kinuta Font Factory (SIL Open Font License 1.1). License: see `LICENSE.txt`.
 
 ## Files
 
-- `photocraft.svg`: canonical master (traced at 2048 px).
-- `photocraft-small.svg`: lighter trace (traced at 1024 px); also the hicolor scalable icon.
+- `photocraft.svg`: canonical master (the character as a vector path).
+- `photocraft-small.svg`: the same drawing; also the hicolor scalable icon.
 - `photocraft-1024.png`: 1024 px render on the macOS grid.
 - `photocraft.icns`: macOS bundle icon (`CFBundleIconFile`).
 - `photocraft.ico`: Windows icon, 16–256 px, embedded in the `.exe` by `apps/photocraft/build.rs`.
 - `hicolor/<size>/apps/ai.storyteller.photocraft.png` (16–512) and `hicolor/scalable/...svg`:
   Linux icon theme.
+
+The file names stay PhotoCraft's, so the build scripts and packaging find them unchanged.
 
 The app also sets the window icon and Wayland app ID at runtime (`apps/photocraft/src/app_icon.rs`,
 `main.rs`). On Windows the taskbar shows the icon of the Start Menu shortcut that launches the

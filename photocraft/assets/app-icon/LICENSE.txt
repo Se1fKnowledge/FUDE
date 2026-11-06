@@ -1,13 +1,16 @@
-PhotoCraft app icon (photocraft.svg, photocraft-small.svg and every file derived from them in
-this directory: photocraft-1024.png, photocraft.icns, photocraft.ico, hicolor/).
+Editor app icon of the FUDE build (photocraft.svg, photocraft-small.svg and every file derived
+from them in this directory: photocraft-1024.png, photocraft.icns, photocraft.ico, hicolor/).
 
-Original artwork made for this project by the project owner: an engraving-style drawing created
-in ArtCraft, then vectorised. No third-party material. Licensed like the rest of PhotoCraft,
+Made for FUDE (https://github.com/Se1fKnowledge/FUDE). Licensed like the rest of PhotoCraft,
 under either of
 
   * Apache License, Version 2.0 (https://www.apache.org/licenses/LICENSE-2.0)
   * MIT license (https://opensource.org/licenses/MIT)
 
 at your option.
+
+The outline of the character 筆 is taken from the Yuji Syuku typeface by Kinuta Font Factory,
+licensed under the SIL Open Font License, Version 1.1 (https://openfontlicense.org). The OFL
+allows using glyph outlines in artwork such as this icon.
 
 Regenerate the derived files with packaging/icons.sh.
