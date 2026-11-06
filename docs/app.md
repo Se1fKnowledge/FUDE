@@ -32,6 +32,10 @@ npm run tauri build -- --config src-tauri/tauri.bundle.conf.json
 
 Если редактора нет, приложение работает, а экран практики показывает «Редактор не запустился» с объяснением.
 
+## Тема
+
+Светлая «Васи» или тёмная «Тушь» — кнопка у профиля внизу боковой панели переключает светлая → тёмная → как в системе ([`theme.svelte.ts`](../app/src/lib/theme.svelte.ts)). Токены тёмной темы — `:root[data-theme='dark']` в [`styles.css`](../app/src/lib/styles.css), значения — как во втором режиме переменных в Figma ([design-system.md](design-system.md#тёмная-тема-тушь)).
+
 ## Где хранятся данные
 
 Всё локально, в `%APPDATA%\ru.fude.app\`:
