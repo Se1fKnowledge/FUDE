@@ -54,7 +54,7 @@
 <svelte:window {onkeydown} />
 
 <aside>
-	<div class="enso"><Enso size={420} width={30} color="#23262d" seed={21} /></div>
+	<div class="enso"><Enso size={420} color="#23262d" seed={21} /></div>
 
 	<a class="brand" href="/" aria-label="FUDE, на главную">
 		<Hanko kanji="筆" size={40} />

@@ -111,6 +111,7 @@ cargo test -p photocraft-engine --lib prefs
 ## Лицензии
 
 - Собственный код и материалы FUDE (ядро уроков, уроки, документация, материалы дизайна, будущее приложение) — **MIT**, см. [LICENSE](LICENSE).
+- Картинки туши в [`app/src/lib/assets/ink/`](app/src/lib/assets/ink/ATTRIBUTION.md) (мазки, энсо, горы) сделаны из кистей «Sumi Strokes» (SparkleStock) и идут по лицензии SparkleStock, не MIT; подробности — в `ATTRIBUTION.md` рядом с ними.
 - Редактор в папке [`photocraft/`](photocraft/) остаётся под своей лицензией **MIT OR Apache-2.0**, как и исходный PhotoCraft. См. [photocraft/LICENSE-MIT](photocraft/LICENSE-MIT), [photocraft/LICENSE-APACHE](photocraft/LICENSE-APACHE) и [photocraft/NOTICE](photocraft/NOTICE). Строка копирайта исходных авторов сохранена, как того требуют эти лицензии.
 - Название, логотипы и ссылки ArtCraft удалены из редактора по условиям бренда для форков. Они остаются товарными знаками ArtCraft Team.
 

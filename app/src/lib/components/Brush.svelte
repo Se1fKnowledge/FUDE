@@ -1,8 +1,9 @@
 <script lang="ts">
-	import { brushStroke } from '#lib/ink.ts';
+	import { pick, STROKES } from '#lib/ink.ts';
 
-	// A horizontal ink stroke with a dry tail: under the active menu item, as a progress
-	// bar, as a week bar laid on its side.
+	// A horizontal ink stroke with a dry tail — a real sumi stroke filled with `color`: under the
+	// active menu item and on lesson cards. `progress` shows only the start of it; `draw` paints
+	// it left to right.
 	let {
 		width = 240,
 		height = 44,
@@ -12,15 +13,16 @@
 		draw = false
 	}: { width?: number; height?: number; seed?: number; color?: string; progress?: number; draw?: boolean } = $props();
 
-	const stroke = $derived(brushStroke(width, height, seed));
+	const src = $derived(pick(STROKES, seed));
 	const clip = $derived(`inset(0 ${Math.round((1 - Math.min(1, Math.max(0, progress))) * 100)}% 0 0)`);
+	const id = `stroke-${Math.random().toString(36).slice(2)}`;
 </script>
 
 <svg class:draw viewBox="0 0 {width} {height}" {width} {height} aria-hidden="true" style="clip-path: {clip}">
-	<path d={stroke.body} fill={color} />
-	{#each stroke.hairs as hair (hair)}
-		<path d={hair} stroke={color} stroke-width="1.2" stroke-linecap="round" fill="none" opacity="0.75" />
-	{/each}
+	<mask {id} maskUnits="userSpaceOnUse" x="0" y="0" {width} {height}>
+		<image href={src} {width} {height} preserveAspectRatio="none" />
+	</mask>
+	<rect {width} {height} fill={color} mask="url(#{id})" />
 </svg>
 
 <style>

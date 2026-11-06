@@ -26,7 +26,7 @@
 	<div class="stage">
 		<span class="drop"></span>
 		<span class="wash"></span>
-		<div class="enso"><Enso size={300} width={22} draw duration={880} delay={620} seed={5} /></div>
+		<div class="enso"><Enso size={300} draw duration={880} delay={620} seed={5} /></div>
 		<span class="fude kanji">筆</span>
 		<div class="title">
 			<span class="name">FUDE</span>

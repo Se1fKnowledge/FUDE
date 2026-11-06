@@ -68,7 +68,7 @@
 					</div>
 					<div class="art" aria-hidden="true">
 						<div class="mist"><Mountains width={520} height={150} seed={c.number + 2} /></div>
-						<div class="ring"><Enso size={230} width={20} seed={c.number + 4} /></div>
+						<div class="ring"><Enso size={230} seed={c.number + 4} /></div>
 						<span class="sphere"></span>
 						<span class="sun"></span>
 					</div>

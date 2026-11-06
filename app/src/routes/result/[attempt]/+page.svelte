@@ -30,7 +30,7 @@
 <div class="result">
 	<a class="brand" href="/"><Hanko kanji="筆" size={32} /> <span>FUDE</span></a>
 	<a class="close" href="/" aria-label="На главную"><Icon name="close" /></a>
-	<div class="ring" aria-hidden="true"><Enso size={620} width={40} color="color-mix(in srgb, var(--ink-900) 5%, transparent)" seed={12} /></div>
+	<div class="ring" aria-hidden="true"><Enso size={620} color="color-mix(in srgb, var(--ink-900) 5%, transparent)" seed={12} /></div>
 
 	{#if error}
 		<p class="muted center">{error}</p>

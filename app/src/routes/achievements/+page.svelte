@@ -67,13 +67,13 @@
 						<h2 class="h1">{latest.title}</h2>
 						<p class="body-s">Получено {longDate(latest.unlocked ?? '')} в {timeOf(latest.unlocked ?? '')}: {latest.description.toLowerCase()}.</p>
 					</div>
-					<div class="seal"><Enso size={130} width={12} color="var(--kin-500)" seed={4} /><span><Hanko kanji={latest.kanji} size={58} /></span></div>
+					<div class="seal"><Enso size={130} color="var(--kin-500)" seed={4} /><span><Hanko kanji={latest.kanji} size={58} /></span></div>
 				{:else}
 					<div>
 						<h2 class="h1">Первая печать впереди</h2>
 						<p class="body-s">Пройдите первый урок — и здесь появится «Первый мазок».</p>
 					</div>
-					<div class="seal"><Enso size={130} width={12} color="var(--sumi-line)" seed={4} /><span><Hanko kanji="一" size={58} tone="faded" /></span></div>
+					<div class="seal"><Enso size={130} color="var(--sumi-line)" seed={4} /><span><Hanko kanji="一" size={58} tone="faded" /></span></div>
 				{/if}
 			</article>
 		</section>
@@ -90,7 +90,7 @@
 			{#each shown as a (a.id)}
 				<article class="ach card" class:locked={!a.unlocked}>
 					<div class="badge">
-						<Enso size={84} width={7} color={a.unlocked ? 'var(--kin-500)' : 'var(--ink-300)'} seed={a.kanji.charCodeAt(0)} />
+						<Enso size={84} color={a.unlocked ? 'var(--kin-500)' : 'var(--ink-300)'} seed={a.kanji.charCodeAt(0)} />
 						<span class="h"><Hanko kanji={a.kanji} size={46} tone={a.unlocked ? 'shu' : 'faded'} /></span>
 						{#if !a.unlocked}<span class="lock"><Icon name="lock" size={14} stroke={2.2} /></span>{/if}
 					</div>
