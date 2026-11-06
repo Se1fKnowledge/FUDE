@@ -1,5 +1,6 @@
 // Shapes on the studio canvas. Everything is in fractions of the task picture (0–1), like the
 // lesson format; pixels appear only when drawing on screen or talking to PhotoCraft.
+import { t } from '#lib/i18n.svelte.ts';
 import type { Point, Region, Shape, ShapeStyle } from '../api.ts';
 
 export const GHOST_COLOR = '#BC3823';
@@ -210,9 +211,9 @@ export function strokeToShape(points: number[][], w: number, h: number, width?: 
 }
 
 export const SHAPE_LABELS: Record<Shape['kind'], string> = {
-	path: 'линия от руки',
-	line: 'прямая',
-	arrow: 'стрелка',
-	ellipse: 'овал',
-	rect: 'прямоугольник'
+	path: t('линия от руки'),
+	line: t('прямая'),
+	arrow: t('стрелка'),
+	ellipse: t('овал'),
+	rect: t('прямоугольник')
 };

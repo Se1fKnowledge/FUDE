@@ -54,6 +54,10 @@ CREATE TABLE IF NOT EXISTS stage (
     stage TEXT NOT NULL,
     at TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS setting (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+);
 ";
 
 pub fn fmt(t: NaiveDateTime) -> String {
@@ -182,6 +186,17 @@ impl Db {
         let mut stmt = self.conn.prepare("SELECT step, hinted FROM step WHERE attempt = ?1 ORDER BY rowid")?;
         let rows = stmt.query_map(params![attempt], |r| Ok((r.get(0)?, r.get(1)?)))?;
         Ok(rows.collect::<Result<_, _>>()?)
+    }
+
+    /// A saved setting (the interface language).
+    pub fn setting(&self, key: &str) -> AppResult<Option<String>> {
+        use rusqlite::OptionalExtension;
+        Ok(self.conn.query_row("SELECT value FROM setting WHERE key = ?1", params![key], |r| r.get(0)).optional()?)
+    }
+
+    pub fn set_setting(&self, key: &str, value: &str) -> AppResult<()> {
+        self.conn.execute("INSERT INTO setting (key, value) VALUES (?1, ?2) ON CONFLICT (key) DO UPDATE SET value = ?2", params![key, value])?;
+        Ok(())
     }
 
     pub fn log(&self, now: NaiveDateTime, kind: &str, title: &str, detail: &str) -> AppResult<()> {

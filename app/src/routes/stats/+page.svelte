@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { t } from '#lib/i18n.svelte.ts';
 	import { onMount } from 'svelte';
 	import { api, errorText, type Stats } from '#lib/api.ts';
 	import Hanko from '#lib/components/Hanko.svelte';
@@ -20,9 +21,9 @@
 	onMount(load);
 
 	const PERIODS: [Period, string, string][] = [
-		['week', 'Неделя', 'неделю назад'],
-		['quarter', '3 месяца', '3 месяца назад'],
-		['all', 'Всё время', 'в начале']
+		['week', t('Неделя'), t('неделю назад')],
+		['quarter', t('3 месяца'), t('3 месяца назад')],
+		['all', t('Всё время'), t('в начале')]
 	];
 	const ago = $derived(PERIODS.find((p) => p[0] === period)?.[2] ?? '');
 
@@ -59,10 +60,10 @@
 <div class="page reveal">
 	<header class="page-head">
 		<div>
-			<h1 class="display-l">Статистика</h1>
-			<p>Как растёт ваш навык</p>
+			<h1 class="display-l">{t('Статистика')}</h1>
+			<p>{t('Как растёт ваш навык')}</p>
 		</div>
-		<div class="segmented" role="group" aria-label="Период">
+		<div class="segmented" role="group" aria-label={t('Период')}>
 			{#each PERIODS as [key, label] (key)}
 				<button aria-pressed={period === key} onclick={() => ((period = key), load())}>{label}</button>
 			{/each}
@@ -75,10 +76,10 @@
 		<section class="row">
 			<article class="card radar">
 				<header>
-					<h2 class="h2">Профиль навыка</h2>
-					<span class="legend body-s muted"><i class="now"></i> Сейчас <i class="then"></i> {ago}</span>
+					<h2 class="h2">{t('Профиль навыка')}</h2>
+					<span class="legend body-s muted"><i class="now"></i> {t('Сейчас')} <i class="then"></i> {ago}</span>
 				</header>
-				<svg viewBox="0 0 340 330" role="img" aria-label="Профиль навыка: {data.skills.map((s) => `${s.label} ${Math.round(s.score)}`).join(', ')}">
+				<svg viewBox="0 0 340 330" role="img" aria-label={t('Профиль навыка: {list}', { list: data.skills.map((s) => `${s.label} ${Math.round(s.score)}`).join(', ') })}>
 					{#each [25, 50, 75, 100] as ring (ring)}
 						<polygon points={poly(data.skills.map(() => ring))} fill="none" stroke="var(--paper-line)" />
 					{/each}
@@ -100,13 +101,13 @@
 
 			<article class="card growth">
 				<header>
-					<h2 class="h2">Рост по направлениям</h2>
+					<h2 class="h2">{t('Рост по направлениям')}</h2>
 					<span class="body-s muted">{PERIODS.find((p) => p[0] === period)?.[1].toLowerCase()}</span>
 				</header>
 				{#each [...data.skills].sort((a, b) => b.score - b.before - (a.score - a.before)) as s (s.skill)}
 					<div class="skill">
 						<span>{s.label}</span>
-						<span class="mono muted">ур. {s.level}</span>
+						<span class="mono muted">{t('ур. {n}', { n: s.level })}</span>
 						<span class="bar">
 							<i class="then" style="width: {s.before}%"></i>
 							<i class="now" style="width: {s.score}%"></i>
@@ -114,18 +115,18 @@
 						<span class="pill pill-ai">+{Math.round(s.score - s.before)}</span>
 					</div>
 				{/each}
-				<p class="note body-s">Светлая часть шкалы — уровень {ago}, насыщенная — сейчас. 100 — всё, что дают уроки библиотеки.</p>
+				<p class="note body-s">{t('Светлая часть шкалы — уровень {ago}, насыщенная — сейчас. 100 — всё, что дают уроки библиотеки.', { ago })}</p>
 			</article>
 		</section>
 
 		<section class="row three">
 			<article class="card xp">
 				<header>
-					<h2 class="h2">Опыт по неделям</h2>
+					<h2 class="h2">{t('Опыт по неделям')}</h2>
 					<span class="total number">{thousands(data.totalXp)} XP</span>
 				</header>
 				{#if chart}
-					<svg viewBox="0 0 460 200" role="img" aria-label="Опыт по неделям">
+					<svg viewBox="0 0 460 200" role="img" aria-label={t('Опыт по неделям')}>
 						{#each [0.33, 0.66, 1] as g (g)}
 							<line x1="20" x2="440" y1={170 - g * 150} y2={170 - g * 150} stroke="var(--paper-line)" stroke-dasharray="3 4" />
 						{/each}
@@ -137,30 +138,30 @@
 						{/each}
 					</svg>
 				{/if}
-				<p class="body-s muted">За период: +{thousands(data.periodXp)} XP · пройдено уроков: {data.passed}</p>
+				<p class="body-s muted">{t('За период: +{xp} XP · пройдено уроков: {n}', { xp: thousands(data.periodXp), n: data.passed })}</p>
 			</article>
 
 			<article class="card gauge">
-				<h2 class="h2">Самостоятельность</h2>
+				<h2 class="h2">{t('Самостоятельность')}</h2>
 				<svg viewBox="0 0 220 130" aria-hidden="true">
 					<path d={arc(1)} fill="none" stroke="var(--paper-sunken)" stroke-width="14" stroke-linecap="round" />
 					{#if gauge > 0}<path d={arc(gauge)} fill="none" stroke="var(--ai-500)" stroke-width="14" stroke-linecap="round" />{/if}
 				</svg>
 				<span class="big number">{data.independence === null ? '—' : percent(data.independence)}</span>
-				<p class="body-s muted">{data.independence === null ? 'появится после первого задания' : 'заданий выполнено без подсказок'}</p>
-				<span class="pill pill-ai">Подсказок за период: {data.hints}</span>
+				<p class="body-s muted">{data.independence === null ? t('появится после первого задания') : t('заданий выполнено без подсказок')}</p>
+				<span class="pill pill-ai">{t('Подсказок за период: {n}', { n: data.hints })}</span>
 			</article>
 
 			<article class="sensei">
-				<header><Hanko kanji="師" size={34} /> <h2 class="h2">Совет сэнсэя</h2></header>
+				<header><Hanko kanji="師" size={34} /> <h2 class="h2">{t('Совет сэнсэя')}</h2></header>
 				{#if data.advice}
 					<p class="lead">{data.advice.text}</p>
 					<p class="body-s">{data.advice.detail}</p>
-					{#if data.advice.lesson}<a class="btn btn-accent" href="/lesson/{data.advice.lesson}">Открыть урок</a>{/if}
+					{#if data.advice.lesson}<a class="btn btn-accent" href="/lesson/{data.advice.lesson}">{t('Открыть урок')}</a>{/if}
 				{:else}
-					<p class="lead">Начните с первого урока.</p>
-					<p class="body-s">Советы появятся, когда будет из чего их составить.</p>
-					<a class="btn btn-accent" href="/lessons">К урокам</a>
+					<p class="lead">{t('Начните с первого урока.')}</p>
+					<p class="body-s">{t('Советы появятся, когда будет из чего их составить.')}</p>
+					<a class="btn btn-accent" href="/lessons">{t('К урокам')}</a>
 				{/if}
 			</article>
 		</section>

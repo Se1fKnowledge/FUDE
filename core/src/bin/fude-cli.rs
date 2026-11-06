@@ -11,7 +11,7 @@ use fude_core::model::{Accent, load_lesson};
 use fude_core::package::{self, ExportItem, ImportOptions, Limits};
 use fude_core::{authoring, guide};
 
-const HELP: &str = "fude-cli — уроки FUDE из командной строки
+const HELP_RU: &str = "fude-cli — уроки FUDE из командной строки
 
   fude-cli validate <корень>...                    проверить папки уроков
   fude-cli pack <папка категории> <файл.fude> [--title T] [--lesson <папка урока>]...
@@ -21,8 +21,28 @@ const HELP: &str = "fude-cli — уроки FUDE из командной стр�
   fude-cli new-lesson <папка категории> <название> [--difficulty 1..5]
   fude-cli guide <папка урока>                     команды гайда в JSON (по строке)
   fude-cli assess <папка урока> <inspect.json> [холст.png] [--confirm <шаг>]...";
+const HELP_EN: &str = "fude-cli — FUDE lessons from the command line
+
+  fude-cli validate <root>...                      check lesson folders
+  fude-cli pack <category folder> <file.fude> [--title T] [--lesson <lesson folder>]...
+  fude-cli info <file.fude>                        what is in a package
+  fude-cli import <file.fude> <own lessons> [--builtin <root>] [--replace]
+  fude-cli new-category <own lessons> <title> [--kanji K] [--accent ai|shu|kaki|kin]
+  fude-cli new-lesson <category folder> <title> [--difficulty 1..5]
+  fude-cli guide <lesson folder>                   guide commands as JSON (one per line)
+  fude-cli assess <lesson folder> <inspect.json> [canvas.png] [--confirm <step>]...
+
+Messages are in Russian; set FUDE_LANG=en for English.";
+
+/// The help text in the current language.
+fn help() -> &'static str {
+    fude_core::i18n::pick(HELP_RU, HELP_EN)
+}
 
 fn main() -> ExitCode {
+    if let Some(lang) = std::env::var("FUDE_LANG").ok().as_deref().and_then(fude_core::i18n::Lang::from_code) {
+        fude_core::i18n::set_lang(lang);
+    }
     let args: Vec<String> = std::env::args().skip(1).collect();
     match run(&args) {
         Ok(code) => code,
@@ -49,7 +69,7 @@ impl Args {
                 if switches.contains(&name) {
                     out.switches.insert(name.into());
                 } else {
-                    let value = iter.next().ok_or_else(|| format!("у --{name} нет значения"))?;
+                    let value = iter.next().ok_or_else(|| fude_core::tr!("у --{name} нет значения", "--{name} has no value"))?;
                     out.options.push((name.into(), value.clone()));
                 }
             } else {
@@ -68,32 +88,42 @@ impl Args {
     }
 
     fn at(&self, i: usize, what: &str) -> Result<&str, String> {
-        self.positional.get(i).map(String::as_str).ok_or_else(|| format!("не указан {what}\n\n{HELP}"))
+        self.positional.get(i).map(String::as_str).ok_or_else(|| fude_core::tr!("не указан {what}\n\n{}", "{what} is missing\n\n{}", help()))
     }
 }
 
 fn run(args: &[String]) -> Result<ExitCode, String> {
     let Some((command, rest)) = args.split_first() else {
-        println!("{HELP}");
+        println!("{}", help());
         return Ok(ExitCode::SUCCESS);
     };
     let a = Args::parse(rest, &["replace"])?;
     let e = |e: fude_core::Error| e.to_string();
     match command.as_str() {
         "help" | "--help" | "-h" => {
-            println!("{HELP}");
+            println!("{}", help());
             Ok(ExitCode::SUCCESS)
         }
         "validate" => {
             if a.positional.is_empty() {
-                return Err(format!("не указан корень уроков\n\n{HELP}"));
+                return Err(fude_core::tr!("не указан корень уроков\n\n{}", "the lessons root is missing\n\n{}", help()));
             }
             let roots: Vec<Root> = a.positional.iter().map(Root::builtin).collect();
             let library = Library::scan(&roots);
             for c in &library.categories {
-                println!("{} «{}»: {} уроков", c.category.id, c.category.title, c.lessons.len());
+                println!("{}", fude_core::tr!("{} «{}»: {} уроков", "{} «{}»: {} lessons", c.category.id, c.category.title, c.lessons.len()));
                 for l in &c.lessons {
-                    println!("  {} «{}», сложность {}, шагов {}", l.lesson.id, l.lesson.title, l.lesson.difficulty, l.lesson.task.steps.len());
+                    println!(
+                        "{}",
+                        fude_core::tr!(
+                            "  {} «{}», сложность {}, шагов {}",
+                            "  {} «{}», difficulty {}, {} steps",
+                            l.lesson.id,
+                            l.lesson.title,
+                            l.lesson.difficulty,
+                            l.lesson.task.steps.len()
+                        )
+                    );
                     for w in &l.warnings {
                         println!("    {w}");
                     }
@@ -106,31 +136,49 @@ fn run(args: &[String]) -> Result<ExitCode, String> {
                 }
             }
             let lessons = library.lessons().count();
-            println!("Итого: категорий {}, уроков {lessons}, проблем {}.", library.categories.len(), library.problems.len());
+            println!(
+                "{}",
+                fude_core::tr!(
+                    "Итого: категорий {}, уроков {lessons}, проблем {}.",
+                    "Total: {} categories, {lessons} lessons, {} problems.",
+                    library.categories.len(),
+                    library.problems.len()
+                )
+            );
             Ok(if library.problems.is_empty() && lessons > 0 { ExitCode::SUCCESS } else { ExitCode::FAILURE })
         }
         "pack" => {
-            let category_dir = PathBuf::from(a.at(0, "папка категории")?);
-            let out = PathBuf::from(a.at(1, "файл пакета")?);
+            let category_dir = PathBuf::from(a.at(0, fude_core::i18n::pick("папка категории", "category folder"))?);
+            let out = PathBuf::from(a.at(1, fude_core::i18n::pick("файл пакета", "package file"))?);
             let title = a.get("title").map(Into::into).unwrap_or_else(|| fude_core::model::load_category(&category_dir).map(|c| c.title).unwrap_or_default());
             let lessons = a.all("lesson").into_iter().map(PathBuf::from).collect();
             let report = package::export(&out, &title, &[ExportItem { category_dir, lessons }]).map_err(e)?;
-            println!("{}: файлов {}, уроков {} ({})", out.display(), report.files, report.lessons.len(), report.lessons.join(", "));
+            println!(
+                "{}",
+                fude_core::tr!(
+                    "{}: файлов {}, уроков {} ({})",
+                    "{}: {} files, {} lessons ({})",
+                    out.display(),
+                    report.files,
+                    report.lessons.len(),
+                    report.lessons.join(", ")
+                )
+            );
             for s in report.skipped {
-                println!("  пропущен {s}");
+                println!("{}", fude_core::tr!("  пропущен {s}", "  skipped {s}"));
             }
             Ok(ExitCode::SUCCESS)
         }
         "info" => {
-            let file = PathBuf::from(a.at(0, "файл пакета")?);
+            let file = PathBuf::from(a.at(0, fude_core::i18n::pick("файл пакета", "package file"))?);
             let scratch = std::env::temp_dir();
             let info = package::inspect(&file, &scratch, Limits::default()).map_err(e)?;
             println!("«{}» ({})", info.manifest.title, info.manifest.created_by.unwrap_or_default());
             for c in &info.categories {
-                println!("  категория {} «{}»", c.id, c.title);
+                println!("{}", fude_core::tr!("  категория {} «{}»", "  category {} «{}»", c.id, c.title));
             }
             for l in &info.lessons {
-                println!("  урок {} «{}», сложность {}", l.id, l.title, l.difficulty);
+                println!("{}", fude_core::tr!("  урок {} «{}», сложность {}", "  lesson {} «{}», difficulty {}", l.id, l.title, l.difficulty));
             }
             for i in &info.issues {
                 println!("  {i}");
@@ -138,48 +186,53 @@ fn run(args: &[String]) -> Result<ExitCode, String> {
             Ok(if info.issues.iter().any(|i| i.is_error()) { ExitCode::FAILURE } else { ExitCode::SUCCESS })
         }
         "import" => {
-            let file = PathBuf::from(a.at(0, "файл пакета")?);
-            let user = PathBuf::from(a.at(1, "папка своих уроков")?);
+            let file = PathBuf::from(a.at(0, fude_core::i18n::pick("файл пакета", "package file"))?);
+            let user = PathBuf::from(a.at(1, fude_core::i18n::pick("папка своих уроков", "own lessons folder"))?);
             let mut roots: Vec<Root> = a.all("builtin").into_iter().map(Root::builtin).collect();
             roots.push(Root::user(&user));
             let library = Library::scan(&roots);
             let options = ImportOptions { replace: a.switches.contains("replace") };
             let report = package::import(&file, &library, &user, &options, Limits::default()).map_err(e)?;
-            println!("Импортирован «{}»", report.title);
-            println!("  новые категории: {}", list(&report.categories_added));
-            println!("  новые уроки: {}", list(&report.lessons_added));
-            println!("  заменены: {}", list(&report.lessons_replaced));
+            println!("{}", fude_core::tr!("Импортирован «{}»", "Imported «{}»", report.title));
+            println!("{}", fude_core::tr!("  новые категории: {}", "  new categories: {}", list(&report.categories_added)));
+            println!("{}", fude_core::tr!("  новые уроки: {}", "  new lessons: {}", list(&report.lessons_added)));
+            println!("{}", fude_core::tr!("  заменены: {}", "  replaced: {}", list(&report.lessons_replaced)));
             for w in report.warnings {
                 println!("  {w}");
             }
             Ok(ExitCode::SUCCESS)
         }
         "new-category" => {
-            let user = PathBuf::from(a.at(0, "папка своих уроков")?);
-            let title = a.at(1, "название")?;
+            let user = PathBuf::from(a.at(0, fude_core::i18n::pick("папка своих уроков", "own lessons folder"))?);
+            let title = a.at(1, fude_core::i18n::pick("название", "title"))?;
             let accent = match a.get("accent").unwrap_or("ai") {
                 "ai" => Accent::Ai,
                 "shu" => Accent::Shu,
                 "kaki" => Accent::Kaki,
                 "kin" => Accent::Kin,
-                other => return Err(format!("неизвестный цвет «{other}»: ai, shu, kaki или kin")),
+                other => return Err(fude_core::tr!("неизвестный цвет «{other}»: ai, shu, kaki или kin", "unknown colour «{other}»: ai, shu, kaki or kin")),
             };
             let (dir, category) = authoring::create_category(&user, title, a.get("kanji"), accent, "").map_err(e)?;
-            println!("{} — категория «{}»", dir.display(), category.title);
+            println!("{}", fude_core::tr!("{} — категория «{}»", "{} — category «{}»", dir.display(), category.title));
             Ok(ExitCode::SUCCESS)
         }
         "new-lesson" => {
-            let dir = PathBuf::from(a.at(0, "папка категории")?);
-            let title = a.at(1, "название")?;
-            let difficulty = a.get("difficulty").map(str::parse::<u8>).transpose().map_err(|_| "сложность — число от 1 до 5".to_string())?.unwrap_or(1);
+            let dir = PathBuf::from(a.at(0, fude_core::i18n::pick("папка категории", "category folder"))?);
+            let title = a.at(1, fude_core::i18n::pick("название", "title"))?;
+            let difficulty = a
+                .get("difficulty")
+                .map(str::parse::<u8>)
+                .transpose()
+                .map_err(|_| fude_core::tr!("сложность — число от 1 до 5", "the difficulty is a number from 1 to 5"))?
+                .unwrap_or(1);
             let (dir, lesson) = authoring::create_lesson(&dir, title, difficulty).map_err(e)?;
-            println!("{} — урок {}", dir.display(), lesson.id);
+            println!("{}", fude_core::tr!("{} — урок {}", "{} — lesson {}", dir.display(), lesson.id));
             Ok(ExitCode::SUCCESS)
         }
         "guide" => {
-            let dir = PathBuf::from(a.at(0, "папка урока")?);
+            let dir = PathBuf::from(a.at(0, fude_core::i18n::pick("папка урока", "lesson folder"))?);
             let lesson = load_lesson(&dir).map_err(e)?;
-            let script = lesson.guide.script.as_ref().ok_or("у урока нет сценария гайда")?;
+            let script = lesson.guide.script.as_ref().ok_or(fude_core::i18n::pick("у урока нет сценария гайда", "the lesson has no guide script"))?;
             let script = guide::load(&dir.join(script)).map_err(e)?;
             let issues = guide::validate(&script, Some(&dir));
             if issues.iter().any(|i| i.is_error()) {
@@ -191,18 +244,27 @@ fn run(args: &[String]) -> Result<ExitCode, String> {
                 id += 1;
             }
             for step in &script.steps {
-                eprintln!("— {} ({} мс)", step.caption, step.pause_ms());
+                eprintln!("{}", fude_core::tr!("— {} ({} мс)", "— {} ({} ms)", step.caption, step.pause_ms()));
                 for call in &step.calls {
                     println!("{}", call.request(id));
                     id += 1;
                 }
             }
-            eprintln!("Шагов {}, команд {}, пауз на {} с.", script.steps.len(), script.call_count(), script.duration_ms() / 1000);
+            eprintln!(
+                "{}",
+                fude_core::tr!(
+                    "Шагов {}, команд {}, пауз на {} с.",
+                    "{} steps, {} commands, {} s of pauses.",
+                    script.steps.len(),
+                    script.call_count(),
+                    script.duration_ms() / 1000
+                )
+            );
             Ok(ExitCode::SUCCESS)
         }
         "assess" => {
-            let dir = PathBuf::from(a.at(0, "папка урока")?);
-            let inspect = PathBuf::from(a.at(1, "ответ ui.inspect (JSON)")?);
+            let dir = PathBuf::from(a.at(0, fude_core::i18n::pick("папка урока", "lesson folder"))?);
+            let inspect = PathBuf::from(a.at(1, fude_core::i18n::pick("ответ ui.inspect (JSON)", "ui.inspect reply (JSON)"))?);
             let lesson = load_lesson(&dir).map_err(e)?;
             let context = Context::for_lesson(&lesson, &dir).map_err(e)?;
             let reply: serde_json::Value = read_json(&inspect)?;
@@ -216,10 +278,17 @@ fn run(args: &[String]) -> Result<ExitCode, String> {
                     println!("    {} {}: {}", if c.passed { "✓" } else { "✗" }, c.kind, c.message);
                 }
             }
-            println!("{}", if outcome.passed { "Задание выполнено." } else { "Задание не выполнено." });
+            println!(
+                "{}",
+                if outcome.passed {
+                    fude_core::i18n::pick("Задание выполнено.", "Task done.")
+                } else {
+                    fude_core::i18n::pick("Задание не выполнено.", "Task not done.")
+                }
+            );
             Ok(if outcome.passed { ExitCode::SUCCESS } else { ExitCode::FAILURE })
         }
-        other => Err(format!("неизвестная команда «{other}»\n\n{HELP}")),
+        other => Err(fude_core::tr!("неизвестная команда «{other}»\n\n{}", "unknown command «{other}»\n\n{}", help())),
     }
 }
 

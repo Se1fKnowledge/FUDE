@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { t } from '#lib/i18n.svelte.ts';
 	import { onMount } from 'svelte';
 	import { api, errorText, type Activity, type Day } from '#lib/api.ts';
 	import Icon from '#lib/components/Icon.svelte';
@@ -34,7 +35,7 @@
 	const level = (d: Day) => (d.tasks === 0 ? 0 : d.tasks === 1 ? 1 : d.tasks === 2 ? 2 : d.tasks <= 4 ? 3 : 4);
 	const future = (d: Day) => !!data && d.date > data.today;
 	const maxWeek = $derived(data ? Math.max(data.goalMinutes, ...data.week.map((d) => d.minutes), 1) : 1);
-	const DAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+	const DAYS = [t('Пн'), t('Вт'), t('Ср'), t('Чт'), t('Пт'), t('Сб'), t('Вс')];
 	const KIND: Record<string, 'check' | 'sparkle' | 'bulb' | 'play' | 'download' | 'pencil'> = {
 		pass: 'check',
 		achievement: 'sparkle',
@@ -47,8 +48,8 @@
 <div class="page reveal">
 	<header class="page-head">
 		<div>
-			<h1 class="display-l">Активность</h1>
-			{#if data}<p>{count(data.tasks, ['задание', 'задания', 'заданий'])} за последний год</p>{/if}
+			<h1 class="display-l">{t('Активность')}</h1>
+			{#if data}<p>{t('{n} за последний год', { n: count(data.tasks, ['задание', 'задания', 'заданий']) })}</p>{/if}
 		</div>
 	</header>
 
@@ -57,14 +58,14 @@
 	{:else if data}
 		<section class="year card">
 			<header>
-				<h2 class="h2">Год в мазках туши</h2>
-				<span class="body-s muted">каждый квадрат — день, цвет — сколько заданий вы выполнили</span>
+				<h2 class="h2">{t('Год в мазках туши')}</h2>
+				<span class="body-s muted">{t('каждый квадрат — день, цвет — сколько заданий вы выполнили')}</span>
 				<span class="legend body-s muted">
-					Меньше
+					{t('Меньше')}
 					{#each [0, 1, 2, 3, 4] as l (l)}<span class="cell l{l}" style="--tap: {maskUrl(pick(TAPS, l))}"></span>{/each}
-					Больше
+					{t('Больше')}
 					<span class="sep"></span>
-					<span class="gold"></span> без подсказок
+					<span class="gold"></span> {t('без подсказок')}
 				</span>
 			</header>
 			<div class="heat">
@@ -96,29 +97,29 @@
 				{#if hover}
 					{longDate(hover.date)} · {count(hover.tasks, ['задание', 'задания', 'заданий'])}{hover.minutes ? ` · ${duration(hover.minutes)}` : ''}
 				{:else}
-					Наведите на день, чтобы увидеть подробности
+					{t('Наведите на день, чтобы увидеть подробности')}
 				{/if}
 			</p>
 		</section>
 
 		<section class="stats">
-			<div class="stat card"><span class="ico kaki"><Icon name="flame" /></span><span><span class="n number">{data.streak.current}</span> <span class="unit">{count(data.streak.current, ['день', 'дня', 'дней']).replace(/^\d+ /, '')}</span><span class="body-s muted">Текущая серия</span></span></div>
-			<div class="stat card"><span class="ico shu"><Icon name="trophy" /></span><span><span class="n number">{data.streak.best}</span> <span class="unit">{count(data.streak.best, ['день', 'дня', 'дней']).replace(/^\d+ /, '')}</span><span class="body-s muted">Лучшая серия{data.streak.bestEnd ? ` · ${monthShort(data.streak.bestEnd)}` : ''}</span></span></div>
-			<div class="stat card"><span class="ico ai"><Icon name="calendar" /></span><span><span class="n number">{data.activeDays}</span> <span class="unit">{count(data.activeDays, ['день', 'дня', 'дней']).replace(/^\d+ /, '')}</span><span class="body-s muted">Активных дней за год</span></span></div>
-			<div class="stat card"><span class="ico"><Icon name="clock" /></span><span>{#if data.minutes < 60}<span class="n number">{data.minutes}</span> <span class="unit">мин</span>{:else}<span class="n number">{Math.floor(data.minutes / 60)}</span> <span class="unit">ч {data.minutes % 60} мин</span>{/if}<span class="body-s muted">Практики в редакторе</span></span></div>
+			<div class="stat card"><span class="ico kaki"><Icon name="flame" /></span><span><span class="n number">{data.streak.current}</span> <span class="unit">{count(data.streak.current, ['день', 'дня', 'дней']).replace(/^\d+ /, '')}</span><span class="body-s muted">{t('Текущая серия')}</span></span></div>
+			<div class="stat card"><span class="ico shu"><Icon name="trophy" /></span><span><span class="n number">{data.streak.best}</span> <span class="unit">{count(data.streak.best, ['день', 'дня', 'дней']).replace(/^\d+ /, '')}</span><span class="body-s muted">{t('Лучшая серия')}{data.streak.bestEnd ? ` · ${monthShort(data.streak.bestEnd)}` : ''}</span></span></div>
+			<div class="stat card"><span class="ico ai"><Icon name="calendar" /></span><span><span class="n number">{data.activeDays}</span> <span class="unit">{count(data.activeDays, ['день', 'дня', 'дней']).replace(/^\d+ /, '')}</span><span class="body-s muted">{t('Активных дней за год')}</span></span></div>
+			<div class="stat card"><span class="ico"><Icon name="clock" /></span><span>{#if data.minutes < 60}<span class="n number">{data.minutes}</span> <span class="unit">{t('мин')}</span>{:else}<span class="n number">{Math.floor(data.minutes / 60)}</span> <span class="unit">{t('ч {m} мин', { m: data.minutes % 60 })}</span>{/if}<span class="body-s muted">{t('Практики в редакторе')}</span></span></div>
 		</section>
 
 		<section class="lower">
 			<article class="week card">
 				<header>
-					<h2 class="h2">Эта неделя</h2>
-					<span class="body-s muted">{duration(data.week.reduce((s, d) => s + d.minutes, 0))} · цель {data.goalMinutes} мин в день</span>
+					<h2 class="h2">{t('Эта неделя')}</h2>
+					<span class="body-s muted">{t('{total} · цель {goal} мин в день', { total: duration(data.week.reduce((s, d) => s + d.minutes, 0)), goal: data.goalMinutes })}</span>
 				</header>
 				<div class="bars">
 					<span class="goal" style="bottom: {(data.goalMinutes / maxWeek) * 180 + 26}px"></span>
 					{#each data.week as d, i (d.date)}
 						<div class="bar">
-							<span class="v body-s">{d.minutes ? `${d.minutes} мин` : ''}</span>
+							<span class="v body-s">{d.minutes ? t('{n} мин', { n: d.minutes }) : ''}</span>
 							<span class="ink" class:today={d.date === data.today} style="height: {Math.max(d.minutes ? 8 : 2, (d.minutes / maxWeek) * 180)}px; mask-image: {maskUrl(pick(BARS, i))}"></span>
 							<span class="body-s">{DAYS[i]}</span>
 						</div>
@@ -127,9 +128,9 @@
 			</article>
 
 			<article class="journal card">
-				<header><h2 class="h2">Журнал</h2></header>
+				<header><h2 class="h2">{t('Журнал')}</h2></header>
 				{#if data.journal.length === 0}
-					<p class="muted body-s">Здесь появятся пройденные уроки, достижения и импорт уроков.</p>
+					<p class="muted body-s">{t('Здесь появятся пройденные уроки, достижения и импорт уроков.')}</p>
 				{:else}
 					<ul>
 						{#each data.journal.slice(0, 6) as j (j.at + j.title)}

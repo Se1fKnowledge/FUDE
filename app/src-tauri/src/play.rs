@@ -93,17 +93,24 @@ pub struct GuideEvent {
 #[tauri::command]
 pub fn guide_play(app: AppHandle, state: State<'_, AppState>, id: String) -> AppResult<()> {
     let library = state.library();
-    let entry = library.lesson(&id).ok_or_else(|| AppError::msg("урок не найден"))?;
+    let entry = library.lesson(&id).ok_or_else(|| AppError::msg(fude_core::i18n::pick("урок не найден", "lesson not found")))?;
     play_guide(app, &state, &entry.lesson, entry.dir.clone())
 }
 
 /// Plays the guide of the lesson saved in `dir` (the studio's «Проиграть в PhotoCraft»).
 pub(crate) fn play_guide(app: AppHandle, state: &AppState, lesson: &fude_core::model::Lesson, dir: std::path::PathBuf) -> AppResult<()> {
     let id = lesson.id.clone();
-    let rel = lesson.guide.script.clone().ok_or_else(|| AppError::msg("у урока нет анимированного гайда"))?;
-    let script = guide::load(&dir.join(&rel))?;
+    let rel = lesson
+        .guide
+        .script
+        .clone()
+        .ok_or_else(|| AppError::msg(fude_core::i18n::pick("у урока нет анимированного гайда", "the lesson has no animated guide")))?;
+    let mut script = guide::load(&dir.join(&rel))?;
+    if let Some(o) = fude_core::locale::Overlay::load(&dir, fude_core::i18n::lang()) {
+        o.apply_script(&mut script);
+    }
     if guide::validate(&script, Some(&dir)).iter().any(|i| i.is_error()) {
-        return Err(AppError::msg("сценарий гайда не прошёл проверку"));
+        return Err(AppError::msg(fude_core::i18n::pick("сценарий гайда не прошёл проверку", "the guide script failed the check")));
     }
     // A guide and a practice share the editor; the guide ends the practice.
     *lock(&state.practice) = None;
@@ -115,11 +122,11 @@ pub(crate) fn play_guide(app: AppHandle, state: &AppState, lesson: &fude_core::m
     };
     std::thread::spawn(move || {
         let st = app.state::<AppState>();
-        event(&app, "starting", 0, "Открываем редактор…".into(), None, None);
+        event(&app, "starting", 0, fude_core::tr!("Открываем редактор…", "Opening the editor…"), None, None);
         let run = || -> AppResult<bool> {
             {
                 let mut guard = st.editor_for(&dir)?;
-                let editor = guard.as_mut().ok_or_else(|| AppError::msg("редактор не запущен"))?;
+                let editor = guard.as_mut().ok_or_else(|| AppError::msg(fude_core::i18n::pick("редактор не запущен", "the editor is not running")))?;
                 editor.calls(&script.setup())?;
             }
             // A step without a caption keeps the one on screen (recorded steps have none).
@@ -134,7 +141,7 @@ pub(crate) fn play_guide(app: AppHandle, state: &AppState, lesson: &fude_core::m
                 event(&app, "step", i, caption.clone(), step.highlight.clone(), None);
                 {
                     let mut guard = lock(&st.editor);
-                    let editor = guard.as_mut().ok_or_else(|| AppError::msg("редактор закрыт"))?;
+                    let editor = guard.as_mut().ok_or_else(|| AppError::msg(fude_core::i18n::pick("редактор закрыт", "the editor is closed")))?;
                     editor.calls(&step.calls)?;
                 }
                 // Sleep in small slices so «Стоп» answers at once.
@@ -148,7 +155,7 @@ pub(crate) fn play_guide(app: AppHandle, state: &AppState, lesson: &fude_core::m
             Ok(true)
         };
         match run() {
-            Ok(true) => event(&app, "done", total, "Гайд закончился. Попробуйте сами!".into(), None, None),
+            Ok(true) => event(&app, "done", total, fude_core::tr!("Гайд закончился. Попробуйте сами!", "The guide is over. Now try it yourself!"), None, None),
             Ok(false) => event(&app, "stopped", 0, String::new(), None, None),
             Err(e) => event(&app, "error", 0, String::new(), None, Some(e.to_string())),
         }
@@ -186,7 +193,7 @@ pub async fn practice_start(app: AppHandle, id: String) -> AppResult<PracticeSta
     tauri::async_runtime::spawn_blocking(move || {
         let state = app.state::<AppState>();
         let library = state.library();
-        let entry = library.lesson(&id).ok_or_else(|| AppError::msg("урок не найден"))?;
+        let entry = library.lesson(&id).ok_or_else(|| AppError::msg(fude_core::i18n::pick("урок не найден", "lesson not found")))?;
         start(&state, entry.lesson.clone(), &entry.dir, false)
     })
     .await
@@ -213,7 +220,7 @@ pub(crate) fn start(state: &AppState, lesson: fude_core::model::Lesson, dir: &st
     *lock(&state.practice) = None;
     let practice = {
         let mut guard = state.editor_for(dir)?;
-        let editor = guard.as_mut().ok_or_else(|| AppError::msg("редактор не запущен"))?;
+        let editor = guard.as_mut().ok_or_else(|| AppError::msg(fude_core::i18n::pick("редактор не запущен", "the editor is not running")))?;
         let db = lock(if preview { &state.scratch_db } else { &state.db });
         let attempt = db.start_attempt(&lesson.id, now())?;
         if !preview {
@@ -242,11 +249,14 @@ fn db_for<'a>(state: &'a AppState, p: &Practice) -> &'a std::sync::Mutex<crate::
 
 fn with_practice<T>(state: &AppState, f: impl FnOnce(&mut Practice, &mut crate::editor::Editor) -> AppResult<T>) -> AppResult<T> {
     let mut practice = lock(&state.practice);
-    let p = practice.as_mut().ok_or_else(|| AppError::msg("задание не начато"))?;
+    let p = practice.as_mut().ok_or_else(|| AppError::msg(fude_core::i18n::pick("задание не начато", "the task has not started")))?;
     let mut editor = lock(&state.editor);
-    let e = editor.as_mut().filter(|e| e.read_root == p.dir).ok_or_else(|| AppError::msg("редактор закрыт — откройте задание заново"))?;
+    let e = editor
+        .as_mut()
+        .filter(|e| e.read_root == p.dir)
+        .ok_or_else(|| AppError::msg(fude_core::i18n::pick("редактор закрыт — откройте задание заново", "the editor is closed — open the task again")))?;
     if !e.alive() {
-        return Err(AppError::msg("редактор закрыт — откройте задание заново"));
+        return Err(AppError::msg(fude_core::i18n::pick("редактор закрыт — откройте задание заново", "the editor is closed — open the task again")));
     }
     f(p, e)
 }
@@ -307,7 +317,7 @@ pub async fn practice_hide_hint(app: AppHandle) -> AppResult<()> {
 
 #[tauri::command]
 pub fn practice_confirm(state: State<'_, AppState>, step: String) -> AppResult<()> {
-    lock(&state.practice).as_mut().ok_or_else(|| AppError::msg("задание не начато"))?.confirm(&step);
+    lock(&state.practice).as_mut().ok_or_else(|| AppError::msg(fude_core::i18n::pick("задание не начато", "the task has not started")))?.confirm(&step);
     Ok(())
 }
 

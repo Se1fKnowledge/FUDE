@@ -149,13 +149,13 @@ pub fn template(id: &str, title: &str, difficulty: u8) -> Lesson {
         guide: Guide::default(),
         quiz: vec![],
         task: Task {
-            brief: "Опишите, что ученик должен нарисовать.".into(),
+            brief: crate::tr!("Опишите, что ученик должен нарисовать.", "Describe what the student should draw."),
             open: None,
             reference: None,
             canvas: Some(Canvas::default()),
             steps: vec![Step {
                 id: "draw".into(),
-                text: "Нарисуйте что-нибудь кистью.".into(),
+                text: crate::tr!("Нарисуйте что-нибудь кистью.", "Draw something with the brush."),
                 hint: None,
                 checks: vec![
                     CheckKind::Tool { tool: "Brush".into() }.into(),
@@ -176,7 +176,10 @@ pub fn create_lesson(category_dir: &Path, title: &str, difficulty: u8) -> Result
     let number = subdirs(category_dir).len() + 1;
     let dir = unique_dir(category_dir, &format!("{number:02}-{slug}"));
     fs::create_dir_all(&dir).map_err(error::io(&dir))?;
-    write_atomic(&dir.join(&lesson.theory.file), format!("# {}\n\nНапишите здесь теорию урока.\n", lesson.title).as_bytes())?;
+    write_atomic(
+        &dir.join(&lesson.theory.file),
+        crate::tr!("# {}\n\nНапишите здесь теорию урока.\n", "# {}\n\nWrite the lesson's theory here.\n", lesson.title).as_bytes(),
+    )?;
     save_lesson(&dir, &lesson)?;
     Ok((dir, lesson))
 }
@@ -213,13 +216,16 @@ pub fn save_guide(dir: &Path, lesson: &mut Lesson, script: &guide::Script) -> Re
 
 /// Copies a file into `<lesson>/<subdir>/` under a free name and returns its lesson path.
 pub fn attach(dir: &Path, source: &Path, subdir: &str, allowed: &[&str], max_bytes: u64) -> Result<String> {
-    let name = source.file_name().and_then(|n| n.to_str()).ok_or_else(|| Error::Invalid(format!("{}: нет имени файла", source.display())))?;
+    let name = source
+        .file_name()
+        .and_then(|n| n.to_str())
+        .ok_or_else(|| Error::Invalid(crate::tr!("{}: нет имени файла", "{}: the file has no name", source.display())))?;
     let ext = paths::extension(name)
         .filter(|e| allowed.contains(&e.as_str()))
-        .ok_or_else(|| Error::Invalid(format!("«{name}»: нужен файл {}", allowed.join(", "))))?;
+        .ok_or_else(|| Error::Invalid(crate::tr!("«{name}»: нужен файл {}", "«{name}»: a {} file is needed", allowed.join(", "))))?;
     let size = fs::metadata(source).map_err(error::io(source))?.len();
     if size > max_bytes {
-        return Err(Error::Invalid(format!("«{name}» больше {} МиБ", max_bytes >> 20)));
+        return Err(Error::Invalid(crate::tr!("«{name}» больше {} МиБ", "«{name}» is larger than {} MiB", max_bytes >> 20)));
     }
     let stem = slugify(name.rsplit_once('.').map_or(name, |(s, _)| s));
     let folder = dir.join(subdir);
@@ -252,7 +258,7 @@ pub fn duplicate_lesson(source_dir: &Path, category_dir: &Path) -> Result<(PathB
     let existing: Vec<Lesson> = subdirs(category_dir).iter().filter_map(|d| load_lesson(d).ok()).collect();
     let slug = unique(&format!("{}-copy", lesson.slug()), |s| existing.iter().any(|l| l.slug() == s));
     lesson.id = format!("{}.{slug}", category.id);
-    lesson.title = format!("{} (копия)", lesson.title);
+    lesson.title = crate::tr!("{} (копия)", "{} (copy)", lesson.title);
     lesson.requires.clear();
     let dir = unique_dir(category_dir, &format!("{:02}-{slug}", subdirs(category_dir).len() + 1));
     copy_tree(source_dir, &dir)?;
@@ -279,7 +285,7 @@ fn copy_tree(from: &Path, to: &Path) -> Result<()> {
 pub fn remove(user_root: &Path, dir: &Path) -> Result<()> {
     ensure_inside(user_root, dir)?;
     if !(dir.join(LESSON_FILE).is_file() || dir.join(CATEGORY_FILE).is_file()) {
-        return Err(Error::Invalid(format!("{}: это не папка урока или категории", dir.display())));
+        return Err(Error::Invalid(crate::tr!("{}: это не папка урока или категории", "{}: this is not a lesson or category folder", dir.display())));
     }
     fs::remove_dir_all(dir).map_err(error::io(dir))
 }

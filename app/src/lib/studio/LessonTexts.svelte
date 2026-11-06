@@ -1,4 +1,5 @@
 <script lang="ts" module>
+	import { t } from '#lib/i18n.svelte.ts';
 	export type LessonSection = 'about' | 'theory' | 'quiz';
 </script>
 
@@ -16,19 +17,19 @@
 	}: { lesson: Lesson; theory: string; section: LessonSection; lessonIds?: [string, string][] } = $props();
 
 	const SKILLS: [Skill, string][] = [
-		['tools', 'Инструменты'],
-		['line', 'Линия'],
-		['form', 'Форма'],
-		['light', 'Свет и тень'],
-		['color', 'Цвет'],
-		['composition', 'Композиция']
+		['tools', t('Инструменты')],
+		['line', t('Линия')],
+		['form', t('Форма')],
+		['light', t('Свет и тень')],
+		['color', t('Цвет')],
+		['composition', t('Композиция')]
 	];
 	const LEVELS: [number, string][] = [
-		[1, 'Первый шаг'],
-		[2, 'Лёгкий'],
-		[3, 'Средний'],
-		[4, 'Сложный'],
-		[5, 'Мастер']
+		[1, t('Первый шаг')],
+		[2, t('Лёгкий')],
+		[3, t('Средний')],
+		[4, t('Сложный')],
+		[5, t('Мастер')]
 	];
 
 	function toggleSkill(s: Skill) {
@@ -53,71 +54,71 @@
 
 {#if section === 'about'}
 	<div class="sheet">
-		<h2>Описание и карточка</h2>
-		<label class="field">Название <input type="text" bind:value={lesson.title} maxlength="120" /></label>
-		<label class="field">Кратко — строка на карточке <textarea rows="2" bind:value={lesson.summary}></textarea></label>
+		<h2>{t('Описание и карточка')}</h2>
+		<label class="field">{t('Название')} <input type="text" bind:value={lesson.title} maxlength="120" /></label>
+		<label class="field">{t('Кратко — строка на карточке')} <textarea rows="2" bind:value={lesson.summary}></textarea></label>
 		<div class="grid3">
-			<label class="field">Сложность
+			<label class="field">{t('Сложность')}
 				<select bind:value={lesson.difficulty}>
 					{#each LEVELS as [v, l] (v)}<option value={v}>{v} — {l}</option>{/each}
 				</select>
 			</label>
-			<label class="field">Минут <input type="number" min="1" max="600" bind:value={lesson.minutes} /></label>
-			<label class="field">Порядок в категории <input type="number" min="0" bind:value={lesson.order} /></label>
+			<label class="field">{t('Минут')} <input type="number" min="1" max="600" bind:value={lesson.minutes} /></label>
+			<label class="field">{t('Порядок в категории')} <input type="number" min="0" bind:value={lesson.order} /></label>
 		</div>
 		<fieldset>
-			<legend>Стороны навыка — для статистики ученика</legend>
+			<legend>{t('Стороны навыка — для статистики ученика')}</legend>
 			<div class="chips">
 				{#each SKILLS as [s, l] (s)}<button type="button" class="chip" aria-pressed={lesson.skills.includes(s)} onclick={() => toggleSkill(s)}>{l}</button>{/each}
 			</div>
 		</fieldset>
-		<label class="field">Открывается после урока
+		<label class="field">{t('Открывается после урока')}
 			<select value={lesson.requires?.[0] ?? ''} onchange={(e) => (lesson.requires = e.currentTarget.value ? [e.currentTarget.value] : [])}>
-				<option value="">Сразу открыт</option>
+				<option value="">{t('Сразу открыт')}</option>
 				{#each lessonIds.filter(([id]) => id !== lesson.id) as [id, title] (id)}<option value={id}>{title}</option>{/each}
 			</select>
 		</label>
-		<label class="field">Автор <input type="text" value={lesson.author ?? ''} onchange={(e) => (lesson.author = e.currentTarget.value.trim() || undefined)} /></label>
-		<label class="field">Что нужно сделать в задании <textarea rows="2" bind:value={lesson.task.brief}></textarea></label>
+		<label class="field">{t('Автор')} <input type="text" value={lesson.author ?? ''} onchange={(e) => (lesson.author = e.currentTarget.value.trim() || undefined)} /></label>
+		<label class="field">{t('Что нужно сделать в задании')} <textarea rows="2" bind:value={lesson.task.brief}></textarea></label>
 	</div>
 {:else if section === 'theory'}
 	<div class="split">
 		<div class="source">
-			<div class="toolbar" role="toolbar" aria-label="Оформление текста">
-				<button onclick={() => format('**', '**')} aria-label="Жирный"><b>Ж</b></button>
-				<button onclick={() => format('*', '*')} aria-label="Курсив"><i>К</i></button>
-				<button onclick={() => format('## ', '', true)} aria-label="Заголовок">Заголовок</button>
-				<button onclick={() => format('- ', '', true)} aria-label="Список">Список</button>
-				<button onclick={() => format('## Совет сэнсэя\n\n', '', true)} class="sensei"><span class="kanji">筆</span> Совет сэнсэя</button>
+			<div class="toolbar" role="toolbar" aria-label={t('Оформление текста')}>
+				<button onclick={() => format('**', '**')} aria-label={t('Жирный')}><b>{t('Ж')}</b></button>
+				<button onclick={() => format('*', '*')} aria-label={t('Курсив')}><i>{t('К')}</i></button>
+				<button onclick={() => format('## ', '', true)} aria-label={t('Заголовок')}>{t('Заголовок')}</button>
+				<button onclick={() => format('- ', '', true)} aria-label={t('Список')}>{t('Список')}</button>
+				<button onclick={() => format(`## ${t('Совет сэнсэя')}\n\n`, '', true)} class="sensei"><span class="kanji">筆</span> {t('Совет сэнсэя')}</button>
 			</div>
-			<textarea bind:this={area} bind:value={theory} spellcheck="true" aria-label="Теория в Markdown"></textarea>
+			<textarea bind:this={area} bind:value={theory} spellcheck="true" aria-label={t('Теория в Markdown')}></textarea>
 		</div>
-		<div class="view" aria-label="Как увидит ученик">
-			<p class="view-label">Как увидит ученик</p>
+		<div class="view" aria-label={t('Как увидит ученик')}>
+			<p class="view-label">{t('Как увидит ученик')}</p>
 			<Markdown text={theory} />
 		</div>
 	</div>
 {:else}
 	<div class="sheet">
-		<h2>Вопросы после теории</h2>
+		<h2>{t('Вопросы после теории')}</h2>
 		{#each lesson.quiz ?? [] as q, qi (qi)}
 			<div class="question">
 				<div class="qhead">
-					<label class="field grow">Вопрос {qi + 1} <input type="text" bind:value={q.question} /></label>
-					<button class="icon" onclick={() => lesson.quiz?.splice(qi, 1)} aria-label="Удалить вопрос"><Icon name="trash" size={16} /></button>
+					<label class="field grow">{t('Вопрос {n}', { n: qi + 1 })} <input type="text" bind:value={q.question} /></label>
+					<button class="icon" onclick={() => lesson.quiz?.splice(qi, 1)} aria-label={t('Удалить вопрос')}><Icon name="trash" size={16} /></button>
 				</div>
 				{#each q.options as _, oi (oi)}
 					<div class="option">
-						<input type="radio" name="answer-{qi}" checked={q.answer === oi} onchange={() => (q.answer = oi)} aria-label="Верный ответ" />
-						<input type="text" bind:value={q.options[oi]} placeholder="Вариант ответа" />
-						<button class="icon" onclick={() => (q.options.splice(oi, 1), (q.answer = Math.min(q.answer, q.options.length - 1)))} aria-label="Удалить вариант"><Icon name="close" size={14} /></button>
+						<input type="radio" name="answer-{qi}" checked={q.answer === oi} onchange={() => (q.answer = oi)} aria-label={t('Верный ответ')} />
+						<input type="text" bind:value={q.options[oi]} placeholder={t('Вариант ответа')} />
+						<button class="icon" onclick={() => (q.options.splice(oi, 1), (q.answer = Math.min(q.answer, q.options.length - 1)))} aria-label={t('Удалить вариант')}><Icon name="close" size={14} /></button>
 					</div>
 				{/each}
-				<button class="small" onclick={() => q.options.push('')} disabled={q.options.length >= 8}><Icon name="plus" size={14} /> Вариант</button>
-				<label class="field">Пояснение после ответа <input type="text" value={q.explain ?? ''} onchange={(e) => (q.explain = e.currentTarget.value.trim() || undefined)} /></label>
+				<button class="small" onclick={() => q.options.push('')} disabled={q.options.length >= 8}><Icon name="plus" size={14} /> {t('Вариант')}</button>
+				<label class="field">{t('Пояснение после ответа')} <input type="text" value={q.explain ?? ''} onchange={(e) => (q.explain = e.currentTarget.value.trim() || undefined)} /></label>
 			</div>
 		{/each}
-		<button class="small" onclick={() => (lesson.quiz ??= []).push({ question: '', options: ['', ''], answer: 0 })}><Icon name="plus" size={16} /> Добавить вопрос</button>
+		<button class="small" onclick={() => (lesson.quiz ??= []).push({ question: '', options: ['', ''], answer: 0 })}><Icon name="plus" size={16} /> {t('Добавить вопрос')}</button>
 	</div>
 {/if}
 

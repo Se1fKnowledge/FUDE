@@ -1,10 +1,10 @@
-//! Errors the interface shows. They reach the webview as plain Russian strings.
+//! Errors the interface shows. They reach the webview as plain strings in the current language.
 
 #[derive(Debug, thiserror::Error)]
 pub enum AppError {
     #[error("{0}")]
     Core(#[from] fude_core::Error),
-    #[error("база прогресса: {0}")]
+    #[error("{}", fude_core::tr!("база прогресса: {0}", "progress database: {0}", .0))]
     Db(#[from] rusqlite::Error),
     #[error("{0}")]
     Io(#[from] std::io::Error),

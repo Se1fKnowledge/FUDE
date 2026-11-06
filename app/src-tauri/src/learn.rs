@@ -135,7 +135,10 @@ pub fn boot(state: State<'_, AppState>) -> AppResult<Boot> {
 #[tauri::command]
 pub fn profile_save(state: State<'_, AppState>, name: String, daily_goal: u32) -> AppResult<Profile> {
     if name.trim().is_empty() {
-        return Err(AppError::msg("Как к вам обращаться? Имя не может быть пустым."));
+        return Err(AppError::msg(fude_core::i18n::pick(
+            "Как к вам обращаться? Имя не может быть пустым.",
+            "What should we call you? The name cannot be empty.",
+        )));
     }
     let db = lock(&state.db);
     db.set_profile(&name, daily_goal)?;
@@ -227,11 +230,15 @@ pub struct LessonView {
 #[tauri::command]
 pub fn lesson(state: State<'_, AppState>, id: String) -> AppResult<LessonView> {
     let c = ctx(&state)?;
-    let entry = c.library.lesson(&id).ok_or_else(|| AppError::msg(format!("урок «{id}» не найден")))?;
+    let entry = c.library.lesson(&id).ok_or_else(|| AppError::msg(fude_core::tr!("урок «{id}» не найден", "lesson «{id}» not found")))?;
     let l = &entry.lesson;
     let dir = &entry.dir;
-    let theory = std::fs::read_to_string(dir.join(&l.theory.file)).unwrap_or_default();
-    let script = l.guide.script.as_ref().and_then(|s| fude_core::guide::load(&dir.join(s)).ok());
+    let lang = fude_core::i18n::lang();
+    let theory = std::fs::read_to_string(fude_core::locale::theory_path(dir, l, lang)).unwrap_or_default();
+    let mut script = l.guide.script.as_ref().and_then(|s| fude_core::guide::load(&dir.join(s)).ok());
+    if let (Some(s), Some(o)) = (script.as_mut(), fude_core::locale::Overlay::load(dir, lang)) {
+        o.apply_script(s);
+    }
     let guide = script
         .as_ref()
         .map(|s| s.steps.iter().map(|st| GuideStepView { caption: st.caption.clone(), highlight: st.highlight.clone(), pause: st.pause_ms() }).collect())
@@ -260,7 +267,7 @@ pub fn lesson_stage(state: State<'_, AppState>, id: String, stage: String) -> Ap
     db.set_stage(&id, &stage, now())?;
     if fresh && stage == "guide" {
         let title = state.library().lesson(&id).map(|e| e.lesson.title.clone()).unwrap_or(id);
-        db.log(now(), "start", &format!("Начат урок «{title}»"), "")?;
+        db.log(now(), "start", &fude_core::tr!("Начат урок «{title}»", "Started the lesson «{title}»"), "")?;
     }
     Ok(())
 }
@@ -293,7 +300,8 @@ pub fn home(state: State<'_, AppState>) -> AppResult<Home> {
     let days = progress::days(&c.attempts);
     let active: BTreeSet<NaiveDate> = days.keys().copied().collect();
     let prefix = today.format("%Y-%m-%d").to_string();
-    let today_log: Vec<JournalEntry> = db.journal(50)?.into_iter().filter(|j| j.at.starts_with(&prefix)).collect();
+    let today_log: Vec<JournalEntry> =
+        crate::lang::journal(db.journal(50)?.into_iter().filter(|j| j.at.starts_with(&prefix)).collect(), &crate::lang::names(&state));
     let current = db.latest_stage()?.and_then(|s| c.library.lesson(&s.lesson)).map(|e| card(&c, e)).or_else(|| {
         c.library.lessons().find(|e| !c.passed.contains(&e.lesson.id) && e.lesson.requires.iter().all(|r| c.passed.contains(r))).map(|e| card(&c, e))
     });
@@ -321,11 +329,18 @@ pub fn home(state: State<'_, AppState>) -> AppResult<Home> {
     })
 }
 
+/// «Суббота, 7 ноября» / «Saturday, November 7».
 pub fn russian_date(d: NaiveDate) -> String {
     use chrono::Datelike;
-    const MONTHS: [&str; 12] = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
-    const DAYS: [&str; 7] = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"];
-    format!("{}, {} {}", DAYS[d.weekday().num_days_from_monday() as usize], d.day(), MONTHS[d.month0() as usize])
+    const MONTHS_RU: [&str; 12] = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
+    const DAYS_RU: [&str; 7] = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"];
+    const MONTHS_EN: [&str; 12] = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    const DAYS_EN: [&str; 7] = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+    let (day, month) = (d.weekday().num_days_from_monday() as usize, d.month0() as usize);
+    match fude_core::i18n::lang() {
+        fude_core::i18n::Lang::Ru => format!("{}, {} {}", DAYS_RU[day], d.day(), MONTHS_RU[month]),
+        fude_core::i18n::Lang::En => format!("{}, {} {}", DAYS_EN[day], MONTHS_EN[month], d.day()),
+    }
 }
 
 // ------------------------------------------------------------------ achievements
@@ -349,7 +364,7 @@ pub fn refresh_achievements(state: &AppState) -> AppResult<(Vec<Achievement>, Ve
     let mut fresh = Vec::new();
     for a in progress::achievements(&facts, &db.unlocked()?) {
         if a.reached() && a.unlocked.is_none() && db.unlock(a.id, now())? {
-            db.log(now(), "achievement", &format!("Получено достижение «{}»", a.title), &a.description)?;
+            db.log(now(), "achievement", &fude_core::tr!("Получено достижение «{}»", "Achievement received «{}»", a.title), &a.description)?;
             fresh.push(a);
         }
     }
@@ -401,7 +416,7 @@ pub fn activity(state: State<'_, AppState>) -> AppResult<Activity> {
         minutes: year.iter().map(|d| d.minutes).sum(),
         week: (0..7).map(|i| day(monday + Duration::days(i))).collect(),
         goal_minutes: 15 * db.profile()?.daily_goal,
-        journal: db.journal(12)?,
+        journal: crate::lang::journal(db.journal(12)?, &crate::lang::names(&state)),
         days,
         today,
     })
@@ -469,18 +484,21 @@ fn advice(attempts: &[Attempt], lessons: &[LessonInfo], skills: &[SkillScore]) -
     if let Some(a) = hinted {
         let title = lessons.iter().find(|l| l.id == a.lesson).map_or(a.lesson.as_str(), |l| l.title.as_str());
         return Some(Advice {
-            text: format!("Больше всего подсказок понадобилось в уроке «{title}»."),
-            detail: "Пройдите его ещё раз без подсказок: самостоятельный проход даёт в полтора раза больше опыта и очков навыка.".into(),
+            text: fude_core::tr!("Больше всего подсказок понадобилось в уроке «{title}».", "You needed the most hints in the lesson «{title}»."),
+            detail: fude_core::tr!(
+                "Пройдите его ещё раз без подсказок: самостоятельный проход даёт в полтора раза больше опыта и очков навыка.",
+                "Do it again without hints: going through on your own gives one and a half times the experience and skill points."
+            ),
             lesson: Some(a.lesson.clone()),
         });
     }
     let weakest = skills.iter().filter(|s| lessons.iter().any(|l| l.skills.contains(&s.skill))).min_by(|a, b| a.score.total_cmp(&b.score))?;
     let lesson = lessons.iter().find(|l| l.skills.contains(&weakest.skill) && !passed.contains(&l.id) && progress::unlocked(l, &passed));
     Some(Advice {
-        text: format!("Слабее всего пока «{}».", weakest.label),
+        text: fude_core::tr!("Слабее всего пока «{}».", "The weakest so far is «{}».", weakest.label),
         detail: match lesson {
-            Some(l) => format!("Следующий шаг — урок «{}».", l.title),
-            None => "Откройте уроки, которые развивают этот навык.".into(),
+            Some(l) => fude_core::tr!("Следующий шаг — урок «{}».", "Next step — the lesson «{}».", l.title),
+            None => fude_core::tr!("Откройте уроки, которые развивают этот навык.", "Open the lessons that develop this skill."),
         },
         lesson: lesson.map(|l| l.id.clone()),
     })
@@ -513,7 +531,8 @@ pub struct ResultView {
 pub fn result(state: State<'_, AppState>, attempt: i64) -> AppResult<ResultView> {
     let (all, _) = refresh_achievements(&state)?;
     let c = ctx(&state)?;
-    let a = c.attempts.iter().find(|a| a.id == attempt).cloned().ok_or_else(|| AppError::msg("попытка не найдена"))?;
+    let a =
+        c.attempts.iter().find(|a| a.id == attempt).cloned().ok_or_else(|| AppError::msg(fude_core::i18n::pick("попытка не найдена", "attempt not found")))?;
     // Achievements are stored when the last check passes; the result shows the ones that
     // came with this attempt.
     let since = a.finished.map(crate::db::fmt);

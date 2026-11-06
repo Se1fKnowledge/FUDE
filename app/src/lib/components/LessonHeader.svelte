@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { t, tk } from '#lib/i18n.svelte.ts';
 	import Icon from './Icon.svelte';
 
 	// The top of the lesson path (screens 06–07): back, title, the three stages, close.
@@ -12,25 +13,25 @@
 		xp = null
 	}: { title: string; subtitle: string; stage: 1 | 2 | 3; back: string; onclose?: () => void; dark?: boolean; xp?: number | null } = $props();
 
-	const stages = ['Гайд и теория', 'Практика', 'Итог'];
+	const stages = [tk('Гайд и теория'), tk('Практика'), tk('Итог')];
 </script>
 
 <header class:dark>
-	<a class="round" href={back} aria-label="Назад"><Icon name="back" /></a>
+	<a class="round" href={back} aria-label={t('Назад')}><Icon name="back" /></a>
 	<div class="title">
 		<h1>{title}</h1>
 		<p>{subtitle}</p>
 	</div>
-	<ol class="stages" aria-label="Этапы урока">
+	<ol class="stages" aria-label={t('Этапы урока')}>
 		{#each stages as s, i (s)}
 			<li class:active={stage === i + 1} class:done={stage > i + 1} aria-current={stage === i + 1 ? 'step' : undefined}>
 				<span class="n">{#if stage > i + 1}<Icon name="check" size={14} stroke={2.4} />{:else}{i + 1}{/if}</span>
-				{s}
+				{t(s)}
 			</li>
 		{/each}
 	</ol>
-	{#if xp}<span class="xp"><Icon name="sparkle" size={15} /> +{xp} XP за урок</span>{/if}
-	<a class="round" href="/" aria-label="Закрыть урок" onclick={onclose}><Icon name="close" /></a>
+	{#if xp}<span class="xp"><Icon name="sparkle" size={15} /> {t('+{xp} XP за урок', { xp })}</span>{/if}
+	<a class="round" href="/" aria-label={t('Закрыть урок')} onclick={onclose}><Icon name="close" /></a>
 </header>
 
 <style>

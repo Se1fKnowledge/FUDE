@@ -1,18 +1,19 @@
 <script lang="ts">
+	import { t } from '#lib/i18n.svelte.ts';
 	import { DABS, maskUrl } from '#lib/ink.ts';
 
 	// Five dabs of real ink, filled up to the level, with the word: colour is never the only cue.
 	let { level, label, compact = false }: { level: number; label: string; compact?: boolean } = $props();
 </script>
 
-<span class="difficulty" class:compact title="Сложность {level} из 5">
+<span class="difficulty" class:compact title={t('Сложность {level} из 5', { level })}>
 	<span class="dabs" aria-hidden="true">
 		{#each DABS as src, i (src)}
 			<span class="dab" class:on={i < level} style="mask-image: {maskUrl(src)}"></span>
 		{/each}
 	</span>
 	{#if !compact}<span class="label">{label}</span>{/if}
-	<span class="sr-only">Сложность: {label}, {level} из 5</span>
+	<span class="sr-only">{t('Сложность: {label}, {level} из 5', { label, level })}</span>
 </span>
 
 <style>

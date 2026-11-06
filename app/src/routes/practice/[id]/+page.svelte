@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { t } from '#lib/i18n.svelte.ts';
 	import { onDestroy, onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
@@ -97,7 +98,7 @@
 			const advanced = r.done > (result?.done ?? 0);
 			result = r;
 			if (advanced) hint = null;
-			if (!quiet && !advanced && !r.finished) note = 'Пока не получилось — смотрите подсказку под шагом.';
+			if (!quiet && !advanced && !r.finished) note = t('Пока не получилось — смотрите подсказку под шагом.');
 			if (r.finished) {
 				stopTimer();
 				if (previewDir) {
@@ -109,7 +110,7 @@
 			}
 		} catch (e) {
 			if (!quiet) note = errorText(e);
-			if (errorText(e).includes('редактор закрыт')) {
+			if (/редактор закрыт|editor is closed/.test(errorText(e))) { // i18n-ignore: matches the backend's error in either language
 				stopTimer();
 				failure = errorText(e);
 				phase = 'failed';
@@ -175,7 +176,7 @@
 					<span class="text">
 						{s.text}
 						{#if i === done && s.manual}
-							<button class="btn btn-quiet btn-s ready" onclick={() => confirm(s.id)}>Готово</button>
+							<button class="btn btn-quiet btn-s ready" onclick={() => confirm(s.id)}>{t('Готово')}</button>
 						{/if}
 					</span>
 				</li>
@@ -183,22 +184,22 @@
 		</ol>
 
 		{#if previewDir && currentOutcome}
-			<div class="author" aria-label="Что видит проверка">
-				<p class="label">Что видит проверка <span class="author-note">— видно только автору</span></p>
+			<div class="author" aria-label={t('Что видит проверка')}>
+				<p class="label">{t('Что видит проверка')} <span class="author-note">{t('— видно только автору')}</span></p>
 				{#each currentOutcome.checks as c, i (i)}
 					<p class="body-s check-line" class:ok={c.passed}>
 						<Icon name={c.passed ? 'check' : 'alert'} size={14} />
 						<span>{c.message}</span>
 					</p>
 				{:else}
-					<p class="body-s muted">У шага нет проверок: он засчитывается кнопкой «Готово».</p>
+					<p class="body-s muted">{t('У шага нет проверок: он засчитывается кнопкой «Готово».')}</p>
 				{/each}
 			</div>
 		{/if}
 
 		{#if failing.length && result}
 			<div class="almost" role="status">
-				<p class="label">Почти получилось</p>
+				<p class="label">{t('Почти получилось')}</p>
 				{#each failing as c (c.kind + c.message)}<p class="body-s">{c.message}</p>{/each}
 			</div>
 		{/if}
@@ -209,43 +210,43 @@
 				<div>
 					<p class="label">{current?.text}</p>
 					<p class="body-s">{hint.text}</p>
-					{#if hint.target}<p class="body-s target">Где: <span class="mono">{hint.target}</span></p>{/if}
-					{#if hint.shapes}<p class="body-s target">На холсте появился слой «FUDE · подсказка».</p>{/if}
+					{#if hint.target}<p class="body-s target">{t('Где:')} <span class="mono">{hint.target}</span></p>{/if}
+					{#if hint.shapes}<p class="body-s target">{t('На холсте появился слой «FUDE · подсказка».')}</p>{/if}
 				</div>
 			</div>
 		{/if}
 
 		<div class="hints">
-			<span class="body-s">Подсказки</span>
-			<span class="bulbs" aria-label="Использовано подсказок: {hintsUsed}">
+			<span class="body-s">{t('Подсказки')}</span>
+			<span class="bulbs" aria-label={t('Использовано подсказок: {n}', { n: hintsUsed })}>
 				{#each steps as s, i (s.id)}
 					<span class:used={i < hintsUsed}><Icon name="bulb" size={16} /></span>
 				{/each}
 			</span>
 		</div>
-		<p class="body-s quiet">Подсказки всегда под рукой и видны в статистике. Задание без них даёт в полтора раза больше опыта.</p>
+		<p class="body-s quiet">{t('Подсказки всегда под рукой и видны в статистике. Задание без них даёт в полтора раза больше опыта.')}</p>
 
 		{#if inside && view?.referenceImage}
 			<figure class="ref">
-				<img src={view.referenceImage} alt="Эталон" />
-				<figcaption>Эталон — к чему стремиться</figcaption>
+				<img src={view.referenceImage} alt={t('Эталон')} />
+				<figcaption>{t('Эталон — к чему стремиться')}</figcaption>
 			</figure>
 		{/if}
 	</div>
 
 	<div class="actions">
-		<label class="auto"><input type="checkbox" bind:checked={auto} /> Проверять автоматически</label>
+		<label class="auto"><input type="checkbox" bind:checked={auto} /> {t('Проверять автоматически')}</label>
 		{#if note}<p class="body-s note-text" role="status">{note}</p>{/if}
 	</div>
 {/snippet}
 
 <div class="practice sumi-scope">
-	<LessonHeader dark title={view?.card.title ?? 'Практика'} subtitle="{view?.card.categoryTitle ?? ''} · {previewDir ? 'глазами ученика' : 'практика'}" stage={2} back={backHref} onclose={leave} />
+	<LessonHeader dark title={view?.card.title ?? t('Практика')} subtitle={`${view?.card.categoryTitle ?? ''} · ${previewDir ? t('глазами ученика') : t('практика')}`} stage={2} back={backHref} onclose={leave} />
 	{#if previewDir}
 		<div class="preview-bar" role="status">
 			<Icon name="eye" size={16} />
-			<span>{previewDone ? 'Все шаги пройдены — так урок закончится у ученика.' : 'Глазами ученика: так урок пройдёт ученик. Прогресс и статистика не записываются.'}</span>
-			<a class="preview-back" href={backHref} onclick={leave}>К редактированию</a>
+			<span>{previewDone ? t('Все шаги пройдены — так урок закончится у ученика.') : t('Глазами ученика: так урок пройдёт ученик. Прогресс и статистика не записываются.')}</span>
+			<a class="preview-back" href={backHref} onclick={leave}>{t('К редактированию')}</a>
 		</div>
 	{/if}
 
@@ -253,43 +254,43 @@
 		<section class="failed reveal">
 			<div class="card box">
 				<Icon name="alert" size={30} />
-				<h2 class="h1">Редактор не запустился</h2>
+				<h2 class="h1">{t('Редактор не запустился')}</h2>
 				<p class="muted">{failure}</p>
-				<p class="body-s muted">Урок сохранён: гайд и теория доступны, а к заданию можно вернуться в любой момент.</p>
+				<p class="body-s muted">{t('Урок сохранён: гайд и теория доступны, а к заданию можно вернуться в любой момент.')}</p>
 				<div class="row">
-					<button class="btn btn-accent" onclick={start}><Icon name="refresh" size={18} /> Попробовать снова</button>
-					<a class="btn btn-quiet" href={backHref}>{previewDir ? 'К редактированию' : 'К теории'}</a>
+					<button class="btn btn-accent" onclick={start}><Icon name="refresh" size={18} /> {t('Попробовать снова')}</button>
+					<a class="btn btn-quiet" href={backHref}>{previewDir ? t('К редактированию') : t('К теории')}</a>
 				</div>
 			</div>
 		</section>
 	{:else}
 		<div class="toolbar">
 			{#if inside}
-				<button class="tool" aria-pressed={showTask} onclick={() => (showTask = !showTask)} title="Показать или спрятать задание сбоку">
-					<Icon name="book" size={17} /> Задание {done}/{steps.length}
+				<button class="tool" aria-pressed={showTask} onclick={() => (showTask = !showTask)} title={t('Показать или спрятать задание сбоку')}>
+					<Icon name="book" size={17} /> {t('Задание {done}/{all}', { done, all: steps.length })}
 				</button>
-				<button class="tool" onclick={() => setLayout(false)} title="Открыть редактор отдельным окном — удобно на двух мониторах">
-					<Icon name="copy" size={17} /> Отдельное окно
+				<button class="tool" onclick={() => setLayout(false)} title={t('Открыть редактор отдельным окном — удобно на двух мониторах')}>
+					<Icon name="copy" size={17} /> {t('Отдельное окно')}
 				</button>
 			{:else if supported}
-				<button class="tool" onclick={() => setLayout(true)} title="Вернуть редактор в окно FUDE — удобно на одном экране">
-					<Icon name="layers" size={17} /> Встроить в окно FUDE
+				<button class="tool" onclick={() => setLayout(true)} title={t('Вернуть редактор в окно FUDE — удобно на одном экране')}>
+					<Icon name="layers" size={17} /> {t('Встроить в окно FUDE')}
 				</button>
 			{/if}
 			<span class="spacer"></span>
-			{#if hint}<span class="hint-flag"><Icon name="bulb" size={15} /> Режим подсказки — будет видно в статистике</span>{/if}
+			{#if hint}<span class="hint-flag"><Icon name="bulb" size={15} /> {t('Режим подсказки — будет видно в статистике')}</span>{/if}
 			<button class="btn btn-hint btn-s" onclick={showHint} disabled={phase !== 'ready' || !current?.hasHint}>
-				<Icon name="bulb" size={16} /> Подсказка <span class="kbd">{HINT_KEY_LABEL}</span>
+				<Icon name="bulb" size={16} /> {t('Подсказка')} <span class="kbd">{HINT_KEY_LABEL}</span>
 			</button>
 			<button class="btn btn-accent btn-s" onclick={() => check()} disabled={phase !== 'ready' || checking}>
-				{checking ? 'Проверяем…' : 'Проверить'}
+				{checking ? t('Проверяем…') : t('Проверить')}
 			</button>
 		</div>
 
 		{#if inside}
 			<div class="work inside" class:with-task={showTask}>
-				<section class="slot" use:editorSlot aria-label="Редактор PhotoCraft">
-					{#if phase === 'starting'}<p class="loading">Открываем PhotoCraft и задание…</p>{/if}
+				<section class="slot" use:editorSlot aria-label={t('Редактор PhotoCraft')}>
+					{#if phase === 'starting'}<p class="loading">{t('Открываем PhotoCraft и задание…')}</p>{/if}
 				</section>
 				{#if showTask}
 					<aside class="panel">{@render taskPanel()}</aside>
@@ -301,24 +302,24 @@
 					<div class="note">
 						<Icon name="layers" size={18} />
 						{#if phase === 'starting'}
-							Открываем PhotoCraft и задание…
+							{t('Открываем PhotoCraft и задание…')}
 						{:else}
-							Редактор открыт в отдельном окне. Рисуйте там — FUDE следит за шагами и проверяет их сам.
+							{t('Редактор открыт в отдельном окне. Рисуйте там — FUDE следит за шагами и проверяет их сам.')}
 						{/if}
 					</div>
 					<div class="pictures">
 						<figure>
 							{#if view?.taskImage}
-								<img src={view.taskImage} alt="Начало задания" />
+								<img src={view.taskImage} alt={t('Начало задания')} />
 							{:else}
 								<div class="blank" style="aspect-ratio: {view?.lesson.task.canvas?.width ?? 3} / {view?.lesson.task.canvas?.height ?? 2}"></div>
 							{/if}
-							<figcaption>Начало</figcaption>
+							<figcaption>{t('Начало')}</figcaption>
 						</figure>
 						{#if view?.referenceImage}
 							<figure>
-								<img src={view.referenceImage} alt="Эталон" />
-								<figcaption>Эталон — к чему стремиться</figcaption>
+								<img src={view.referenceImage} alt={t('Эталон')} />
+								<figcaption>{t('Эталон — к чему стремиться')}</figcaption>
 							</figure>
 						{/if}
 					</div>

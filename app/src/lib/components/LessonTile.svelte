@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { t } from '#lib/i18n.svelte.ts';
 	import type { LessonCard } from '#lib/api.ts';
 	import Brush from './Brush.svelte';
 	import Difficulty from './Difficulty.svelte';
@@ -12,14 +13,14 @@
 
 <a class="tile card" href="/lesson/{card.id}">
 	<div class="cover" style="background: {tint}">
-		<span class="tag">{card.categoryTitle} · урок {card.number}</span>
+		<span class="tag">{t('{category} · урок {n}', { category: card.categoryTitle, n: card.number })}</span>
 		<span class="stroke"><Brush width={170} height={34} seed={card.number * 7 + card.title.length} color="var(--ink-900)" /></span>
 		<span class="kanji glyph" style="color: {ink}">{card.kanji ?? '筆'}</span>
 	</div>
 	<div class="body">
 		<h3 class="h3">{card.title}</h3>
 		<div class="meta">
-			<span class="time"><Icon name="clock" size={15} /> {card.minutes} мин</span>
+			<span class="time"><Icon name="clock" size={15} /> {t('{n} мин', { n: card.minutes })}</span>
 			<Difficulty level={card.difficulty} label={card.difficultyLabel} />
 		</div>
 	</div>

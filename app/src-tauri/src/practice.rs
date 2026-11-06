@@ -137,7 +137,7 @@ impl Practice {
     /// every step is done.
     pub fn check(&mut self, ch: &mut dyn Channel, db: &Db, now: NaiveDateTime) -> AppResult<CheckReport> {
         if self.finished {
-            return Err(AppError::msg("задание уже выполнено"));
+            return Err(AppError::msg(fude_core::i18n::pick("задание уже выполнено", "the task is already done")));
         }
         let snapshot = self.snapshot(ch, self.needs_canvas())?;
         let outcome = assess::task(&self.lesson.task, &self.context, &snapshot, &self.confirmed);
@@ -169,8 +169,12 @@ impl Practice {
         let xp = progress::xp_for(self.lesson.difficulty, self.hints, first);
         let seconds = u32::try_from(self.started.elapsed().as_secs()).unwrap_or(u32::MAX);
         db.finish_attempt(self.attempt, true, seconds, xp, similarity, now)?;
-        let detail = if self.hints == 0 { format!("+{xp} XP · без подсказок") } else { format!("+{xp} XP · подсказок: {}", self.hints) };
-        db.log(now, "pass", &format!("Пройден урок «{}»", self.lesson.title), &detail)?;
+        let detail = if self.hints == 0 {
+            fude_core::tr!("+{xp} XP · без подсказок", "+{xp} XP · no hints")
+        } else {
+            fude_core::tr!("+{xp} XP · подсказок: {}", "+{xp} XP · hints: {}", self.hints)
+        };
+        db.log(now, "pass", &fude_core::tr!("Пройден урок «{}»", "Lesson done «{}»", self.lesson.title), &detail)?;
         db.clear_stage(&self.lesson.id)?;
         self.finished = true;
         Ok(xp)
@@ -180,10 +184,10 @@ impl Practice {
     /// layer, returning the student to the layer they were on.
     pub fn hint(&mut self, ch: &mut dyn Channel, db: &Db) -> AppResult<HintReport> {
         let Some(step) = self.lesson.task.steps.get(self.progress.done).cloned() else {
-            return Err(AppError::msg("все шаги уже выполнены"));
+            return Err(AppError::msg(fude_core::i18n::pick("все шаги уже выполнены", "all steps are already done")));
         };
         let Some(h) = step.hint.clone() else {
-            return Err(AppError::msg("у этого шага нет подсказки"));
+            return Err(AppError::msg(fude_core::i18n::pick("у этого шага нет подсказки", "this step has no hint")));
         };
         if self.hinted.insert(step.id.clone()) {
             self.hints += 1;

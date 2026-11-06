@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { t } from '#lib/i18n.svelte.ts';
 	import type { GuideScript, Lesson, Shape } from '../api.ts';
 	import Icon from '../components/Icon.svelte';
 	import { strokeToShape } from './geometry.ts';
@@ -54,87 +55,87 @@
 <div class="panel">
 	{#if step}
 		<div class="head">
-			<h2>{step.caption || (strokes.length ? 'Штрих' : step.highlight ? targetLabel(step.highlight) : 'Шаг гайда')}</h2>
-			<p class="where">Шаг гайда {selected + 1} из {script.steps.length}</p>
+			<h2>{step.caption || (strokes.length ? t('Штрих') : step.highlight ? targetLabel(step.highlight) : t('Шаг гайда'))}</h2>
+			<p class="where">{t('Шаг гайда {n} из {of}', { n: selected + 1, of: script.steps.length })}</p>
 		</div>
-		<label class="field">Подпись внизу экрана
-			<input type="text" bind:value={script.steps[selected].caption} placeholder="Пусто — остаётся прежняя подпись" />
+		<label class="field">{t('Подпись внизу экрана')}
+			<input type="text" bind:value={script.steps[selected].caption} placeholder={t('Пусто — остаётся прежняя подпись')} />
 		</label>
 		<div class="field">
-			<span>Подсветка в PhotoCraft</span>
+			<span>{t('Подсветка в PhotoCraft')}</span>
 			<div class="row">
-				<button class="target" onclick={onmap}><Icon name="target" size={16} /> {step.highlight ? targetLabel(step.highlight) : 'Нет'}</button>
-				{#if step.highlight}<button class="quiet" onclick={() => delete script.steps[selected].highlight}>Убрать</button>{/if}
+				<button class="target" onclick={onmap}><Icon name="target" size={16} /> {step.highlight ? targetLabel(step.highlight) : t('Нет')}</button>
+				{#if step.highlight}<button class="quiet" onclick={() => delete script.steps[selected].highlight}>{t('Убрать')}</button>{/if}
 			</div>
 		</div>
 		{#if lesson.task.steps.length}
-			<label class="field">Показывает шаг задания
+			<label class="field">{t('Показывает шаг задания')}
 				<select value={step.task_step ?? ''} onchange={(e) => (e.currentTarget.value ? (script.steps[selected].task_step = e.currentTarget.value) : delete script.steps[selected].task_step)}>
-					<option value="">— не связан —</option>
-					{#each lesson.task.steps as st, i (st.id)}<option value={st.id}>Шаг {i + 1}: {st.text || st.id}</option>{/each}
+					<option value="">{t('— не связан —')}</option>
+					{#each lesson.task.steps as st, i (st.id)}<option value={st.id}>{t('Шаг {n}: {text}', { n: i + 1, text: st.text || st.id })}</option>{/each}
 				</select>
 			</label>
 		{/if}
-		<label class="field">Пауза после шага, мс
+		<label class="field">{t('Пауза после шага, мс')}
 			<input type="number" min="0" max="15000" step="100" value={pauseOf(step)} onchange={(e) => (script.steps[selected].pause = Math.max(0, Math.min(15000, Number(e.currentTarget.value))))} />
 		</label>
 		{#if strokes.length}
 			{@const b = innerOf(0)}
 			<div class="box">
-				<p class="box-title">Кисть {strokes.length > 1 ? `для ${strokes.length} штрихов` : 'штриха'}</p>
+				<p class="box-title">{strokes.length > 1 ? t('Кисть для {n} штрихов', { n: strokes.length }) : t('Кисть штриха')}</p>
 				<div class="grid">
-					<label>Размер, px <input type="number" min="1" max="500" value={b.size ?? 30} onchange={(e) => setStroke('size', Number(e.currentTarget.value))} /></label>
-					<label>Жёсткость, % <input type="number" min="0" max="100" value={Math.round((b.hardness ?? 1) * 100)} onchange={(e) => setStroke('hardness', Number(e.currentTarget.value) / 100)} /></label>
-					<label>Непрозрачность, % <input type="number" min="1" max="100" value={Math.round((b.opacity ?? 1) * 100)} onchange={(e) => setStroke('opacity', Number(e.currentTarget.value) / 100)} /></label>
-					<label>Цвет <input type="color" value={b.color ?? '#000000'} onchange={(e) => setStroke('color', e.currentTarget.value.toUpperCase())} /></label>
+					<label>{t('Размер, px')} <input type="number" min="1" max="500" value={b.size ?? 30} onchange={(e) => setStroke('size', Number(e.currentTarget.value))} /></label>
+					<label>{t('Жёсткость, %')} <input type="number" min="0" max="100" value={Math.round((b.hardness ?? 1) * 100)} onchange={(e) => setStroke('hardness', Number(e.currentTarget.value) / 100)} /></label>
+					<label>{t('Непрозрачность, %')} <input type="number" min="1" max="100" value={Math.round((b.opacity ?? 1) * 100)} onchange={(e) => setStroke('opacity', Number(e.currentTarget.value) / 100)} /></label>
+					<label>{t('Цвет')} <input type="color" value={b.color ?? '#000000'} onchange={(e) => setStroke('color', e.currentTarget.value.toUpperCase())} /></label>
 				</div>
 			</div>
 			{#if lesson.task.steps.length}
 				<div class="box">
-					<p class="box-title">Использовать в задании</p>
-					<p class="note">Штрих станет линией-призраком: ученик увидит его полупрозрачным, когда попросит подсказку.</p>
+					<p class="box-title">{t('Использовать в задании')}</p>
+					<p class="note">{t('Штрих станет линией-призраком: ученик увидит его полупрозрачным, когда попросит подсказку.')}</p>
 					<div class="row">
-						<select bind:value={ghostTarget} aria-label="Шаг задания">
-							{#each lesson.task.steps as st, i (st.id)}<option value={i}>Шаг {i + 1}: {st.text || st.id}</option>{/each}
+						<select bind:value={ghostTarget} aria-label={t('Шаг задания')}>
+							{#each lesson.task.steps as st, i (st.id)}<option value={i}>{t('Шаг {n}: {text}', { n: i + 1, text: st.text || st.id })}</option>{/each}
 						</select>
-						<button class="quiet" onclick={toGhost}>В подсказку</button>
+						<button class="quiet" onclick={toGhost}>{t('В подсказку')}</button>
 					</div>
 				</div>
 			{/if}
 		{/if}
 		<div class="row">
-			<button class="quiet" onclick={() => onmove(-1)} disabled={selected === 0}>← Раньше</button>
-			<button class="quiet" onclick={() => onmove(1)} disabled={selected === script.steps.length - 1}>Позже →</button>
+			<button class="quiet" onclick={() => onmove(-1)} disabled={selected === 0}>← {t('Раньше')}</button>
+			<button class="quiet" onclick={() => onmove(1)} disabled={selected === script.steps.length - 1}>{t('Позже')} →</button>
 		</div>
 		<div class="field">
-			<span>Что делает шаг</span>
+			<span>{t('Что делает шаг')}</span>
 			{#each step.calls as c, i (i)}
 				<div class="call">
 					<span class="grow">{describeCall(c)}</span>
-					<button class="icon" onclick={() => removeCall(i)} aria-label="Убрать действие"><Icon name="close" size={13} /></button>
+					<button class="icon" onclick={() => removeCall(i)} aria-label={t('Убрать действие')}><Icon name="close" size={13} /></button>
 				</div>
 			{:else}
-				<p class="note">Только подпись и пауза.</p>
+				<p class="note">{t('Только подпись и пауза.')}</p>
 			{/each}
 		</div>
 	{:else}
 		<div class="head">
-			<h2>Кисть показа</h2>
-			<p class="where">Ничего не выбрано</p>
+			<h2>{t('Кисть показа')}</h2>
+			<p class="where">{t('Ничего не выбрано')}</p>
 		</div>
-		<p class="note">Возьмите «Кисть показа» и рисуйте на холсте — каждый штрих станет клипом на дорожке «Штрихи». Или запишите урок прямо в PhotoCraft.</p>
+		<p class="note">{t('Возьмите «Кисть показа» и рисуйте на холсте — каждый штрих станет клипом на дорожке «Штрихи». Или запишите урок прямо в PhotoCraft.')}</p>
 		<div class="box">
 			<div class="grid">
-				<label>Размер, px <input type="number" min="1" max="500" bind:value={brush.size} /></label>
-				<label>Жёсткость, % <input type="number" min="0" max="100" value={Math.round(brush.hardness * 100)} onchange={(e) => (brush.hardness = Number(e.currentTarget.value) / 100)} /></label>
-				<label>Непрозрачность, % <input type="number" min="1" max="100" value={Math.round(brush.opacity * 100)} onchange={(e) => (brush.opacity = Number(e.currentTarget.value) / 100)} /></label>
-				<label>Цвет <input type="color" bind:value={brush.color} /></label>
+				<label>{t('Размер, px')} <input type="number" min="1" max="500" bind:value={brush.size} /></label>
+				<label>{t('Жёсткость, %')} <input type="number" min="0" max="100" value={Math.round(brush.hardness * 100)} onchange={(e) => (brush.hardness = Number(e.currentTarget.value) / 100)} /></label>
+				<label>{t('Непрозрачность, %')} <input type="number" min="1" max="100" value={Math.round(brush.opacity * 100)} onchange={(e) => (brush.opacity = Number(e.currentTarget.value) / 100)} /></label>
+				<label>{t('Цвет')} <input type="color" bind:value={brush.color} /></label>
 			</div>
 		</div>
 	{/if}
 	<div class="safe">
-		<p class="box-title"><Icon name="lock" size={14} /> Безопасно для учеников</p>
-		<p class="note">Гайд только рисует, выбирает инструменты и подсвечивает. Файлы, сеть и горячие клавиши ему недоступны.</p>
+		<p class="box-title"><Icon name="lock" size={14} /> {t('Безопасно для учеников')}</p>
+		<p class="note">{t('Гайд только рисует, выбирает инструменты и подсвечивает. Файлы, сеть и горячие клавиши ему недоступны.')}</p>
 	</div>
 </div>
 

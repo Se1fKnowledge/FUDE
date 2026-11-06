@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { LANGS, i18n, setLang, t, tk } from '#lib/i18n.svelte.ts';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import Brush from './Brush.svelte';
@@ -12,12 +13,12 @@
 	const themeIcon = $derived(theme.choice === 'light' ? 'sun' : theme.choice === 'dark' ? 'moon' : 'contrast');
 
 	const items: { href: string; label: string; icon: IconName; seed: number }[] = [
-		{ href: '/', label: 'Главная', icon: 'home', seed: 11 },
-		{ href: '/lessons', label: 'Уроки', icon: 'book', seed: 12 },
-		{ href: '/achievements', label: 'Достижения', icon: 'trophy', seed: 13 },
-		{ href: '/activity', label: 'Активность', icon: 'grid', seed: 14 },
-		{ href: '/stats', label: 'Статистика', icon: 'chart', seed: 15 },
-		{ href: '/studio', label: 'Мастерская', icon: 'pencil', seed: 16 }
+		{ href: '/', label: tk('Главная'), icon: 'home', seed: 11 },
+		{ href: '/lessons', label: tk('Уроки'), icon: 'book', seed: 12 },
+		{ href: '/achievements', label: tk('Достижения'), icon: 'trophy', seed: 13 },
+		{ href: '/activity', label: tk('Активность'), icon: 'grid', seed: 14 },
+		{ href: '/stats', label: tk('Статистика'), icon: 'chart', seed: 15 },
+		{ href: '/studio', label: tk('Мастерская'), icon: 'pencil', seed: 16 }
 	];
 
 	const path = $derived(page.url.pathname);
@@ -56,28 +57,28 @@
 <aside>
 	<div class="enso"><Enso size={420} color="#23262d" seed={21} /></div>
 
-	<a class="brand" href="/" aria-label="FUDE, на главную">
+	<a class="brand" href="/" aria-label={t('FUDE, на главную')}>
 		<Hanko kanji="筆" size={40} />
 		<span>
 			<span class="name">FUDE</span>
-			<span class="sub">школа цифрового рисунка</span>
+			<span class="sub">{t('школа цифрового рисунка')}</span>
 		</span>
 	</a>
 
 	<form class="search" onsubmit={find} role="search">
 		<Icon name="search" size={17} />
-		<input bind:this={search} bind:value={query} type="search" placeholder="Поиск уроков" aria-label="Поиск уроков" />
+		<input bind:this={search} bind:value={query} type="search" placeholder={t('Поиск уроков')} aria-label={t('Поиск уроков')} />
 		<kbd>Ctrl K</kbd>
 	</form>
 
-	<nav aria-label="Разделы">
+	<nav aria-label={t('Разделы')}>
 		{#each items as item (item.href)}
 			<a href={item.href} class:active={active(item.href)} aria-current={active(item.href) ? 'page' : undefined}>
 				{#if active(item.href)}
 					<span class="stroke"><Brush width={232} height={46} seed={item.seed} draw /></span>
 				{/if}
 				<Icon name={item.icon} />
-				<span>{item.label}</span>
+				<span>{t(item.label)}</span>
 			</a>
 		{/each}
 	</nav>
@@ -90,24 +91,27 @@
 				<span class="flame"><Icon name="flame" size={18} /></span>
 				<span>
 					{#if boot.streak.current > 0}
-						{count(boot.streak.current, ['день', 'дня', 'дней'])} подряд
+						{t('{n} подряд', { n: count(boot.streak.current, ['день', 'дня', 'дней']) })}
 					{:else}
-						Серия ещё не началась
+						{t('Серия ещё не началась')}
 					{/if}
 				</span>
 			</div>
 			<div class="bar"><i style="width: {Math.min(100, (done / goal) * 100)}%"></i></div>
-			<p>Цель дня: {Math.min(done, goal)} из {count(goal, ['задания', 'заданий', 'заданий'])}</p>
+			<p>{t('Цель дня: {done} из {goal}', { done: Math.min(done, goal), goal: count(goal, ['задания', 'заданий', 'заданий']) })}</p>
 		</div>
 
 		<div class="me">
 			<span class="avatar">{initials}</span>
 			<span class="who">
-				<span class="me-name">{boot.profile.name || 'Ученик'}</span>
+				<span class="me-name">{boot.profile.name || t('Ученик')}</span>
 				<span class="rank">{boot.rank.name} · {boot.rank.title}</span>
 			</span>
-			<button class="theme" onclick={() => setTheme(next(theme.choice))} title="Тема: {THEME_LABELS[theme.choice].toLowerCase()}. Нажмите, чтобы сменить" aria-label="Тема: {THEME_LABELS[theme.choice]}">
+			<button class="theme" onclick={() => setTheme(next(theme.choice))} title={t('Тема: {name}. Нажмите, чтобы сменить', { name: t(THEME_LABELS[theme.choice]).toLowerCase() })} aria-label={t('Тема: {name}', { name: t(THEME_LABELS[theme.choice]) })}>
 				<Icon name={themeIcon} size={18} />
+			</button>
+			<button class="theme lang" onclick={() => setLang(i18n.lang === 'ru' ? 'en' : 'ru')} title={t('Язык: {name}. Нажмите, чтобы сменить', { name: LANGS.find((l) => l.code === i18n.lang)?.label ?? '' })} aria-label={t('Язык интерфейса')}>
+				{i18n.lang === 'ru' ? 'RU' : 'EN'}
 			</button>
 		</div>
 	{/if}
@@ -320,6 +324,13 @@
 	.rank {
 		font-size: 13px;
 		color: var(--kaki-500);
+	}
+
+	.theme.lang {
+		margin-left: 0;
+		font-size: 11px;
+		font-weight: 700;
+		letter-spacing: 0.06em;
 	}
 
 	.theme {

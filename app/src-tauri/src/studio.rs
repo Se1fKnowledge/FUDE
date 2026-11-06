@@ -105,7 +105,10 @@ pub fn studio_category_save(state: State<'_, AppState>, dir: String, category: C
     let dir = user_dir(&state, &dir)?;
     let name = dir.file_name().and_then(|n| n.to_str()).unwrap_or_default().to_string();
     if category.id != name {
-        return Err(AppError::msg("id категории менять нельзя: от него зависят id её уроков"));
+        return Err(AppError::msg(fude_core::i18n::pick(
+            "id категории менять нельзя: от него зависят id её уроков",
+            "a category id cannot change: the ids of its lessons depend on it",
+        )));
     }
     let issues = validate::category(&category, Some(&name));
     if !validate::has_errors(&issues) {
@@ -118,7 +121,12 @@ pub fn studio_category_save(state: State<'_, AppState>, dir: String, category: C
 pub fn studio_lesson_create(state: State<'_, AppState>, category_dir: String, title: String, difficulty: u8) -> AppResult<String> {
     let dir = user_dir(&state, &category_dir)?;
     let (lesson_dir, lesson) = authoring::create_lesson(&dir, &title, difficulty)?;
-    lock(&state.db).log(now(), "author", &format!("Создан урок «{}»", lesson.title), "Мастерская")?;
+    lock(&state.db).log(
+        now(),
+        "author",
+        &fude_core::tr!("Создан урок «{}»", "Lesson created «{}»", lesson.title),
+        fude_core::i18n::pick("Мастерская", "Workshop"),
+    )?;
     refresh_achievements(&state)?;
     Ok(lesson_dir.display().to_string())
 }
@@ -143,7 +151,8 @@ pub struct DraftDetail {
 #[tauri::command]
 pub fn studio_lesson(state: State<'_, AppState>, dir: String) -> AppResult<DraftDetail> {
     let dir = user_dir(&state, &dir)?;
-    let category_dir = dir.parent().map(Path::to_path_buf).ok_or_else(|| AppError::msg("урок вне категории"))?;
+    let category_dir =
+        dir.parent().map(Path::to_path_buf).ok_or_else(|| AppError::msg(fude_core::i18n::pick("урок вне категории", "the lesson is outside a category")))?;
     let category = model::load_category(&category_dir)?;
     let lesson = model::load_lesson(&dir)?;
     let issues = validate::lesson(&lesson, Some(&dir), Some(&category.id));
@@ -207,7 +216,7 @@ pub fn studio_picture(state: State<'_, AppState>, dir: String, path: String) -> 
 #[tauri::command]
 pub fn studio_duplicate(state: State<'_, AppState>, lesson: String, category_dir: String) -> AppResult<String> {
     let library = state.library();
-    let entry = library.lesson(&lesson).ok_or_else(|| AppError::msg("урок не найден"))?;
+    let entry = library.lesson(&lesson).ok_or_else(|| AppError::msg(fude_core::i18n::pick("урок не найден", "lesson not found")))?;
     let target = user_dir(&state, &category_dir)?;
     let (dir, _) = authoring::duplicate_lesson(&entry.dir, &target)?;
     Ok(dir.display().to_string())
@@ -226,8 +235,12 @@ pub fn studio_remove(state: State<'_, AppState>, dir: String) -> AppResult<()> {
 #[tauri::command]
 pub fn package_export(state: State<'_, AppState>, category: String, lessons: Vec<String>, out: String) -> AppResult<usize> {
     let library = state.library();
-    let entry = library.category(&category).ok_or_else(|| AppError::msg("категория не найдена"))?;
-    let category_dir = entry.user_dir.clone().or_else(|| entry.dirs.first().cloned()).ok_or_else(|| AppError::msg("у категории нет папки"))?;
+    let entry = library.category(&category).ok_or_else(|| AppError::msg(fude_core::i18n::pick("категория не найдена", "category not found")))?;
+    let category_dir = entry
+        .user_dir
+        .clone()
+        .or_else(|| entry.dirs.first().cloned())
+        .ok_or_else(|| AppError::msg(fude_core::i18n::pick("у категории нет папки", "the category has no folder")))?;
     let dirs: Vec<PathBuf> = entry.lessons.iter().filter(|l| lessons.is_empty() || lessons.contains(&l.lesson.id)).map(|l| l.dir.clone()).collect();
     // Lessons may sit in the built-in and the user folder of the same category: one item
     // per folder, each with its own lessons.
@@ -240,7 +253,10 @@ pub fn package_export(state: State<'_, AppState>, category: String, lessons: Vec
         }
     }
     if items.len() > 1 {
-        return Err(AppError::msg("уроки категории лежат в двух местах — экспортируйте встроенные и свои по отдельности"));
+        return Err(AppError::msg(fude_core::i18n::pick(
+            "уроки категории лежат в двух местах — экспортируйте встроенные и свои по отдельности",
+            "the category's lessons are in two places — export the built-in and your own separately",
+        )));
     }
     let report = package::export(Path::new(&out), &entry.category.title, &items)?;
     Ok(report.lessons.len())
@@ -256,8 +272,8 @@ pub fn package_inspect(state: State<'_, AppState>, path: String) -> AppResult<Pa
 pub fn package_import(state: State<'_, AppState>, path: String, replace: bool) -> AppResult<ImportReport> {
     let library = state.library();
     let report = package::import(Path::new(&path), &library, &state.user, &ImportOptions { replace }, Limits::default())?;
-    let detail = format!("уроков: {}", report.lessons_added.len() + report.lessons_replaced.len());
-    lock(&state.db).log(now(), "import", &format!("Импортирован пакет «{}»", report.title), &detail)?;
+    let detail = fude_core::tr!("уроков: {}", "lessons: {}", report.lessons_added.len() + report.lessons_replaced.len());
+    lock(&state.db).log(now(), "import", &fude_core::tr!("Импортирован пакет «{}»", "Package imported «{}»", report.title), &detail)?;
     Ok(report)
 }
 

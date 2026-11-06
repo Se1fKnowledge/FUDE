@@ -4,8 +4,8 @@
 //! format ([`model`]), reading a library of lesson folders ([`library`]), format checks
 //! ([`validate`]), animated guides made of PhotoCraft control calls ([`guide`]), hint
 //! ghost shapes ([`hint`]), task assessment from editor state and canvas snapshots
-//! ([`assess`]), `.fude` packages ([`package`]) and the lesson editor's file operations
-//! ([`authoring`]).
+//! ([`assess`]), `.fude` packages ([`package`]), the lesson editor's file operations
+//! ([`authoring`]), and messages and lessons in Russian or English ([`i18n`], [`locale`]).
 //!
 //! The format is described for authors in `docs/lesson-format.md`.
 
@@ -15,7 +15,9 @@ pub mod control;
 pub mod error;
 pub mod guide;
 pub mod hint;
+pub mod i18n;
 pub mod library;
+pub mod locale;
 pub mod model;
 pub mod package;
 pub mod paths;

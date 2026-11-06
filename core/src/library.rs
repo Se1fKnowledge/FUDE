@@ -9,6 +9,8 @@ use std::path::{Path, PathBuf};
 
 use serde::Serialize;
 
+use crate::i18n;
+use crate::locale::Overlay;
 use crate::model::{CATEGORY_FILE, Category, LESSON_FILE, Lesson, load_category, load_lesson};
 use crate::validate::{self, Issue, has_errors};
 
@@ -77,7 +79,12 @@ impl Library {
                 }
                 let dir_name = dir.file_name().and_then(|n| n.to_str()).unwrap_or_default().to_string();
                 let category = match load_category(&dir) {
-                    Ok(c) => c,
+                    Ok(mut c) => {
+                        if let Some(o) = Overlay::load(&dir, i18n::lang()) {
+                            o.apply_category(&mut c);
+                        }
+                        c
+                    }
                     Err(e) => {
                         library.problem(&dir.join(CATEGORY_FILE), e.to_string(), vec![]);
                         continue;
@@ -85,7 +92,7 @@ impl Library {
                 };
                 let issues = validate::category(&category, Some(&dir_name));
                 if has_errors(&issues) {
-                    library.problem(&dir.join(CATEGORY_FILE), "категория не прошла проверку".into(), issues);
+                    library.problem(&dir.join(CATEGORY_FILE), crate::tr!("категория не прошла проверку", "the category failed the check"), issues);
                     continue;
                 }
                 let slot = *index.entry(category.id.clone()).or_insert_with(|| {
@@ -99,9 +106,16 @@ impl Library {
                         continue;
                     }
                     match read_lesson(&lesson_dir, &id) {
-                        Ok((lesson, warnings)) => {
+                        Ok((mut lesson, warnings)) => {
+                            if let Some(o) = Overlay::load(&lesson_dir, i18n::lang()) {
+                                o.apply_lesson(&mut lesson);
+                            }
                             if !seen.insert(lesson.id.clone()) {
-                                library.problem(&lesson_dir.join(LESSON_FILE), format!("урок «{}» уже есть в библиотеке", lesson.id), vec![]);
+                                library.problem(
+                                    &lesson_dir.join(LESSON_FILE),
+                                    crate::tr!("урок «{}» уже есть в библиотеке", "lesson «{}» is already in the library", lesson.id),
+                                    vec![],
+                                );
                                 continue;
                             }
                             lessons.push(LessonEntry { lesson, dir: lesson_dir, editable: root.editable, warnings });
@@ -137,7 +151,14 @@ impl Library {
         for entry in self.lessons() {
             for required in &entry.lesson.requires {
                 if !ids.contains(required) {
-                    missing.push((entry.dir.join(LESSON_FILE), format!("урок «{}» требует «{required}», которого нет в библиотеке", entry.lesson.id)));
+                    missing.push((
+                        entry.dir.join(LESSON_FILE),
+                        crate::tr!(
+                            "урок «{}» требует «{required}», которого нет в библиотеке",
+                            "lesson «{}» requires «{required}», which is not in the library",
+                            entry.lesson.id
+                        ),
+                    ));
                 }
             }
         }
@@ -167,9 +188,10 @@ impl Library {
 /// Loads and validates one lesson folder.
 pub fn read_lesson(dir: &Path, category_id: &str) -> Result<(Lesson, Vec<Issue>), (String, Vec<Issue>)> {
     let lesson = load_lesson(dir).map_err(|e| (e.to_string(), vec![]))?;
-    let issues = validate::lesson(&lesson, Some(dir), Some(category_id));
+    let mut issues = validate::lesson(&lesson, Some(dir), Some(category_id));
+    issues.extend(crate::locale::check(dir, &lesson));
     if has_errors(&issues) {
-        return Err((format!("урок «{}» не прошёл проверку", lesson.id), issues));
+        return Err((crate::tr!("урок «{}» не прошёл проверку", "lesson «{}» failed the check", lesson.id), issues));
     }
     Ok((lesson, issues))
 }

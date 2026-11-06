@@ -1,41 +1,42 @@
 // What the lesson editor offers for each check kind (docs/lesson-format.md, «Проверки»).
+import { t } from '#lib/i18n.svelte.ts';
 import type { Check, CheckKind } from './api.ts';
 
 export const CHECK_KINDS: { kind: CheckKind['kind']; label: string; canvas: boolean }[] = [
-	{ kind: 'tool', label: 'Инструмент', canvas: false },
-	{ kind: 'brush', label: 'Параметры кисти', canvas: false },
-	{ kind: 'zoom', label: 'Масштаб', canvas: false },
-	{ kind: 'layers', label: 'Число слоёв', canvas: false },
-	{ kind: 'layer', label: 'Есть слой', canvas: false },
-	{ kind: 'selection', label: 'Выделение', canvas: false },
-	{ kind: 'history', label: 'История и отмена', canvas: false },
-	{ kind: 'foreground', label: 'Основной цвет', canvas: false },
-	{ kind: 'coverage', label: 'Закрашена область', canvas: true },
-	{ kind: 'luminance', label: 'Яркость области', canvas: true },
-	{ kind: 'darker', label: 'Область темнее другой', canvas: true },
-	{ kind: 'color', label: 'Цвет области', canvas: true },
-	{ kind: 'similar', label: 'Похоже на эталон', canvas: true }
+	{ kind: 'tool', label: t('Инструмент'), canvas: false },
+	{ kind: 'brush', label: t('Параметры кисти'), canvas: false },
+	{ kind: 'zoom', label: t('Масштаб'), canvas: false },
+	{ kind: 'layers', label: t('Число слоёв'), canvas: false },
+	{ kind: 'layer', label: t('Есть слой'), canvas: false },
+	{ kind: 'selection', label: t('Выделение'), canvas: false },
+	{ kind: 'history', label: t('История и отмена'), canvas: false },
+	{ kind: 'foreground', label: t('Основной цвет'), canvas: false },
+	{ kind: 'coverage', label: t('Закрашена область'), canvas: true },
+	{ kind: 'luminance', label: t('Яркость области'), canvas: true },
+	{ kind: 'darker', label: t('Область темнее другой'), canvas: true },
+	{ kind: 'color', label: t('Цвет области'), canvas: true },
+	{ kind: 'similar', label: t('Похоже на эталон'), canvas: true }
 ];
 
 /** Tools a check or a hint usually points at, with their Russian names. */
 export const TOOLS: [string, string][] = [
-	['Brush', 'Кисть'],
-	['Pencil', 'Карандаш'],
-	['Eraser', 'Ластик'],
-	['RectMarquee', 'Прямоугольная область'],
-	['EllipseMarquee', 'Овальная область'],
-	['Lasso', 'Лассо'],
-	['MagicWand', 'Волшебная палочка'],
-	['Move', 'Перемещение'],
-	['PaintBucket', 'Заливка'],
-	['Gradient', 'Градиент'],
-	['Eyedropper', 'Пипетка'],
-	['Smudge', 'Палец'],
-	['Blur', 'Размытие'],
-	['Dodge', 'Осветлитель'],
-	['Burn', 'Затемнитель'],
-	['Zoom', 'Масштаб'],
-	['Hand', 'Рука']
+	['Brush', t('Кисть')],
+	['Pencil', t('Карандаш')],
+	['Eraser', t('Ластик')],
+	['RectMarquee', t('Прямоугольная область')],
+	['EllipseMarquee', t('Овальная область')],
+	['Lasso', t('Лассо')],
+	['MagicWand', t('Волшебная палочка')],
+	['Move', t('Перемещение')],
+	['PaintBucket', t('Заливка')],
+	['Gradient', t('Градиент')],
+	['Eyedropper', t('Пипетка')],
+	['Smudge', t('Палец')],
+	['Blur', t('Размытие')],
+	['Dodge', t('Осветлитель')],
+	['Burn', t('Затемнитель')],
+	['Zoom', t('Масштаб')],
+	['Hand', t('Рука')]
 ];
 
 const WHOLE: [number, number, number, number] = [0.25, 0.25, 0.5, 0.5];
@@ -52,7 +53,7 @@ export function defaultCheck(kind: CheckKind['kind']): Check {
 		case 'layers':
 			return { kind, count: { min: 2 } };
 		case 'layer':
-			return { kind, name: 'Тень' };
+			return { kind, name: t('Тень') };
 		case 'selection':
 			return { kind, present: true };
 		case 'history':

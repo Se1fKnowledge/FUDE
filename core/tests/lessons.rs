@@ -163,3 +163,39 @@ fn the_builtin_categories_pack_and_check_as_packages() {
         assert!(info.issues.is_empty(), "{:?}", info.issues);
     }
 }
+
+#[test]
+fn every_builtin_lesson_and_category_is_fully_in_english() {
+    use fude_core::i18n::{Lang, with_lang};
+    use fude_core::locale::{Overlay, theory_path};
+    let library = library();
+    for c in &library.categories {
+        let dir = c.dirs.first().expect("category folder");
+        let o = Overlay::load(dir, Lang::En).unwrap_or_else(|| panic!("{}: no en.toml", c.category.id));
+        let raw = fude_core::model::load_category(dir).unwrap();
+        assert!(o.text.contains_key(&raw.title) && o.text.contains_key(&raw.description), "{}: title or description untranslated", c.category.id);
+    }
+    for entry in library.lessons() {
+        let raw = fude_core::model::load_lesson(&entry.dir).unwrap();
+        let script = raw.guide.script.as_ref().map(|s| guide::load(&entry.dir.join(s)).unwrap());
+        let o = Overlay::load(&entry.dir, Lang::En).unwrap_or_else(|| panic!("{}: no en.toml", raw.id));
+        assert_eq!(o.missing(&raw, script.as_ref()), Vec::<String>::new(), "{}: texts without English", raw.id);
+        assert_eq!(o.unused(&raw, script.as_ref()), Vec::<String>::new(), "{}: entries that match nothing", raw.id);
+        assert_ne!(theory_path(&entry.dir, &raw, Lang::En), entry.dir.join(&raw.theory.file), "{}: no theory.en.md", raw.id);
+    }
+    // In English the library itself comes out translated.
+    let en = with_lang(Lang::En, || Library::scan(&[Root::builtin(root())]));
+    let canvas = en.lesson("basics.canvas").unwrap();
+    assert_eq!(canvas.lesson.title, "Canvas and zoom");
+    assert_eq!(en.category("light").unwrap().category.title, "Light and shadow");
+    let cyrillic = |t: &str| t.chars().any(|ch| ('\u{0400}'..='\u{04FF}').contains(&ch));
+    assert!(en.lessons().all(|l| !cyrillic(&l.lesson.title) && l.lesson.task.steps.iter().all(|s| !cyrillic(&s.text))), "Russian left in an English lesson");
+}
+
+#[test]
+fn check_messages_come_out_in_english() {
+    use fude_core::i18n::{Lang, with_lang};
+    let en = with_lang(Lang::En, || assess::tool_label("Brush").to_string());
+    assert_eq!(en, "Brush");
+    assert_eq!(assess::tool_label("Brush"), "Кисть");
+}

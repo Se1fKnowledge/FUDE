@@ -56,7 +56,11 @@ impl Client {
         loop {
             let mut reply = String::new();
             if self.reader.read_line(&mut reply)? == 0 {
-                return Err(std::io::Error::new(std::io::ErrorKind::UnexpectedEof, "редактор закрыл соединение").into());
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::UnexpectedEof,
+                    fude_core::i18n::pick("редактор закрыл соединение", "the editor closed the connection"),
+                )
+                .into());
             }
             let Ok(reply) = serde_json::from_str::<Value>(&reply) else { continue };
             if reply.get("id") != Some(id) {
@@ -65,8 +69,8 @@ impl Client {
             if reply.get("ok").and_then(Value::as_bool) == Some(true) {
                 return Ok(reply.get("result").cloned().unwrap_or(Value::Null));
             }
-            let error = reply.get("error").and_then(Value::as_str).unwrap_or("неизвестная ошибка");
-            return Err(AppError::msg(format!("редактор: {error}")));
+            let error = reply.get("error").and_then(Value::as_str).unwrap_or(fude_core::i18n::pick("неизвестная ошибка", "unknown error"));
+            return Err(AppError::msg(fude_core::tr!("редактор: {error}", "editor: {error}")));
         }
     }
 }
@@ -121,7 +125,7 @@ pub fn parse_control_line(line: &str) -> Option<ControlLine> {
 /// A fresh 256-bit token as 64 hex characters.
 pub fn new_token() -> AppResult<String> {
     let mut bytes = [0u8; 32];
-    getrandom::fill(&mut bytes).map_err(|e| AppError::msg(format!("нет случайных чисел: {e}")))?;
+    getrandom::fill(&mut bytes).map_err(|e| AppError::msg(fude_core::tr!("нет случайных чисел: {e}", "no random numbers: {e}")))?;
     Ok(bytes.iter().map(|b| format!("{b:02x}")).collect())
 }
 
@@ -182,7 +186,10 @@ impl Editor {
         let token = new_token()?;
         std::fs::write(token_file, &token)?;
         let program = command.get_program().to_string_lossy().into_owned();
-        let mut child = command.stderr(Stdio::piped()).spawn().map_err(|e| AppError::msg(format!("не удалось запустить редактор {program}: {e}")))?;
+        let mut child = command
+            .stderr(Stdio::piped())
+            .spawn()
+            .map_err(|e| AppError::msg(fude_core::tr!("не удалось запустить редактор {program}: {e}", "could not start the editor {program}: {e}")))?;
         let (tx, rx) = mpsc::channel();
         if let Some(stderr) = child.stderr.take() {
             std::thread::spawn(move || {
@@ -201,18 +208,25 @@ impl Editor {
         let started = Instant::now();
         let addr = loop {
             if let Some(status) = child.try_wait()? {
-                return Err(AppError::msg(format!("редактор закрылся при запуске ({status})")));
+                return Err(AppError::msg(fude_core::tr!("редактор закрылся при запуске ({status})", "the editor closed while starting ({status})")));
             }
             match rx.recv_timeout(Duration::from_millis(200)) {
                 Ok(ControlLine::Listening(addr)) => break addr,
                 Ok(ControlLine::Failed(reason)) => {
                     let _ = child.kill();
-                    return Err(AppError::msg(format!("редактор не смог открыть канал управления: {reason}")));
+                    return Err(AppError::msg(fude_core::tr!(
+                        "редактор не смог открыть канал управления: {reason}",
+                        "the editor could not open its control channel: {reason}"
+                    )));
                 }
                 Err(_) if started.elapsed() < timeout => {}
                 Err(_) => {
                     let _ = child.kill();
-                    return Err(AppError::msg(format!("редактор не открыл канал управления за {} с", timeout.as_secs())));
+                    return Err(AppError::msg(fude_core::tr!(
+                        "редактор не открыл канал управления за {} с",
+                        "the editor did not open its control channel within {} s",
+                        timeout.as_secs()
+                    )));
                 }
             }
         };
@@ -228,7 +242,11 @@ impl Editor {
             }
         }
         let _ = child.kill();
-        Err(AppError::msg(format!("редактор не ответил на {addr}: {}", last.map_or_else(String::new, |e| e.to_string()))))
+        Err(AppError::msg(fude_core::tr!(
+            "редактор не ответил на {addr}: {}",
+            "the editor did not answer at {addr}: {}",
+            last.map_or_else(String::new, |e| e.to_string())
+        )))
     }
 
     pub fn alive(&mut self) -> bool {

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { t } from '#lib/i18n.svelte.ts';
 	import type { Check, CheckKind, CheckProof, Range } from '../api.ts';
 	import { CHECK_KINDS, TOOLS, defaultCheck } from '../checks.ts';
 	import Icon from '../components/Icon.svelte';
@@ -61,94 +62,94 @@
 		!proof
 			? ''
 			: proof.verdict === 'works'
-				? 'Отличает сделанный шаг от несделанного.'
+				? t('Отличает сделанный шаг от несделанного.')
 				: proof.verdict === 'passesUntouched'
-					? 'Проходит и на нетронутом задании — ученик пройдёт шаг, ничего не сделав.'
+					? t('Проходит и на нетронутом задании — ученик пройдёт шаг, ничего не сделав.')
 					: proof.verdict === 'failsReference'
-						? 'Не проходит даже на эталоне — шаг нельзя будет пройти.'
+						? t('Не проходит даже на эталоне — шаг нельзя будет пройти.')
 						: proof.verdict === 'noReference'
-							? 'Загрузите эталон, чтобы проверить на нём.'
-							: 'Смотрит на состояние редактора — проверяется в PhotoCraft, «Глазами ученика».'
+							? t('Загрузите эталон, чтобы проверить на нём.')
+							: t('Смотрит на состояние редактора — проверяется в PhotoCraft, «Глазами ученика».')
 	);
 	const bad = $derived(proof?.verdict === 'passesUntouched' || proof?.verdict === 'failsReference');
 </script>
 
-<div class="card" class:bad class:on={selected} role="group" aria-label="Проверка: {label}">
+<div class="card" class:bad class:on={selected} role="group" aria-label={t('Проверка: {label}', { label })}>
 	<div class="top">
 		{#each letters as l, i (l)}
-			<button class="tag" style:background={colors[i]} onclick={onfocus} aria-label="Показать область {l} на холсте">{l}</button>
+			<button class="tag" style:background={colors[i]} onclick={onfocus} aria-label={t('Показать область {l} на холсте', { l })}>{l}</button>
 		{/each}
-		<select value={check.kind} onchange={(e) => setKind(e.currentTarget.value as CheckKind['kind'])} aria-label="Вид проверки">
+		<select value={check.kind} onchange={(e) => setKind(e.currentTarget.value as CheckKind['kind'])} aria-label={t('Вид проверки')}>
 			{#each CHECK_KINDS as k (k.kind)}<option value={k.kind}>{k.label}</option>{/each}
 		</select>
-		<button class="icon" onclick={onremove} aria-label="Удалить проверку"><Icon name="trash" size={15} /></button>
+		<button class="icon" onclick={onremove} aria-label={t('Удалить проверку')}><Icon name="trash" size={15} /></button>
 	</div>
 
 	<div class="fields">
 		{#if check.kind === 'tool'}
-			<label>Инструмент
+			<label>{t('Инструмент')}
 				<select value={check.tool} onchange={(e) => set('tool', e.currentTarget.value)}>
 					{#each TOOLS as [id, name] (id)}<option value={id}>{name}</option>{/each}
 				</select>
 			</label>
 		{:else if check.kind === 'brush'}
-			{#each [['size', 'Размер, px', 1], ['hardness', 'Жёсткость, %', 100], ['opacity', 'Непрозрачность, %', 100]] as [key, name, scale] (key)}
+			{#each [['size', t('Размер, px'), 1], ['hardness', t('Жёсткость, %'), 100], ['opacity', t('Непрозрачность, %'), 100]] as [key, name, scale] (key)}
 				<div class="range"><span>{name}</span>
-					<input type="number" placeholder="от" value={shown(range(String(key)).min, Number(scale))} onchange={(e) => setBound(String(key), 'min', e.currentTarget.value, Number(scale))} />
-					<input type="number" placeholder="до" value={shown(range(String(key)).max, Number(scale))} onchange={(e) => setBound(String(key), 'max', e.currentTarget.value, Number(scale))} />
+					<input type="number" placeholder={t('от')} value={shown(range(String(key)).min, Number(scale))} onchange={(e) => setBound(String(key), 'min', e.currentTarget.value, Number(scale))} />
+					<input type="number" placeholder={t('до')} value={shown(range(String(key)).max, Number(scale))} onchange={(e) => setBound(String(key), 'max', e.currentTarget.value, Number(scale))} />
 				</div>
 			{/each}
 		{:else if check.kind === 'zoom'}
-			<div class="range"><span>Масштаб, %</span>
-				<input type="number" placeholder="от" value={shown(range('zoom').min, 100)} onchange={(e) => setBound('zoom', 'min', e.currentTarget.value, 100)} />
-				<input type="number" placeholder="до" value={shown(range('zoom').max, 100)} onchange={(e) => setBound('zoom', 'max', e.currentTarget.value, 100)} />
+			<div class="range"><span>{t('Масштаб, %')}</span>
+				<input type="number" placeholder={t('от')} value={shown(range('zoom').min, 100)} onchange={(e) => setBound('zoom', 'min', e.currentTarget.value, 100)} />
+				<input type="number" placeholder={t('до')} value={shown(range('zoom').max, 100)} onchange={(e) => setBound('zoom', 'max', e.currentTarget.value, 100)} />
 			</div>
 		{:else if check.kind === 'layers'}
-			<div class="range"><span>Слоёв</span>
-				<input type="number" placeholder="от" value={shown(range('count').min)} onchange={(e) => setBound('count', 'min', e.currentTarget.value)} />
-				<input type="number" placeholder="до" value={shown(range('count').max)} onchange={(e) => setBound('count', 'max', e.currentTarget.value)} />
+			<div class="range"><span>{t('Слоёв')}</span>
+				<input type="number" placeholder={t('от')} value={shown(range('count').min)} onchange={(e) => setBound('count', 'min', e.currentTarget.value)} />
+				<input type="number" placeholder={t('до')} value={shown(range('count').max)} onchange={(e) => setBound('count', 'max', e.currentTarget.value)} />
 			</div>
 		{:else if check.kind === 'layer'}
-			<label>Имя содержит <input type="text" value={check.name ?? ''} onchange={(e) => set('name', e.currentTarget.value.trim())} /></label>
-			<label class="inline"><input type="checkbox" checked={check.visible === false} onchange={(e) => set('visible', e.currentTarget.checked ? false : undefined)} /> Слой скрыт</label>
+			<label>{t('Имя содержит')} <input type="text" value={check.name ?? ''} onchange={(e) => set('name', e.currentTarget.value.trim())} /></label>
+			<label class="inline"><input type="checkbox" checked={check.visible === false} onchange={(e) => set('visible', e.currentTarget.checked ? false : undefined)} /> {t('Слой скрыт')}</label>
 		{:else if check.kind === 'selection'}
-			<label class="inline"><input type="checkbox" checked={check.present !== false} onchange={(e) => set('present', e.currentTarget.checked)} /> Выделение есть</label>
+			<label class="inline"><input type="checkbox" checked={check.present !== false} onchange={(e) => set('present', e.currentTarget.checked)} /> {t('Выделение есть')}</label>
 		{:else if check.kind === 'history'}
-			<label class="inline"><input type="checkbox" checked={check.can_redo === true} onchange={(e) => set('can_redo', e.currentTarget.checked || undefined)} /> Последнее действие отменено</label>
+			<label class="inline"><input type="checkbox" checked={check.can_redo === true} onchange={(e) => set('can_redo', e.currentTarget.checked || undefined)} /> {t('Последнее действие отменено')}</label>
 		{:else if check.kind === 'foreground' || check.kind === 'color'}
-			<label>Цвет <input type="color" value={check.color} onchange={(e) => set('color', e.currentTarget.value.toUpperCase())} /></label>
+			<label>{t('Цвет')} <input type="color" value={check.color} onchange={(e) => set('color', e.currentTarget.value.toUpperCase())} /></label>
 		{:else if check.kind === 'coverage'}
-			<p class="sentence">В области <b style:color={colors[0]}>{letters[0]}</b> изменилось не меньше
+			<p class="sentence">{t('В области')} <b style:color={colors[0]}>{letters[0]}</b> {t('изменилось не меньше')}
 				<input type="number" min="1" max="100" value={shown(range('changed').min, 100)} onchange={(e) => setBound('changed', 'min', e.currentTarget.value, 100)} /> %</p>
 		{:else if check.kind === 'luminance'}
-			<div class="range"><span>Яркость <b style:color={colors[0]}>{letters[0]}</b>, %</span>
-				<input type="number" placeholder="от" value={shown(range('value').min, 100)} onchange={(e) => setBound('value', 'min', e.currentTarget.value, 100)} />
-				<input type="number" placeholder="до" value={shown(range('value').max, 100)} onchange={(e) => setBound('value', 'max', e.currentTarget.value, 100)} />
+			<div class="range"><span>{t('Яркость')} <b style:color={colors[0]}>{letters[0]}</b>, %</span>
+				<input type="number" placeholder={t('от')} value={shown(range('value').min, 100)} onchange={(e) => setBound('value', 'min', e.currentTarget.value, 100)} />
+				<input type="number" placeholder={t('до')} value={shown(range('value').max, 100)} onchange={(e) => setBound('value', 'max', e.currentTarget.value, 100)} />
 			</div>
 		{:else if check.kind === 'darker'}
-			<p class="sentence"><b style:color={colors[0]}>{letters[0]}</b> темнее, чем <b style:color={colors[1]}>{letters[1]}</b>, на
+			<p class="sentence"><b style:color={colors[0]}>{letters[0]}</b> {t('темнее, чем')} <b style:color={colors[1]}>{letters[1]}</b>{t(', на')}
 				<input type="number" min="1" max="100" value={shown(check.by ?? 0.05, 100)} onchange={(e) => set('by', Number(e.currentTarget.value) / 100)} /> %</p>
 		{:else if check.kind === 'similar'}
-			<p class="sentence">Похоже на эталон не меньше чем на
+			<p class="sentence">{t('Похоже на эталон не меньше чем на')}
 				<input type="number" min="1" max="100" value={shown(range('score').min, 100)} onchange={(e) => setBound('score', 'min', e.currentTarget.value, 100)} /> %</p>
 		{/if}
-		<label>Сообщение ученику <input type="text" value={check.message ?? ''} placeholder="Составится само" onchange={(e) => set('message', e.currentTarget.value.trim())} /></label>
+		<label>{t('Сообщение ученику')} <input type="text" value={check.message ?? ''} placeholder={t('Составится само')} onchange={(e) => set('message', e.currentTarget.value.trim())} /></label>
 	</div>
 
 	{#if proof}
 		{#if proof.canvas}
 			<div class="pills">
 				<span class="pill" class:ok={proof.onReference?.passed} class:no={proof.onReference && !proof.onReference.passed}>
-					эталон: {proof.onReference ? (proof.onReference.passed ? 'проходит' : 'не проходит') : '—'}{pct(proof.onReference?.value)}
+					{t('эталон:')} {proof.onReference ? (proof.onReference.passed ? t('проходит') : t('не проходит')) : '—'}{pct(proof.onReference?.value)}
 				</span>
 				<span class="pill" class:ok={proof.onTask && !proof.onTask.passed} class:no={proof.onTask?.passed}>
-					пустое: {proof.onTask ? (proof.onTask.passed ? 'тоже проходит' : 'не проходит') : '—'}{pct(proof.onTask?.value)}
+					{t('пустое:')} {proof.onTask ? (proof.onTask.passed ? t('тоже проходит') : t('не проходит')) : '—'}{pct(proof.onTask?.value)}
 				</span>
 			</div>
 		{/if}
 		<p class="verdict" class:warn={bad}>{verdictText}</p>
 		{#if proof.suggestion !== null}
-			<button class="apply" onclick={() => apply(proof!.suggestion!)}>Поставить порог {Math.round(proof.suggestion * 100)}%</button>
+			<button class="apply" onclick={() => apply(proof!.suggestion!)}>{t('Поставить порог {n}%', { n: Math.round(proof.suggestion * 100) })}</button>
 		{/if}
 	{/if}
 </div>

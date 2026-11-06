@@ -1,4 +1,6 @@
 <script lang="ts" module>
+	import { t } from '#lib/i18n.svelte.ts';
+	import { count } from '#lib/format.ts';
 	export type TaskTab = 'text' | 'hint' | 'checks';
 </script>
 
@@ -99,87 +101,87 @@
 {#if s}
 	<div class="panel">
 		<div class="head">
-			<h2>{s.text || 'Новый шаг'}</h2>
-			<p class="where">Шаг {step + 1} из {lesson.task.steps.length}</p>
+			<h2>{s.text || t('Новый шаг')}</h2>
+			<p class="where">{t('Шаг {n} из {of}', { n: step + 1, of: lesson.task.steps.length })}</p>
 		</div>
 		<div class="tabs" role="tablist">
-			<button role="tab" aria-selected={tab === 'text'} onclick={() => (tab = 'text')}>Текст</button>
-			<button role="tab" aria-selected={tab === 'hint'} onclick={() => (tab = 'hint')}>Подсказка</button>
+			<button role="tab" aria-selected={tab === 'text'} onclick={() => (tab = 'text')}>{t('Текст')}</button>
+			<button role="tab" aria-selected={tab === 'hint'} onclick={() => (tab = 'hint')}>{t('Подсказка')}</button>
 			<button role="tab" aria-selected={tab === 'checks'} onclick={() => (tab = 'checks')}>
-				Проверки {s.checks.length}{#if badChecks}<span class="warn-dot" aria-label="есть проблемы"></span>{/if}
+				{t('Проверки {n}', { n: s.checks.length })}{#if badChecks}<span class="warn-dot" aria-label={t('есть проблемы')}></span>{/if}
 			</button>
 		</div>
 
 		{#if tab === 'text'}
-			<label class="field">Что сделать ученику <textarea rows="3" bind:value={lesson.task.steps[step].text} placeholder="Создайте новый слой для тени"></textarea></label>
-			<p class="note">Шаг без проверок засчитывается, когда ученик нажмёт «Готово».</p>
+			<label class="field">{t('Что сделать ученику')} <textarea rows="3" bind:value={lesson.task.steps[step].text} placeholder={t('Создайте новый слой для тени')}></textarea></label>
+			<p class="note">{t('Шаг без проверок засчитывается, когда ученик нажмёт «Готово».')}</p>
 			<div class="row">
-				<button class="quiet" onclick={() => onmovestep(-1)} disabled={step === 0}>Выше</button>
-				<button class="quiet" onclick={() => onmovestep(1)} disabled={step === lesson.task.steps.length - 1}>Ниже</button>
+				<button class="quiet" onclick={() => onmovestep(-1)} disabled={step === 0}>{t('Выше')}</button>
+				<button class="quiet" onclick={() => onmovestep(1)} disabled={step === lesson.task.steps.length - 1}>{t('Ниже')}</button>
 				<span class="grow"></span>
-				<button class="quiet danger" onclick={onremovestep}><Icon name="trash" size={14} /> Удалить шаг</button>
+				<button class="quiet danger" onclick={onremovestep}><Icon name="trash" size={14} /> {t('Удалить шаг')}</button>
 			</div>
 		{:else if tab === 'hint'}
-			<label class="field">Текст подсказки
-				<textarea rows="2" value={s.hint?.text ?? ''} oninput={(e) => setHintText(e.currentTarget.value)} placeholder="Мягкой кистью проведите тень по линиям"></textarea>
+			<label class="field">{t('Текст подсказки')}
+				<textarea rows="2" value={s.hint?.text ?? ''} oninput={(e) => setHintText(e.currentTarget.value)} placeholder={t('Мягкой кистью проведите тень по линиям')}></textarea>
 			</label>
 			<div class="field">
-				<span>Куда нажать</span>
+				<span>{t('Куда нажать')}</span>
 				<div class="row">
 					<button class="target" onclick={onmap}>
 						<Icon name="target" size={16} />
-						{s.hint?.target ? targetLabel(s.hint.target) : 'Не выбрано'}
+						{s.hint?.target ? targetLabel(s.hint.target) : t('Не выбрано')}
 					</button>
-					<button class="quiet" onclick={onmap}>На карте</button>
+					<button class="quiet" onclick={onmap}>{t('На карте')}</button>
 				</div>
 			</div>
 			<div class="field">
-				<span class="row-between">Линии на холсте ученика <b>{shapes.length}</b></span>
+				<span class="row-between">{t('Линии на холсте ученика')} <b>{shapes.length}</b></span>
 				{#each shapes as sh, i (i)}
 					<div class="ghost-row" class:on={selectedShape === i} role="button" tabindex="0" onclick={() => onselectshape(i)} onkeydown={(e) => e.key === 'Enter' && onselectshape(i)}>
 						<span class="seal" class:blue={selectedShape === i}>{i + 1}</span>
 						<span class="grow">
 							<span class="name">{SHAPE_LABELS[sh.kind]}</span>
-							<span class="meta">{sh.style?.dashed ? 'пунктир' : 'сплошная'}{sh.kind === 'path' ? ` · ${sh.points.length} точек` : ''}</span>
+							<span class="meta">{sh.style?.dashed ? t('пунктир') : t('сплошная')}{sh.kind === 'path' ? ` · ${count(sh.points.length, ['точка', 'точки', 'точек'])}` : ''}</span>
 						</span>
-						<button class="icon" onclick={(e) => (e.stopPropagation(), removeShape(i))} aria-label="Удалить линию {i + 1}"><Icon name="trash" size={14} /></button>
+						<button class="icon" onclick={(e) => (e.stopPropagation(), removeShape(i))} aria-label={t('Удалить линию {n}', { n: i + 1 })}><Icon name="trash" size={14} /></button>
 					</div>
 				{:else}
-					<p class="note">Нарисуйте на холсте: линия от руки, прямая, стрелка, овал или прямоугольник. Ученик увидит их полупрозрачными на слое «FUDE · подсказка».</p>
+					<p class="note">{t('Нарисуйте на холсте: линия от руки, прямая, стрелка, овал или прямоугольник. Ученик увидит их полупрозрачными на слое «FUDE · подсказка».')}</p>
 				{/each}
 			</div>
 			{#if shape && style}
 				<div class="box">
-					<p class="box-title">Линия {selectedShape + 1} — как увидит ученик</p>
+					<p class="box-title">{t('Линия {n} — как увидит ученик', { n: selectedShape + 1 })}</p>
 					<div class="prop">
-						<span>Цвет</span>
+						<span>{t('Цвет')}</span>
 						<span class="swatches">
 							{#each COLORS as c (c)}
-								<button class="swatch" class:on={style.color.toUpperCase() === c} style:background={c} onclick={() => setStyle({ color: c })} aria-label="Цвет {c}"></button>
+								<button class="swatch" class:on={style.color.toUpperCase() === c} style:background={c} onclick={() => setStyle({ color: c })} aria-label={t('Цвет {v}', { v: c })}></button>
 							{/each}
 						</span>
 					</div>
-					<label class="prop">Непрозрачность
+					<label class="prop">{t('Непрозрачность')}
 						<span class="slider"><input type="range" min="10" max="100" step="5" value={Math.round(style.opacity * 100)} oninput={(e) => setStyle({ opacity: Number(e.currentTarget.value) / 100 })} /><b>{Math.round(style.opacity * 100)}%</b></span>
 					</label>
-					<label class="prop">Толщина
+					<label class="prop">{t('Толщина')}
 						<span class="slider"><input type="range" min="1" max="40" step="1" value={style.width} oninput={(e) => setStyle({ width: Number(e.currentTarget.value) })} /><b>{style.width} px</b></span>
 					</label>
-					<label class="prop inline"><input type="checkbox" checked={style.dashed} onchange={(e) => setStyle({ dashed: e.currentTarget.checked, ...(e.currentTarget.checked ? { reveal: false } : {}) })} /> Пунктир</label>
-					<label class="prop inline"><input type="checkbox" checked={style.reveal} disabled={style.dashed} onchange={(e) => setStyle({ reveal: e.currentTarget.checked })} /> Прорисовкой — линия появляется постепенно, как от руки</label>
+					<label class="prop inline"><input type="checkbox" checked={style.dashed} onchange={(e) => setStyle({ dashed: e.currentTarget.checked, ...(e.currentTarget.checked ? { reveal: false } : {}) })} /> {t('Пунктир')}</label>
+					<label class="prop inline"><input type="checkbox" checked={style.reveal} disabled={style.dashed} onchange={(e) => setStyle({ reveal: e.currentTarget.checked })} /> {t('Прорисовкой — линия появляется постепенно, как от руки')}</label>
 				</div>
 			{/if}
-			<button class="wide" onclick={onhintpreview} disabled={!s.hint}><Icon name="play" size={14} /> Показать подсказку в PhotoCraft</button>
+			<button class="wide" onclick={onhintpreview} disabled={!s.hint}><Icon name="play" size={14} /> {t('Показать подсказку в PhotoCraft')}</button>
 		{:else}
 			{#if stepProofs.some((p) => p.canvas)}
 				{@const works = stepProofs.filter((p) => p.verdict === 'works').length}
 				<div class="live">
-					<p class="box-title row-between">Живая проверка <span class="meta">{works} из {stepProofs.filter((p) => p.canvas).length} работают</span></p>
+					<p class="box-title row-between">{t('Живая проверка')} <span class="meta">{t('{n} из {of} работают', { n: works, of: stepProofs.filter((p) => p.canvas).length })}</span></p>
 					<div class="thumbs">
-						{#each [['Эталон', referenceImage, 'onReference'], ['Пустое задание', taskImage, 'onTask']] as [title, img, side] (title)}
+						{#each [[t('Эталон'), referenceImage, 'onReference'], [t('Пустое задание'), taskImage, 'onTask']] as [title, img, side] (title)}
 							<figure>
 								<div class="thumb" style:aspect-ratio="{width} / {height}" style:background>
-									{#if img}<img src={img as string} alt={title as string} />{:else if title === 'Эталон'}<span class="noref">нет эталона</span>{/if}
+									{#if img}<img src={img as string} alt={title as string} />{:else if side === 'onReference'}<span class="noref">{t('нет эталона')}</span>{/if}
 									{#each marks as m (m.key)}
 										<span class="mark" style:left="{m.region[0] * 100}%" style:top="{m.region[1] * 100}%" style:width="{m.region[2] * 100}%" style:height="{m.region[3] * 100}%" style:border-color={m.color}></span>
 									{/each}
@@ -190,14 +192,14 @@
 										{@const o = side === 'onReference' ? p.onReference : p.onTask}
 										{#if o}
 											{@const good = side === 'onReference' ? o.passed : !o.passed}
-											<span class:good class:bad={!good} aria-label={good ? 'как надо' : 'не так'}><Icon name={good ? 'check' : 'alert'} size={10} /></span>
+											<span class:good class:bad={!good} aria-label={good ? t('как надо') : t('не так')}><Icon name={good ? 'check' : 'alert'} size={10} /></span>
 										{/if}
 									{/each}
 								</figcaption>
 							</figure>
 						{/each}
 					</div>
-					<p class="note">Хорошая проверка проходит на эталоне и не проходит на нетронутом задании.</p>
+					<p class="note">{t('Хорошая проверка проходит на эталоне и не проходит на нетронутом задании.')}</p>
 				</div>
 			{/if}
 			{#each s.checks as check, i (i)}
@@ -213,11 +215,11 @@
 					onfocus={() => l.keys[0] && onfocusregion(l.keys[0])}
 				/>
 			{:else}
-				<p class="note">Без проверок шаг засчитывается кнопкой «Готово». Растяните область на холсте инструментом «Область проверки» — появится проверка «Закрашена область».</p>
+				<p class="note">{t('Без проверок шаг засчитывается кнопкой «Готово». Растяните область на холсте инструментом «Область проверки» — появится проверка «Закрашена область».')}</p>
 			{/each}
-			<label class="field">Добавить проверку
+			<label class="field">{t('Добавить проверку')}
 				<select value="" onchange={(e) => (e.currentTarget.value && addCheck(e.currentTarget.value as CheckKind['kind']), (e.currentTarget.value = ''))}>
-					<option value="" disabled>Выберите вид…</option>
+					<option value="" disabled>{t('Выберите вид…')}</option>
 					{#each CHECK_KINDS as k (k.kind)}<option value={k.kind}>{k.label}</option>{/each}
 				</select>
 			</label>

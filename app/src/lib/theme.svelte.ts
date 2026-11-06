@@ -1,6 +1,7 @@
 // The student's choice of theme: light «Васи» (the default), dark «Тушь», or whatever the system uses. The
 // choice lives in localStorage; app.html applies it before the first paint, this module keeps it
 // in step afterwards.
+import { tk } from '#lib/i18n.svelte.ts';
 
 export type ThemeChoice = 'light' | 'dark' | 'system';
 export type Theme = 'light' | 'dark';
@@ -8,9 +9,9 @@ export type Theme = 'light' | 'dark';
 const KEY = 'fude-theme';
 
 export const THEME_LABELS: Record<ThemeChoice, string> = {
-	light: 'Светлая — «Васи»',
-	dark: 'Тёмная — «Тушь»',
-	system: 'Как в системе'
+	light: tk('Светлая — «Васи»'),
+	dark: tk('Тёмная — «Тушь»'),
+	system: tk('Как в системе')
 };
 
 /** The theme a choice resolves to, given whether the system prefers dark. */

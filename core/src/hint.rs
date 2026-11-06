@@ -10,6 +10,18 @@ use crate::model::{Hint, Point, Shape};
 
 /// Name of the layer the hint draws on.
 pub const LAYER_NAME: &str = "FUDE · подсказка";
+/// The hint layer's name when FUDE speaks English.
+pub const LAYER_NAME_EN: &str = "FUDE · hint";
+
+/// The name a new hint layer gets, in the current language.
+pub fn layer_name() -> &'static str {
+    crate::i18n::pick(LAYER_NAME, LAYER_NAME_EN)
+}
+
+/// A hint layer in either language — one made before the language changed still counts.
+pub fn is_hint_layer(name: &str) -> bool {
+    name == LAYER_NAME || name == LAYER_NAME_EN
+}
 /// Ghost colour: shu/500.
 pub const COLOR: &str = "#BC3823";
 /// Opacity of a ghost shape that sets none.
@@ -48,7 +60,7 @@ pub fn show_paced(hint: &Hint, width: u32, height: u32, return_to: Option<u64>) 
     let default_size = (w.min(h) * 0.006).round().max(2.0);
     let opacity = |s: &Shape| s.style().opacity.unwrap_or(OPACITY).clamp(0.05, 1.0);
     let layer_opacity = hint.shapes.iter().map(opacity).fold(0.0, f64::max);
-    let mut calls = vec![now(Call::engine("layer.new.layer", json!({ "name": LAYER_NAME, "opacity": round2(layer_opacity), "color": "red" })))];
+    let mut calls = vec![now(Call::engine("layer.new.layer", json!({ "name": layer_name(), "opacity": round2(layer_opacity), "color": "red" })))];
     for shape in &hint.shapes {
         let style = shape.style();
         let size = style.width.map_or(default_size, |v| v.clamp(0.5, 200.0));
@@ -175,7 +187,7 @@ pub fn hide(layers: &Value) -> Vec<Call> {
 fn collect(layers: &Value, ids: &mut Vec<u64>) {
     let Some(list) = layers.as_array() else { return };
     for layer in list {
-        if layer.get("name").and_then(Value::as_str) == Some(LAYER_NAME)
+        if layer.get("name").and_then(Value::as_str).is_some_and(is_hint_layer)
             && let Some(id) = layer.get("id").and_then(Value::as_u64)
         {
             ids.push(id);

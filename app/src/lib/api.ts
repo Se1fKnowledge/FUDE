@@ -1,5 +1,6 @@
 // Typed calls to the Rust side (app/src-tauri/src). Lesson models mirror the TOML format
 // (snake_case, docs/lesson-format.md); the app's own views are camelCase.
+import { t } from '#lib/i18n.svelte.ts';
 import { invoke } from '@tauri-apps/api/core';
 
 export type Accent = 'ai' | 'shu' | 'kaki' | 'kin';
@@ -461,6 +462,7 @@ export interface Problem {
 
 export const api = {
 	boot: () => invoke<Boot>('boot'),
+	setLang: (lang: 'ru' | 'en') => invoke<void>('set_lang', { lang }),
 	profileSave: (name: string, dailyGoal: number) => invoke<Profile>('profile_save', { name, dailyGoal }),
 	catalog: () => invoke<Catalog>('catalog'),
 	lesson: (id: string) => invoke<LessonView>('lesson', { id }),
@@ -514,5 +516,5 @@ export const api = {
 export function errorText(e: unknown): string {
 	if (typeof e === 'string') return e;
 	if (e instanceof Error) return e.message;
-	return 'Что-то пошло не так';
+	return t('Что-то пошло не так');
 }

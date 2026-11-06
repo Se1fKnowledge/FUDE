@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { t } from '#lib/i18n.svelte.ts';
 	import { onDestroy, onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
@@ -53,7 +54,7 @@
 
 	async function play() {
 		error = '';
-		guide = { lesson: id, state: 'starting', index: 0, total: view?.guide.length ?? 0, caption: 'Открываем редактор…', highlight: null, message: null };
+		guide = { lesson: id, state: 'starting', index: 0, total: view?.guide.length ?? 0, caption: t('Открываем редактор…'), highlight: null, message: null };
 		try {
 			await api.guidePlay(id);
 		} catch (e) {
@@ -76,7 +77,7 @@
 {#if view}
 	<LessonHeader
 		title={view.card.title}
-		subtitle="{view.card.categoryTitle} · урок {view.card.number} из {view.card.of}"
+		subtitle={t('{category} · урок {n} из {of}', { category: view.card.categoryTitle, n: view.card.number, of: view.card.of })}
 		stage={1}
 		back="/lessons?c={view.card.category}"
 		{xp}
@@ -86,8 +87,8 @@
 		<section class="left">
 			{#if view.guide.length && view.video}
 				<div class="segmented modes">
-					<button aria-pressed={mode === 'editor'} onclick={() => (mode = 'editor')}>Гайд в редакторе</button>
-					<button aria-pressed={mode === 'video'} onclick={() => (mode = 'video')}>Видео</button>
+					<button aria-pressed={mode === 'editor'} onclick={() => (mode = 'editor')}>{t('Гайд в редакторе')}</button>
+					<button aria-pressed={mode === 'video'} onclick={() => (mode = 'video')}>{t('Видео')}</button>
 				</div>
 			{/if}
 
@@ -96,9 +97,9 @@
 					{#if videoError}
 						<div class="fallback">
 							<Icon name="alert" size={28} />
-							<p class="h3">Видео не загрузилось</p>
-							<p class="body-s">Файл повреждён или в формате, который не умеет встроенный плеер. Теория и задание доступны и без него.</p>
-							<button class="btn btn-quiet btn-s" onclick={() => (videoError = false)}><Icon name="refresh" size={16} /> Ещё раз</button>
+							<p class="h3">{t('Видео не загрузилось')}</p>
+							<p class="body-s">{t('Файл повреждён или в формате, который не умеет встроенный плеер. Теория и задание доступны и без него.')}</p>
+							<button class="btn btn-quiet btn-s" onclick={() => (videoError = false)}><Icon name="refresh" size={16} /> {t('Ещё раз')}</button>
 						</div>
 					{:else}
 						<!-- svelte-ignore a11y_media_has_caption -->
@@ -108,8 +109,8 @@
 			{:else if view.guide.length}
 				<div class="player stage">
 					{#if editorShown}
-						<div class="view slot" use:editorSlot aria-label="Редактор PhotoCraft с гайдом">
-							<p class="body-s waiting">Открываем редактор…</p>
+						<div class="view slot" use:editorSlot aria-label={t('Редактор PhotoCraft с гайдом')}>
+							<p class="body-s waiting">{t('Открываем редактор…')}</p>
 						</div>
 						<div class="caption-row" aria-live="polite">
 							{#if guide?.state === 'step'}<span class="kbd">{guide.index + 1}</span>{/if}
@@ -118,7 +119,7 @@
 					{:else}
 					<div class="view">
 						{#if view.taskImage}
-							<img src={view.taskImage} alt="Холст задания" />
+							<img src={view.taskImage} alt={t('Холст задания')} />
 						{:else}
 							<div class="blank" style="aspect-ratio: {view.lesson.task.canvas?.width ?? 3} / {view.lesson.task.canvas?.height ?? 2}"></div>
 						{/if}
@@ -134,8 +135,8 @@
 								</div>
 							{:else}
 								<div class="intro">
-									<p class="h2">Гайд рисует в настоящем редакторе</p>
-									<p class="body-s">Откроется окно PhotoCraft: смотрите, как кисть выполняет приём, а подписи появятся здесь.</p>
+									<p class="h2">{t('Гайд рисует в настоящем редакторе')}</p>
+									<p class="body-s">{t('Откроется окно PhotoCraft: смотрите, как кисть выполняет приём, а подписи появятся здесь.')}</p>
 								</div>
 							{/if}
 						</div>
@@ -143,9 +144,9 @@
 					{/if}
 					<div class="controls">
 						{#if playing}
-							<button class="btn btn-quiet btn-s" onclick={() => api.guideStop()}><Icon name="stop" size={16} /> Стоп</button>
+							<button class="btn btn-quiet btn-s" onclick={() => api.guideStop()}><Icon name="stop" size={16} /> {t('Стоп')}</button>
 						{:else}
-							<button class="btn btn-primary btn-s play" onclick={play}><Icon name="play" size={16} /> {guide?.state === 'done' ? 'Ещё раз' : 'Смотреть гайд'}</button>
+							<button class="btn btn-primary btn-s play" onclick={play}><Icon name="play" size={16} /> {guide?.state === 'done' ? t('Ещё раз') : t('Смотреть гайд')}</button>
 						{/if}
 						<div class="timeline">
 							{#each view.guide as g, i (i)}
@@ -156,14 +157,14 @@
 					</div>
 				</div>
 			{:else}
-				<div class="player"><div class="fallback"><p class="h3">У этого урока нет гайда</p><p class="body-s">Начните с теории справа.</p></div></div>
+				<div class="player"><div class="fallback"><p class="h3">{t('У этого урока нет гайда')}</p><p class="body-s">{t('Начните с теории справа.')}</p></div></div>
 			{/if}
 
 			{#if view.guide.length && mode === 'editor'}
 				<ol class="chapters">
 					{#each view.guide.slice(0, 8) as g, i (i)}
 						<li class:current={guide?.state === 'step' && guide.index === i} class:seen={guide && (guide.state === 'done' || guide.index > i)}>
-							<span class="body-s muted">Шаг {i + 1}</span>
+							<span class="body-s muted">{t('Шаг {n}', { n: i + 1 })}</span>
 							<span class="label">{g.caption}</span>
 						</li>
 					{/each}
@@ -171,7 +172,7 @@
 			{/if}
 
 			<article class="summary card">
-				<h2 class="h2">Задание</h2>
+				<h2 class="h2">{t('Задание')}</h2>
 				<p>{view.lesson.task.brief}</p>
 				<ol>
 					{#each view.lesson.task.steps as s (s.id)}<li>{s.text}</li>{/each}
@@ -181,10 +182,10 @@
 
 		<aside class="right card">
 			<div class="segmented tabs" role="tablist">
-				<button role="tab" aria-selected={tab === 'theory'} onclick={() => openTab('theory')}>Теория</button>
-				<button role="tab" aria-selected={tab === 'task'} onclick={() => openTab('task')}>Эталон</button>
+				<button role="tab" aria-selected={tab === 'theory'} onclick={() => openTab('theory')}>{t('Теория')}</button>
+				<button role="tab" aria-selected={tab === 'task'} onclick={() => openTab('task')}>{t('Эталон')}</button>
 				{#if view.lesson.quiz?.length}
-					<button role="tab" aria-selected={tab === 'quiz'} onclick={() => openTab('quiz')}>Вопросы</button>
+					<button role="tab" aria-selected={tab === 'quiz'} onclick={() => openTab('quiz')}>{t('Вопросы')}</button>
 				{/if}
 			</div>
 
@@ -192,18 +193,18 @@
 				{#if tab === 'theory'}
 					<Markdown text={view.theory} />
 				{:else if tab === 'task'}
-					<h2 class="h1">Что получится</h2>
-					<p class="muted gap">Так может выглядеть выполненное задание. Ваш вариант не обязан совпадать — проверка смотрит на главное: свет, тень, форму.</p>
+					<h2 class="h1">{t('Что получится')}</h2>
+					<p class="muted gap">{t('Так может выглядеть выполненное задание. Ваш вариант не обязан совпадать — проверка смотрит на главное: свет, тень, форму.')}</p>
 					{#if view.referenceImage}
-						<img class="ref" src={view.referenceImage} alt="Эталон задания" />
+						<img class="ref" src={view.referenceImage} alt={t('Эталон задания')} />
 					{:else if view.taskImage}
-						<img class="ref" src={view.taskImage} alt="Картинка задания" />
+						<img class="ref" src={view.taskImage} alt={t('Картинка задания')} />
 					{:else}
-						<p class="muted">Задание начинается с чистого холста {view.lesson.task.canvas?.width}×{view.lesson.task.canvas?.height}.</p>
+						<p class="muted">{t('Задание начинается с чистого холста {w}×{h}.', { w: view.lesson.task.canvas?.width ?? 0, h: view.lesson.task.canvas?.height ?? 0 })}</p>
 					{/if}
-					<p class="body-s muted gap">Примерно {duration(view.lesson.minutes)} · {view.card.difficultyLabel}</p>
+					<p class="body-s muted gap">{t('Примерно {time} · {level}', { time: duration(view.lesson.minutes), level: view.card.difficultyLabel })}</p>
 				{:else}
-					<h2 class="h1">Проверьте себя</h2>
+					<h2 class="h1">{t('Проверьте себя')}</h2>
 					{#each view.lesson.quiz ?? [] as q, qi (qi)}
 						<div class="question">
 							<p class="label">{q.question}</p>
@@ -221,7 +222,7 @@
 							</div>
 							{#if answers[qi] !== undefined}
 								<p class="body-s verdict" class:ok={answers[qi] === q.answer}>
-									{answers[qi] === q.answer ? 'Верно.' : 'Не совсем.'}
+									{answers[qi] === q.answer ? t('Верно.') : t('Не совсем.')}
 									{q.explain ?? ''}
 								</p>
 							{/if}
@@ -230,11 +231,11 @@
 				{/if}
 			</div>
 
-			<button class="btn btn-accent go" onclick={toPractice}>К практике в редакторе</button>
+			<button class="btn btn-accent go" onclick={toPractice}>{t('К практике в редакторе')}</button>
 		</aside>
 	</div>
 {:else if error}
-	<div class="page"><p class="muted">{error}</p><a href="/lessons">К урокам</a></div>
+	<div class="page"><p class="muted">{error}</p><a href="/lessons">{t('К урокам')}</a></div>
 {/if}
 
 {#if error && view}

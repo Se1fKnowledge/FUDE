@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { t } from '#lib/i18n.svelte.ts';
 	import { onMount } from 'svelte';
 	import Enso from './Enso.svelte';
 	import Hanko from './Hanko.svelte';
@@ -30,7 +31,7 @@
 		<span class="fude kanji">筆</span>
 		<div class="title">
 			<span class="name">FUDE</span>
-			<span class="sub">школа цифрового рисунка</span>
+			<span class="sub">{t('школа цифрового рисунка')}</span>
 		</div>
 		<div class="seal"><Hanko kanji="学" size={54} tilt={-8} /></div>
 	</div>

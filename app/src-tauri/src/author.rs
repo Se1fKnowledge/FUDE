@@ -33,14 +33,14 @@ pub async fn studio_hint_preview(app: AppHandle, dir: String, lesson: Lesson, st
         let state = app.state::<AppState>();
         let dir = user_dir(&state, &dir)?;
         if step >= lesson.task.steps.len() {
-            return Err(AppError::msg("нет такого шага"));
+            return Err(AppError::msg(fude_core::i18n::pick("нет такого шага", "there is no such step")));
         }
         let _: PracticeStart = play::start(&state, lesson, &dir, true)?;
         let mut practice = lock(&state.practice);
-        let p = practice.as_mut().ok_or_else(|| AppError::msg("задание не открылось"))?;
+        let p = practice.as_mut().ok_or_else(|| AppError::msg(fude_core::i18n::pick("задание не открылось", "the task did not open")))?;
         p.progress.done = step;
         let mut editor = lock(&state.editor);
-        let e = editor.as_mut().ok_or_else(|| AppError::msg("редактор закрыт"))?;
+        let e = editor.as_mut().ok_or_else(|| AppError::msg(fude_core::i18n::pick("редактор закрыт", "the editor is closed")))?;
         let db = lock(&state.scratch_db);
         p.hint(e, &db)
     })
@@ -92,7 +92,7 @@ pub async fn guide_record_start(app: AppHandle, dir: String, lesson: Lesson) -> 
         *lock(&state.practice) = None;
         let (mark, brush, tool) = {
             let mut guard = state.editor_for(&dir)?;
-            let editor = guard.as_mut().ok_or_else(|| AppError::msg("редактор не запущен"))?;
+            let editor = guard.as_mut().ok_or_else(|| AppError::msg(fude_core::i18n::pick("редактор не запущен", "the editor is not running")))?;
             for call in control::task_setup(&lesson.task) {
                 editor.call(&call)?;
             }
@@ -118,7 +118,7 @@ pub async fn guide_record_start(app: AppHandle, dir: String, lesson: Lesson) -> 
 pub async fn guide_record_stop(app: AppHandle, keep_pauses: bool, keep_undo: bool) -> AppResult<Recording> {
     tauri::async_runtime::spawn_blocking(move || {
         let state = app.state::<AppState>();
-        let recorder = stop_recorder(&state).ok_or_else(|| AppError::msg("запись не идёт"))?;
+        let recorder = stop_recorder(&state).ok_or_else(|| AppError::msg(fude_core::i18n::pick("запись не идёт", "nothing is being recorded")))?;
         let events = lock(&recorder.events).clone();
         let options = record::Options { longest_pause_ms: if keep_pauses { fude_core::guide::MAX_PAUSE_MS } else { LONGEST_PAUSE_MS }, skip_undo: !keep_undo };
         Ok(record::to_guide(&events, &recorder.brush, options))
@@ -195,7 +195,9 @@ pub fn read_round(ch: &mut dyn Channel, mark: &mut u64, tool: &mut Option<String
 
 fn journal_end(ch: &mut dyn Channel) -> AppResult<u64> {
     let reply = ch.call(&Call::new("journal.read", json!({ "from": u64::MAX })))?;
-    reply.get("next").and_then(Value::as_u64).ok_or_else(|| AppError::msg("редактор не умеет читать журнал — обновите PhotoCraft"))
+    reply.get("next").and_then(Value::as_u64).ok_or_else(|| {
+        AppError::msg(fude_core::i18n::pick("редактор не умеет читать журнал — обновите PhotoCraft", "the editor cannot read its journal — update PhotoCraft"))
+    })
 }
 
 fn tool_of(inspect: &Value) -> Option<String> {

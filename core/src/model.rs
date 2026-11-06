@@ -75,12 +75,12 @@ impl Skill {
 
     pub fn label(self) -> &'static str {
         match self {
-            Skill::Tools => "Инструменты",
-            Skill::Line => "Линия",
-            Skill::Form => "Форма",
-            Skill::Light => "Свет и тень",
-            Skill::Color => "Цвет",
-            Skill::Composition => "Композиция",
+            Skill::Tools => crate::i18n::pick("Инструменты", "Tools"),
+            Skill::Line => crate::i18n::pick("Линия", "Line"),
+            Skill::Form => crate::i18n::pick("Форма", "Form"),
+            Skill::Light => crate::i18n::pick("Свет и тень", "Light and shadow"),
+            Skill::Color => crate::i18n::pick("Цвет", "Colour"),
+            Skill::Composition => crate::i18n::pick("Композиция", "Composition"),
         }
     }
 }
@@ -127,11 +127,11 @@ impl Lesson {
     /// Russian word for the difficulty shown on lesson cards.
     pub fn difficulty_label(&self) -> &'static str {
         match self.difficulty {
-            0 | 1 => "Первый шаг",
-            2 => "Лёгкий",
-            3 => "Средний",
-            4 => "Сложный",
-            _ => "Мастер",
+            0 | 1 => crate::i18n::pick("Первый шаг", "First step"),
+            2 => crate::i18n::pick("Лёгкий", "Easy"),
+            3 => crate::i18n::pick("Средний", "Medium"),
+            4 => crate::i18n::pick("Сложный", "Hard"),
+            _ => crate::i18n::pick("Мастер", "Master"),
         }
     }
 }
@@ -358,11 +358,11 @@ impl Range {
 impl fmt::Display for Range {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match (self.min, self.max) {
-            (Some(a), Some(b)) if a == b => write!(f, "ровно {}", num(a)),
-            (Some(a), Some(b)) => write!(f, "от {} до {}", num(a), num(b)),
-            (Some(a), None) => write!(f, "не меньше {}", num(a)),
-            (None, Some(b)) => write!(f, "не больше {}", num(b)),
-            (None, None) => write!(f, "любое"),
+            (Some(a), Some(b)) if a == b => write!(f, "{}", crate::tr!("ровно {}", "exactly {}", num(a))),
+            (Some(a), Some(b)) => write!(f, "{}", crate::tr!("от {} до {}", "from {} to {}", num(a), num(b))),
+            (Some(a), None) => write!(f, "{}", crate::tr!("не меньше {}", "at least {}", num(a))),
+            (None, Some(b)) => write!(f, "{}", crate::tr!("не больше {}", "at most {}", num(b))),
+            (None, None) => write!(f, "{}", crate::tr!("любое", "any")),
         }
     }
 }
@@ -535,7 +535,7 @@ fn toml_message(e: &toml::de::Error, text: &str) -> String {
         Some(span) => {
             let end = span.start.min(text.len());
             let line = text.get(..end).map_or(0, |head| head.matches('\n').count()) + 1;
-            format!("строка {line}: {}", e.message())
+            crate::tr!("строка {line}: {}", "line {line}: {}", e.message())
         }
         None => e.message().to_string(),
     }

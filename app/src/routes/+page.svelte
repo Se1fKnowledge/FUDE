@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { t, tk } from '#lib/i18n.svelte.ts';
 	import { onMount } from 'svelte';
 	import { api, errorText, type Home } from '#lib/api.ts';
 	import Enso from '#lib/components/Enso.svelte';
@@ -24,7 +25,7 @@
 		if (session.boot && !session.boot.firstRun && home && !home.name) api.home().then((h) => (home = h));
 	});
 
-	const STAGES: Record<string, string> = { guide: 'видеогайд', theory: 'теория', practice: 'практика в редакторе' };
+	const STAGES: Record<string, string> = { guide: tk('видеогайд'), theory: tk('теория'), practice: tk('практика в редакторе') };
 	const stageIndex = (s: string | null) => (s === 'practice' ? 3 : s === 'theory' ? 2 : 1);
 	const left = $derived(home ? Math.max(0, home.goal - home.doneToday) : 0);
 </script>
@@ -38,7 +39,7 @@
 				<h1 class="display-l">{home.greeting}{home.name ? `, ${home.name}` : ''}</h1>
 				<p>
 					{home.date} ·
-					{#if left === 0}цель дня выполнена{:else if home.firstDay}начнём с первого урока{:else}до цели дня {left === 1 ? 'осталось одно задание' : `осталось ${count(left, ['задание', 'задания', 'заданий'])}`}{/if}
+					{#if left === 0}{t('цель дня выполнена')}{:else if home.firstDay}{t('начнём с первого урока')}{:else if left === 1}{t('до цели дня осталось одно задание')}{:else}{t('до цели дня осталось {n}', { n: count(left, ['задание', 'задания', 'заданий']) })}{/if}
 				</p>
 			</div>
 		</header>
@@ -49,21 +50,21 @@
 				<article class="hero card">
 					<div class="text">
 						<h2 class="display-l title">{c.title}</h2>
-						<p class="muted body-s">{c.categoryTitle} · урок {c.number} из {c.of}</p>
+						<p class="muted body-s">{t('{category} · урок {n} из {of}', { category: c.categoryTitle, n: c.number, of: c.of })}</p>
 						<p class="summary">
-							{#if home.firstDay}Первый урок: посмотрите гайд, прочитайте теорию и попробуйте в редакторе.{:else}{c.summary}{/if}
+							{#if home.firstDay}{t('Первый урок: посмотрите гайд, прочитайте теорию и попробуйте в редакторе.')}{:else}{c.summary}{/if}
 						</p>
 						<div class="stage">
 							<div class="track"><i style="width: {(stageIndex(c.stage) / 3) * 100}%"></i></div>
-							<span class="body-s muted">Этап {stageIndex(c.stage)} из 3 · {STAGES[c.stage ?? 'guide']}</span>
+							<span class="body-s muted">{t('Этап {n} из 3 · {stage}', { n: stageIndex(c.stage), stage: t(STAGES[c.stage ?? 'guide']) })}</span>
 						</div>
 						<div class="actions">
 							{#if c.stage === 'practice'}
-								<a class="btn btn-accent" href="/practice/{c.id}">Продолжить практику</a>
+								<a class="btn btn-accent" href="/practice/{c.id}">{t('Продолжить практику')}</a>
 							{:else}
-								<a class="btn btn-accent" href="/lesson/{c.id}">{c.stage ? 'Продолжить урок' : 'Начать урок'}</a>
+								<a class="btn btn-accent" href="/lesson/{c.id}">{c.stage ? t('Продолжить урок') : t('Начать урок')}</a>
 							{/if}
-							<a class="btn btn-quiet" href="/lesson/{c.id}?tab=theory">Теория</a>
+							<a class="btn btn-quiet" href="/lesson/{c.id}?tab=theory">{t('Теория')}</a>
 						</div>
 					</div>
 					<div class="art" aria-hidden="true">
@@ -76,20 +77,20 @@
 			{:else}
 				<article class="hero card done">
 					<div class="text">
-						<h2 class="display-l title">Все уроки пройдены</h2>
-						<p class="summary">Создайте свой урок в мастерской или импортируйте чужой из файла.</p>
-						<div class="actions"><a class="btn btn-accent" href="/studio">В мастерскую</a></div>
+						<h2 class="display-l title">{t('Все уроки пройдены')}</h2>
+						<p class="summary">{t('Создайте свой урок в мастерской или импортируйте чужой из файла.')}</p>
+						<div class="actions"><a class="btn btn-accent" href="/studio">{t('В мастерскую')}</a></div>
 					</div>
 				</article>
 			{/if}
 
 			<article class="today card">
 				<header>
-					<h2 class="h1">Сегодня</h2>
-					<span class="body-s muted">{Math.min(home.doneToday, home.goal)} из {home.goal} · цель дня</span>
+					<h2 class="h1">{t('Сегодня')}</h2>
+					<span class="body-s muted">{t('{done} из {goal} · цель дня', { done: Math.min(home.doneToday, home.goal), goal: home.goal })}</span>
 				</header>
 				{#if home.today.length === 0}
-					<p class="empty muted">Пока ничего. Первое задание дня — самое важное: оно запускает серию.</p>
+					<p class="empty muted">{t('Пока ничего. Первое задание дня — самое важное: оно запускает серию.')}</p>
 				{:else}
 					<ul>
 						{#each home.today.slice(0, 4) as item (item.at + item.title)}
@@ -115,9 +116,9 @@
 		{#if home.recommended.length}
 			<section class="next">
 				<header>
-					<h2 class="h1">Рекомендуем дальше</h2>
-					<span class="body-s muted">следующие открытые уроки в каждой категории</span>
-					<a class="all" href="/lessons">Все уроки <Icon name="arrow" size={18} /></a>
+					<h2 class="h1">{t('Рекомендуем дальше')}</h2>
+					<span class="body-s muted">{t('следующие открытые уроки в каждой категории')}</span>
+					<a class="all" href="/lessons">{t('Все уроки')} <Icon name="arrow" size={18} /></a>
 				</header>
 				<div class="tiles">
 					{#each home.recommended as card (card.id)}

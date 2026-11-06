@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { t } from '#lib/i18n.svelte.ts';
 	import { onDestroy, onMount } from 'svelte';
 	import { beforeNavigate, goto } from '$app/navigation';
 	import { page } from '$app/state';
@@ -164,7 +165,7 @@
 	async function attach(target: 'open' | 'reference' | 'video') {
 		if (!lesson) return;
 		const video = target === 'video';
-		const source = await open({ multiple: false, filters: [video ? { name: 'Видео', extensions: ['mp4', 'webm'] } : { name: 'Картинка', extensions: ['png', 'jpg', 'jpeg', 'webp'] }] });
+		const source = await open({ multiple: false, filters: [video ? { name: t('Видео'), extensions: ['mp4', 'webm'] } : { name: t('Картинка'), extensions: ['png', 'jpg', 'jpeg', 'webp'] }] });
 		if (typeof source !== 'string') return;
 		try {
 			const rel = await api.attach(dir, video ? 'video' : 'image', source);
@@ -244,8 +245,8 @@
 				const n = marks.length;
 				marks.push({ key: `${ci}:${field}`, label: String.fromCharCode(65 + n), region, color: REGION_COLORS[n % REGION_COLORS.length], name, check: ci, field });
 			};
-			if ('region' in c && c.region) add('region', c.region, c.kind === 'darker' ? 'темнее' : 'проверка');
-			if (c.kind === 'darker') add('than', c.than, 'светлее');
+			if ('region' in c && c.region) add('region', c.region, c.kind === 'darker' ? t('темнее') : t('проверка'));
+			if (c.kind === 'darker') add('than', c.than, t('светлее'));
 		});
 		return marks;
 	});
@@ -376,7 +377,7 @@
 
 	function addCaption() {
 		const at = guideStep >= 0 ? guideStep + 1 : script.steps.length;
-		script.steps = insertStep(script.steps, at, { caption: 'Новая подпись', calls: [], pause: 1500 });
+		script.steps = insertStep(script.steps, at, { caption: t('Новая подпись'), calls: [], pause: 1500 });
 		selectGuideStep(at);
 	}
 
@@ -385,7 +386,7 @@
 		if (i < 0) return;
 		const before = script.steps.length;
 		script.steps = splitStep(script.steps, i, playhead - times(script.steps).starts[i]);
-		note = script.steps.length > before ? `Шаг ${i + 1} разрезан на два.` : 'Здесь резать нечего: шаг слишком короткий.';
+		note = script.steps.length > before ? t('Шаг {n} разрезан на два.', { n: i + 1 }) : t('Здесь резать нечего: шаг слишком короткий.');
 		selectGuideStep(i);
 	}
 
@@ -406,7 +407,7 @@
 		if (!lesson) return;
 		const s = lesson.task.steps[taskStep];
 		s.hint = { ...(s.hint ?? { text: '' }), shapes: [...(s.hint?.shapes ?? []), ...shapes] };
-		note = `Линия добавлена в подсказку шага ${taskStep + 1}.`;
+		note = t('Линия добавлена в подсказку шага {n}.', { n: taskStep + 1 });
 	}
 
 	// ---------------------------------------------------------------- PhotoCraft
@@ -434,10 +435,10 @@
 	async function showHintInEditor() {
 		if (!lesson) return;
 		await openLive('hint');
-		liveNote = 'Открываем задание в PhotoCraft…';
+		liveNote = t('Открываем задание в PhotoCraft…');
 		try {
 			const r = await api.hintPreview(dir, cleanLesson(), stepIndex);
-			liveNote = `Подсказка шага ${stepIndex + 1}: ${r.shapes} ${count(r.shapes, ['линия', 'линии', 'линий']).split(' ')[1]} на слое «FUDE · подсказка».`;
+			liveNote = t('Подсказка шага {n}: {lines} на слое «FUDE · подсказка».', { n: stepIndex + 1, lines: count(r.shapes, ['линия', 'линии', 'линий']) });
 		} catch (e) {
 			liveNote = errorText(e);
 		}
@@ -447,7 +448,7 @@
 		if (!script.steps.length) return;
 		if (!(await save())) return;
 		await openLive('guide');
-		liveNote = 'Открываем PhotoCraft…';
+		liveNote = t('Открываем PhotoCraft…');
 		try {
 			await api.guidePlayDraft(dir);
 		} catch (e) {
@@ -464,10 +465,10 @@
 		if (!lesson) return;
 		await openLive('record');
 		tick = null;
-		liveNote = 'Открываем задание в PhotoCraft…';
+		liveNote = t('Открываем задание в PhotoCraft…');
 		try {
 			await api.recordStart(dir, cleanLesson());
-			liveNote = 'Идёт запись: рисуйте в PhotoCraft — FUDE пишет каждое действие.';
+			liveNote = t('Идёт запись: рисуйте в PhotoCraft — FUDE пишет каждое действие.');
 		} catch (e) {
 			liveNote = errorText(e);
 		}
@@ -481,8 +482,8 @@
 			r.steps.forEach((s, i) => (steps = insertStep(steps, at + i, s)));
 			script.steps = steps;
 			note = r.steps.length
-				? `Записано: ${count(r.steps.length, ['шаг', 'шага', 'шагов'])}, ${count(r.strokes, ['штрих', 'штриха', 'штрихов'])}.${r.skipped.length ? ` Пропущено (гайду нельзя): ${r.skipped.join(', ')}.` : ''} Добавьте подписи к сценам.`
-				: 'Ничего не записано.';
+				? t('Записано: {steps}, {strokes}.', { steps: count(r.steps.length, ['шаг', 'шага', 'шагов']), strokes: count(r.strokes, ['штрих', 'штриха', 'штрихов']) }) + (r.skipped.length ? ' ' + t('Пропущено (гайду нельзя): {list}.', { list: r.skipped.join(', ') }) : '') + ' ' + t('Добавьте подписи к сценам.')
+				: t('Ничего не записано.');
 			if (r.steps.length) selectGuideStep(at);
 		} catch (e) {
 			note = errorText(e);
@@ -537,7 +538,7 @@
 
 	// Leaving with unsaved edits asks first: the studio keeps nothing it has not saved.
 	beforeNavigate(({ cancel }) => {
-		if (dirty && !saving && !confirm('В уроке есть несохранённые изменения. Уйти без сохранения?')) cancel();
+		if (dirty && !saving && !confirm(t('В уроке есть несохранённые изменения. Уйти без сохранения?'))) cancel();
 	});
 
 	onMount(async () => {
@@ -547,7 +548,7 @@
 			await listen<GuideEvent>('guide', (e) => {
 				if (live !== 'guide') return;
 				const g = e.payload;
-				liveNote = g.state === 'step' ? `Шаг ${g.index + 1} из ${g.total}: ${g.caption}` : g.state === 'done' ? 'Гайд закончился.' : g.state === 'error' ? (g.message ?? 'Ошибка') : g.caption;
+				liveNote = g.state === 'step' ? t('Шаг {n} из {of}: {caption}', { n: g.index + 1, of: g.total, caption: g.caption }) : g.state === 'done' ? t('Гайд закончился.') : g.state === 'error' ? (g.message ?? t('Ошибка')) : g.caption;
 			})
 		);
 	});
@@ -566,27 +567,27 @@
 		if (!lesson) return [];
 		const list: { ok: boolean | null; text: string; go?: () => void }[] = [];
 		const toLesson = (s: LessonSection) => () => ((mode = 'lesson'), (section = s));
-		const texts = [lesson.summary.trim() ? '' : 'описание', theory.trim() ? '' : 'теория'].filter(Boolean);
+		const texts = [lesson.summary.trim() ? '' : t('описание'), theory.trim() ? '' : t('теория')].filter(Boolean);
 		list.push(
 			texts.length
-				? { ok: false, text: `Не заполнено: ${texts.join(', ')}`, go: toLesson(lesson.summary.trim() ? 'theory' : 'about') }
-				: { ok: true, text: `Описание и теория${lesson.quiz?.length ? `, ${count(lesson.quiz.length, ['вопрос', 'вопроса', 'вопросов'])}` : ''}` }
+				? { ok: false, text: t('Не заполнено: {list}', { list: texts.join(', ') }), go: toLesson(lesson.summary.trim() ? 'theory' : 'about') }
+				: { ok: true, text: t('Описание и теория') + (lesson.quiz?.length ? `, ${count(lesson.quiz.length, ['вопрос', 'вопроса', 'вопросов'])}` : '') }
 		);
 		list.push(
 			script.steps.length || lesson.guide.video
-				? { ok: true, text: script.steps.length ? `Гайд: ${count(script.steps.length, ['шаг', 'шага', 'шагов'])}, ${Math.round(total / 100) / 10} с` : 'Видеогайд' }
-				: { ok: false, text: 'Нет гайда: запишите его или загрузите видео', go: () => (mode = 'guide') }
+				? { ok: true, text: script.steps.length ? t('Гайд: {steps}, {sec} с', { steps: count(script.steps.length, ['шаг', 'шага', 'шагов']), sec: Math.round(total / 100) / 10 }) : t('Видеогайд') }
+				: { ok: false, text: t('Нет гайда: запишите его или загрузите видео'), go: () => (mode = 'guide') }
 		);
-		list.push(lesson.task.steps.length ? { ok: true, text: `Задание: ${count(lesson.task.steps.length, ['шаг', 'шага', 'шагов'])}` } : { ok: false, text: 'В задании нет шагов', go: () => ((mode = 'task'), addStep()) });
+		list.push(lesson.task.steps.length ? { ok: true, text: t('Задание: {steps}', { steps: count(lesson.task.steps.length, ['шаг', 'шага', 'шагов']) }) } : { ok: false, text: t('В задании нет шагов'), go: () => ((mode = 'task'), addStep()) });
 		for (const p of badProofs.slice(0, 3)) {
 			const i = lesson.task.steps.findIndex((s) => s.id === p.step);
 			list.push({
 				ok: false,
-				text: p.verdict === 'passesUntouched' ? `Шаг ${i + 1}: проверка проходит и на пустом задании` : `Шаг ${i + 1}: проверка не проходит на эталоне`,
+				text: p.verdict === 'passesUntouched' ? t('Шаг {n}: проверка проходит и на пустом задании', { n: i + 1 }) : t('Шаг {n}: проверка не проходит на эталоне', { n: i + 1 }),
 				go: () => ((mode = 'task'), (stepIndex = Math.max(0, i)), (tab = 'checks'))
 			});
 		}
-		if (errors.length) list.push({ ok: false, text: `${count(errors.length, ['ошибка', 'ошибки', 'ошибок'])} в файле урока — пока не в каталоге`, go: toLesson('about') });
+		if (errors.length) list.push({ ok: false, text: t('{n} в файле урока — пока не в каталоге', { n: count(errors.length, ['ошибка', 'ошибки', 'ошибок']) }), go: toLesson('about') });
 		return list;
 	});
 
@@ -594,14 +595,14 @@
 		lesson && draft
 			? {
 					id: lesson.id,
-					title: lesson.title || 'Без названия',
+					title: lesson.title || t('Без названия'),
 					summary: lesson.summary,
 					category: draft.category.id,
 					categoryTitle: draft.category.title,
 					kanji: draft.category.kanji ?? null,
 					accent: draft.category.accent,
 					difficulty: lesson.difficulty,
-					difficultyLabel: ['', 'Первый шаг', 'Лёгкий', 'Средний', 'Сложный', 'Мастер'][lesson.difficulty] ?? '',
+					difficultyLabel: ['', t('Первый шаг'), t('Лёгкий'), t('Средний'), t('Сложный'), t('Мастер')][lesson.difficulty] ?? '',
 					minutes: lesson.minutes,
 					number: lesson.order,
 					of: 0,
@@ -615,41 +616,41 @@
 	);
 
 	const TASK_TOOLS: { id: CanvasTool; label: string; key: string; svg: string }[] = [
-		{ id: 'select', label: 'Выбор и перемещение', key: 'V', svg: 'M5 3l14 8-6 2-3 6z' },
-		{ id: 'hand', label: 'Рука — двигать холст', key: 'H', svg: 'M18 11V6a2 2 0 0 0-4 0v5M14 10V4a2 2 0 0 0-4 0v6M10 10.5V6a2 2 0 0 0-4 0v8M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.9-5.9-2.4L3.4 16a2 2 0 0 1 3-2.6L8 15' },
-		{ id: 'path', label: 'Линия от руки', key: 'B', svg: 'M3 17c3-6 6-9 9-5s6 1 9-5' },
-		{ id: 'line', label: 'Прямая (Shift — под 45°)', key: 'L', svg: 'M4 20 20 4' },
-		{ id: 'arrow', label: 'Стрелка', key: 'A', svg: 'M4 20 20 4M10 4h10v10' },
-		{ id: 'ellipse', label: 'Овал', key: 'O', svg: 'M12 6c5 0 9 2.7 9 6s-4 6-9 6-9-2.7-9-6 4-6 9-6z' },
-		{ id: 'rect', label: 'Прямоугольник', key: 'R', svg: 'M4 6h16v12H4z' },
-		{ id: 'region', label: 'Область проверки', key: 'M', svg: 'M3 8V4h4M17 4h4v4M21 16v4h-4M7 20H3v-4M8 8h8v8H8z' },
-		{ id: 'eraser', label: 'Удалить линию', key: 'E', svg: 'M7 20 3 16l10-10 6 6-8 8zM21 20H8' }
+		{ id: 'select', label: t('Выбор и перемещение'), key: 'V', svg: 'M5 3l14 8-6 2-3 6z' },
+		{ id: 'hand', label: t('Рука — двигать холст'), key: 'H', svg: 'M18 11V6a2 2 0 0 0-4 0v5M14 10V4a2 2 0 0 0-4 0v6M10 10.5V6a2 2 0 0 0-4 0v8M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.9-5.9-2.4L3.4 16a2 2 0 0 1 3-2.6L8 15' },
+		{ id: 'path', label: t('Линия от руки'), key: 'B', svg: 'M3 17c3-6 6-9 9-5s6 1 9-5' },
+		{ id: 'line', label: t('Прямая (Shift — под 45°)'), key: 'L', svg: 'M4 20 20 4' },
+		{ id: 'arrow', label: t('Стрелка'), key: 'A', svg: 'M4 20 20 4M10 4h10v10' },
+		{ id: 'ellipse', label: t('Овал'), key: 'O', svg: 'M12 6c5 0 9 2.7 9 6s-4 6-9 6-9-2.7-9-6 4-6 9-6z' },
+		{ id: 'rect', label: t('Прямоугольник'), key: 'R', svg: 'M4 6h16v12H4z' },
+		{ id: 'region', label: t('Область проверки'), key: 'M', svg: 'M3 8V4h4M17 4h4v4M21 16v4h-4M7 20H3v-4M8 8h8v8H8z' },
+		{ id: 'eraser', label: t('Удалить линию'), key: 'E', svg: 'M7 20 3 16l10-10 6 6-8 8zM21 20H8' }
 	];
 	const GUIDE_TOOLS: { id: CanvasTool; label: string; key: string; svg: string }[] = [
-		{ id: 'select', label: 'Выбор', key: 'V', svg: 'M5 3l14 8-6 2-3 6z' },
-		{ id: 'hand', label: 'Рука — двигать холст', key: 'H', svg: 'M18 11V6a2 2 0 0 0-4 0v5M14 10V4a2 2 0 0 0-4 0v6M10 10.5V6a2 2 0 0 0-4 0v8M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.9-5.9-2.4L3.4 16a2 2 0 0 1 3-2.6L8 15' },
-		{ id: 'brush', label: 'Кисть показа', key: 'B', svg: 'M14.5 3.5 20.5 9.5l-7.5 7.5-6-6zM7 11l-1.5 1.5c-1.5 1.5-1 3-2 4.5-.5.8-1 1.5-1 2.5 1 0 1.7-.5 2.5-1 1.5-1 3-.5 4.5-2L11 15' }
+		{ id: 'select', label: t('Выбор'), key: 'V', svg: 'M5 3l14 8-6 2-3 6z' },
+		{ id: 'hand', label: t('Рука — двигать холст'), key: 'H', svg: 'M18 11V6a2 2 0 0 0-4 0v5M14 10V4a2 2 0 0 0-4 0v6M10 10.5V6a2 2 0 0 0-4 0v8M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.9-5.9-2.4L3.4 16a2 2 0 0 1 3-2.6L8 15' },
+		{ id: 'brush', label: t('Кисть показа'), key: 'B', svg: 'M14.5 3.5 20.5 9.5l-7.5 7.5-6-6zM7 11l-1.5 1.5c-1.5 1.5-1 3-2 4.5-.5.8-1 1.5-1 2.5 1 0 1.7-.5 2.5-1 1.5-1 3-.5 4.5-2L11 15' }
 	];
 	const tools = $derived(mode === 'guide' ? GUIDE_TOOLS : TASK_TOOLS);
 	const activeTool = $derived(mode === 'guide' ? guideTool : tool);
 	const hint = $derived(
 		mode === 'guide'
 			? guideTool === 'brush'
-				? 'Кисть показа: рисуйте — штрих станет клипом на дорожке «Штрихи». Пробел — проиграть.'
+				? t('Кисть показа: рисуйте — штрих станет клипом на дорожке «Штрихи». Пробел — проиграть.')
 				: guideTool === 'hand'
-					? 'Рука: тяните холст. Ctrl+колесо — масштаб.'
-					: 'Выберите клип на дорожке или возьмите кисть показа (B).'
+					? t('Рука: тяните холст. Ctrl+колесо — масштаб.')
+					: t('Выберите клип на дорожке или возьмите кисть показа (B).')
 			: (
 					{
-						select: 'Выбор: щёлкните линию или область и тяните; у выбранной линии тяните ручки. Delete — удалить, Ctrl+Z — отменить.',
-						hand: 'Рука: тяните холст. Ctrl+колесо — масштаб.',
-						path: 'Линия от руки: ведите мышью или пером. Alt — пунктир.',
-						line: 'Прямая: тяните. Shift — под 45°, Alt — пунктир.',
-						arrow: 'Стрелка: тяните от начала к острию.',
-						ellipse: 'Овал: растяните рамку.',
-						rect: 'Прямоугольник: растяните рамку.',
-						region: 'Область проверки: растяните рамку — проверка смотрит только внутрь неё.',
-						eraser: 'Щёлкните линию, чтобы удалить её.',
+						select: t('Выбор: щёлкните линию или область и тяните; у выбранной линии тяните ручки. Delete — удалить, Ctrl+Z — отменить.'),
+						hand: t('Рука: тяните холст. Ctrl+колесо — масштаб.'),
+						path: t('Линия от руки: ведите мышью или пером. Alt — пунктир.'),
+						line: t('Прямая: тяните. Shift — под 45°, Alt — пунктир.'),
+						arrow: t('Стрелка: тяните от начала к острию.'),
+						ellipse: t('Овал: растяните рамку.'),
+						rect: t('Прямоугольник: растяните рамку.'),
+						region: t('Область проверки: растяните рамку — проверка смотрит только внутрь неё.'),
+						eraser: t('Щёлкните линию, чтобы удалить её.'),
 						brush: ''
 					} as Record<CanvasTool, string>
 				)[tool]
@@ -660,26 +661,26 @@
 
 <div class="studio sumi-scope">
 	<header class="top">
-		<a class="back" href="/studio" aria-label="В мастерскую"><Icon name="back" size={18} /></a>
+		<a class="back" href="/studio" aria-label={t('В мастерскую')}><Icon name="back" size={18} /></a>
 		<div class="title">
-			<h1>{lesson?.title || 'Урок'}</h1>
-			<p>Мастерская{draft ? ` · ${draft.category.title}` : ''}</p>
+			<h1>{lesson?.title || t('Урок')}</h1>
+			<p>{t('Мастерская')}{draft ? ` · ${draft.category.title}` : ''}</p>
 		</div>
 		<span class="grow"></span>
-		<div class="modes" role="tablist" aria-label="Режим студии">
-			<button role="tab" aria-selected={mode === 'lesson'} onclick={() => (mode = 'lesson')}>Урок</button>
-			<button role="tab" aria-selected={mode === 'guide'} onclick={() => (mode = 'guide')}>Гайд</button>
-			<button role="tab" aria-selected={mode === 'task'} onclick={() => (mode = 'task')}>Задание</button>
+		<div class="modes" role="tablist" aria-label={t('Режим студии')}>
+			<button role="tab" aria-selected={mode === 'lesson'} onclick={() => (mode = 'lesson')}>{t('Урок')}</button>
+			<button role="tab" aria-selected={mode === 'guide'} onclick={() => (mode = 'guide')}>{t('Гайд')}</button>
+			<button role="tab" aria-selected={mode === 'task'} onclick={() => (mode = 'task')}>{t('Задание')}</button>
 		</div>
 		<span class="grow"></span>
-		<span class="saved" aria-live="polite">{saving ? 'Сохраняем…' : dirty ? 'Есть несохранённые изменения' : savedAt ? `Сохранено · ${savedAt}` : ''}</span>
+		<span class="saved" aria-live="polite">{saving ? t('Сохраняем…') : dirty ? t('Есть несохранённые изменения') : savedAt ? t('Сохранено · {time}', { time: savedAt }) : ''}</span>
 		{#if mode === 'guide'}
-			<button class="btn-o" onclick={playInEditor} disabled={!script.steps.length}>Проиграть в PhotoCraft</button>
+			<button class="btn-o" onclick={playInEditor} disabled={!script.steps.length}>{t('Проиграть в PhotoCraft')}</button>
 		{:else if mode === 'task'}
-			<button class="btn-o" onclick={showHintInEditor} disabled={!step?.hint}>Показать в PhotoCraft</button>
+			<button class="btn-o" onclick={showHintInEditor} disabled={!step?.hint}>{t('Показать в PhotoCraft')}</button>
 		{/if}
-		<button class="btn-q" onclick={preview} disabled={!lesson?.task.steps.length}>Глазами ученика</button>
-		<button class="btn-p" onclick={save} disabled={saving || !lesson}>Сохранить</button>
+		<button class="btn-q" onclick={preview} disabled={!lesson?.task.steps.length}>{t('Глазами ученика')}</button>
+		<button class="btn-p" onclick={save} disabled={saving || !lesson}>{t('Сохранить')}</button>
 	</header>
 
 	{#if error}<p class="error" role="alert"><Icon name="alert" size={16} /> {error}</p>{/if}
@@ -689,20 +690,20 @@
 			<!-- left -->
 			<aside class="left">
 				{#if mode === 'lesson'}
-					<p class="sec">Разделы урока</p>
-					{#each [['about', 'Описание и карточка', 'как урок выглядит в каталоге'], ['theory', 'Теория', `${theory.trim().split(/\s+/).filter(Boolean).length} слов`], ['quiz', 'Вопросы после теории', count(lesson.quiz?.length ?? 0, ['вопрос', 'вопроса', 'вопросов'])]] as [key, name, meta] (key)}
+					<p class="sec">{t('Разделы урока')}</p>
+					{#each [['about', t('Описание и карточка'), t('как урок выглядит в каталоге')], ['theory', t('Теория'), count(theory.trim().split(/\s+/).filter(Boolean).length, ['слово', 'слова', 'слов'])], ['quiz', t('Вопросы после теории'), count(lesson.quiz?.length ?? 0, ['вопрос', 'вопроса', 'вопросов'])]] as [key, name, meta] (key)}
 						<button class="item" class:on={section === key} onclick={() => (section = key as LessonSection)}>
 							<span class="item-name">{name}</span><span class="item-meta">{meta}</span>
 						</button>
 					{/each}
 				{:else if mode === 'guide'}
-					<p class="sec">С чего начинается</p>
-					<div class="item static"><span class="item-name">{lesson.task.open ? 'Картинка задания' : 'Чистый холст'}</span><span class="item-meta">{lesson.task.open ?? `${size.w} × ${size.h}`}</span></div>
+					<p class="sec">{t('С чего начинается')}</p>
+					<div class="item static"><span class="item-name">{lesson.task.open ? t('Картинка задания') : t('Чистый холст')}</span><span class="item-meta">{lesson.task.open ?? `${size.w} × ${size.h}`}</span></div>
 					<button class="item" onclick={() => attach('video')}>
-						<span class="item-name">Видео урока</span><span class="item-meta">{lesson.guide.video ? `${lesson.guide.video} · щёлкните, чтобы заменить` : 'необязательно · mp4 или webm'}</span>
+						<span class="item-name">{t('Видео урока')}</span><span class="item-meta">{lesson.guide.video ? `${lesson.guide.video} · ${t('щёлкните, чтобы заменить')}` : t('необязательно · mp4 или webm')}</span>
 					</button>
-					{#if lesson.guide.video}<button class="link" onclick={() => lesson && delete lesson.guide.video}>Убрать видео</button>{/if}
-					<p class="sec">Сцены гайда</p>
+					{#if lesson.guide.video}<button class="link" onclick={() => lesson && delete lesson.guide.video}>{t('Убрать видео')}</button>{/if}
+					<p class="sec">{t('Сцены гайда')}</p>
 					{#each script.steps as s, i (i)}
 						{#if s.caption.trim()}
 							<button class="item scene" class:on={guideStep === i} onclick={() => selectGuideStep(i)}>
@@ -711,42 +712,42 @@
 						{/if}
 					{/each}
 					{#if !script.steps.some((s) => s.caption.trim())}
-						<p class="muted-note">Сцены появятся, когда у шагов гайда будут подписи: выберите клип и впишите подпись справа.</p>
+						<p class="muted-note">{t('Сцены появятся, когда у шагов гайда будут подписи: выберите клип и впишите подпись справа.')}</p>
 					{/if}
 				{:else}
-					<p class="sec">Холст задания</p>
+					<p class="sec">{t('Холст задания')}</p>
 					<button class="item" onclick={() => attach('open')}>
-						<span class="item-name">{lesson.task.open ? 'Картинка задания' : 'Чистый холст'}</span>
-						<span class="item-meta">{lesson.task.open ? `${lesson.task.open} · ${size.w} × ${size.h}` : 'щёлкните, чтобы загрузить картинку'}</span>
+						<span class="item-name">{lesson.task.open ? t('Картинка задания') : t('Чистый холст')}</span>
+						<span class="item-meta">{lesson.task.open ? `${lesson.task.open} · ${size.w} × ${size.h}` : t('щёлкните, чтобы загрузить картинку')}</span>
 					</button>
 					{#if lesson.task.canvas}
 						<div class="canvas-size">
-							<label>Ширина <input type="number" min="16" max="8192" bind:value={lesson.task.canvas.width} onchange={measure} /></label>
-							<label>Высота <input type="number" min="16" max="8192" bind:value={lesson.task.canvas.height} onchange={measure} /></label>
-							<label>Фон <input type="color" bind:value={lesson.task.canvas.background} /></label>
+							<label>{t('Ширина')} <input type="number" min="16" max="8192" bind:value={lesson.task.canvas.width} onchange={measure} /></label>
+							<label>{t('Высота')} <input type="number" min="16" max="8192" bind:value={lesson.task.canvas.height} onchange={measure} /></label>
+							<label>{t('Фон')} <input type="color" bind:value={lesson.task.canvas.background} /></label>
 						</div>
 					{:else}
-						<button class="link" onclick={useCanvas}>Начать с чистого холста</button>
+						<button class="link" onclick={useCanvas}>{t('Начать с чистого холста')}</button>
 					{/if}
 					<button class="item" onclick={() => attach('reference')}>
-						<span class="item-name">Эталон</span><span class="item-meta">{lesson.task.reference ?? 'нужен для живой проверки'}</span>
+						<span class="item-name">{t('Эталон')}</span><span class="item-meta">{lesson.task.reference ?? t('нужен для живой проверки')}</span>
 					</button>
-					<p class="sec row">Шаги · {lesson.task.steps.length} <button class="mini" onclick={addStep} aria-label="Добавить шаг"><Icon name="plus" size={14} /></button></p>
+					<p class="sec row">{t('Шаги · {n}', { n: lesson.task.steps.length })} <button class="mini" onclick={addStep} aria-label={t('Добавить шаг')}><Icon name="plus" size={14} /></button></p>
 					{#each lesson.task.steps as s, i (s.id + i)}
 						{@const bad = proofs.some((p) => p.step === s.id && (p.verdict === 'passesUntouched' || p.verdict === 'failsReference'))}
 						<button class="step" class:on={stepIndex === i} onclick={() => ((stepIndex = i), (selectedShape = -1), (selectedRegion = null))}>
 							<span class="seal" class:filled={stepIndex === i}>{i + 1}</span>
 							<span class="grow">
-								<span class="item-name">{s.text || 'Новый шаг'}</span>
-								<span class="item-meta">{count(s.hint?.shapes?.length ?? 0, ['линия', 'линии', 'линий'])}{s.hint?.target ? ' · куда нажать' : ''} · {count(s.checks.length, ['проверка', 'проверки', 'проверок'])}</span>
+								<span class="item-name">{s.text || t('Новый шаг')}</span>
+								<span class="item-meta">{count(s.hint?.shapes?.length ?? 0, ['линия', 'линии', 'линий'])}{s.hint?.target ? ` · ${t('куда нажать')}` : ''} · {count(s.checks.length, ['проверка', 'проверки', 'проверок'])}</span>
 							</span>
-							{#if bad}<span class="warn-dot" aria-label="проверку стоит поправить"></span>{/if}
+							{#if bad}<span class="warn-dot" aria-label={t('проверку стоит поправить')}></span>{/if}
 						</button>
 					{/each}
-					<button class="add" onclick={addStep}><Icon name="plus" size={14} /> Добавить шаг</button>
+					<button class="add" onclick={addStep}><Icon name="plus" size={14} /> {t('Добавить шаг')}</button>
 				{/if}
 				<div class="ready">
-					<p class="ready-title">Готовность урока</p>
+					<p class="ready-title">{t('Готовность урока')}</p>
 					{#each readiness as r, i (i)}
 						{#if r.go}
 							<button class="ready-line bad link-line" onclick={r.go}><Icon name="alert" size={14} /> {r.text}</button>
@@ -761,17 +762,17 @@
 			<section class="center">
 				{#if live}
 					<div class="livebar" class:rec={live === 'record'}>
-						{#if live === 'record'}<span class="dot"></span><b class="mono">{tick ? (tick.elapsedMs / 1000).toFixed(0) : 0} с</b>{/if}
-						<span class="grow">{liveNote}{#if live === 'record' && tick} · штрихов: {tick.strokes}, действий: {tick.actions}{/if}</span>
+						{#if live === 'record'}<span class="dot"></span><b class="mono">{t('{n} с', { n: tick ? (tick.elapsedMs / 1000).toFixed(0) : 0 })}</b>{/if}
+						<span class="grow">{liveNote}{#if live === 'record' && tick} · {t('штрихов: {s}, действий: {a}', { s: tick.strokes, a: tick.actions })}{/if}</span>
 						{#if live === 'record'}
-							<label class="opt"><input type="checkbox" bind:checked={keepPauses} /> Паузы как есть</label>
-							<label class="opt"><input type="checkbox" bind:checked={keepUndo} /> Писать отмены</label>
-							<button class="btn-w" onclick={toggleRecording}>Остановить и добавить в гайд</button>
+							<label class="opt"><input type="checkbox" bind:checked={keepPauses} /> {t('Паузы как есть')}</label>
+							<label class="opt"><input type="checkbox" bind:checked={keepUndo} /> {t('Писать отмены')}</label>
+							<button class="btn-w" onclick={toggleRecording}>{t('Остановить и добавить в гайд')}</button>
 						{:else}
-							<button class="btn-w" onclick={closeLive}>Вернуться к холсту</button>
+							<button class="btn-w" onclick={closeLive}>{t('Вернуться к холсту')}</button>
 						{/if}
 					</div>
-					<div class="slot" use:editorSlot aria-label="Редактор PhotoCraft"></div>
+					<div class="slot" use:editorSlot aria-label={t('Редактор PhotoCraft')}></div>
 				{:else if mode === 'lesson'}
 					<div class="texts" class:pad={section !== 'theory'}>
 						<LessonTexts bind:lesson bind:theory {section} lessonIds={draft?.lessonIds ?? []} />
@@ -780,18 +781,18 @@
 					<div class="stage">
 						<div class="toolbar-top">
 							{#if mode === 'task'}
-								<button class="vis" aria-pressed={showHints} onclick={() => (showHints = !showHints)}><span class="d shu"></span> Подсказки шага</button>
-								<button class="vis" aria-pressed={showOthers} onclick={() => (showOthers = !showOthers)}><span class="d"></span> Другие шаги</button>
-								<button class="vis" aria-pressed={showRegions} onclick={() => (showRegions = !showRegions)}><span class="d ai"></span> Области проверок</button>
+								<button class="vis" aria-pressed={showHints} onclick={() => (showHints = !showHints)}><span class="d shu"></span> {t('Подсказки шага')}</button>
+								<button class="vis" aria-pressed={showOthers} onclick={() => (showOthers = !showOthers)}><span class="d"></span> {t('Другие шаги')}</button>
+								<button class="vis" aria-pressed={showRegions} onclick={() => (showRegions = !showRegions)}><span class="d ai"></span> {t('Области проверок')}</button>
 							{/if}
 							{#if referenceImage}
-								<label class="vis ref">Эталон <input type="range" min="0" max="100" step="5" value={refOpacity * 100} oninput={(e) => (refOpacity = Number(e.currentTarget.value) / 100)} /> <b>{Math.round(refOpacity * 100)}%</b></label>
+								<label class="vis ref">{t('Эталон')} <input type="range" min="0" max="100" step="5" value={refOpacity * 100} oninput={(e) => (refOpacity = Number(e.currentTarget.value) / 100)} /> <b>{Math.round(refOpacity * 100)}%</b></label>
 							{/if}
 						</div>
-						<div class="tools" role="toolbar" aria-label="Инструменты автора">
-							{#each tools as t (t.id)}
-								<button class="tool" class:on={activeTool === t.id} onclick={() => (mode === 'guide' ? (guideTool = t.id) : (tool = t.id))} title="{t.label} · {t.key}" aria-label={t.label}>
-									<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d={t.svg} /></svg>
+						<div class="tools" role="toolbar" aria-label={t('Инструменты автора')}>
+							{#each tools as tl (tl.id)}
+								<button class="tool" class:on={activeTool === tl.id} onclick={() => (mode === 'guide' ? (guideTool = tl.id) : (tool = tl.id))} title="{tl.label} · {tl.key}" aria-label={tl.label}>
+									<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d={tl.svg} /></svg>
 								</button>
 							{/each}
 						</div>
@@ -822,16 +823,16 @@
 							/>
 							</div>
 						</div>
-						<div class="zoombar" role="toolbar" aria-label="Масштаб и история">
-							<button onclick={undo} disabled={!canUndo} title="Отменить · Ctrl+Z" aria-label="Отменить"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M9 14 4 9l5-5M4 9h10.5a5.5 5.5 0 0 1 0 11H11" /></svg></button>
-							<button onclick={redo} disabled={!canRedo} title="Повторить · Ctrl+Shift+Z" aria-label="Повторить"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="m15 14 5-5-5-5M20 9H9.5a5.5 5.5 0 0 0 0 11H13" /></svg></button>
+						<div class="zoombar" role="toolbar" aria-label={t('Масштаб и история')}>
+							<button onclick={undo} disabled={!canUndo} title={t('Отменить · Ctrl+Z')} aria-label={t('Отменить')}><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M9 14 4 9l5-5M4 9h10.5a5.5 5.5 0 0 1 0 11H11" /></svg></button>
+							<button onclick={redo} disabled={!canRedo} title={t('Повторить · Ctrl+Shift+Z')} aria-label={t('Повторить')}><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="m15 14 5-5-5-5M20 9H9.5a5.5 5.5 0 0 0 0 11H13" /></svg></button>
 							<span class="sep"></span>
-							<button onclick={() => zoomBy(-1)} aria-label="Уменьшить" title="Уменьшить · Ctrl+−"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M5 12h14" /></svg></button>
-							<button class="pct mono" onclick={() => (zoom = 1)} title="Вписать · Ctrl+0">{Math.round(zoom * 100)}%</button>
-							<button onclick={() => zoomBy(1)} aria-label="Увеличить" title="Увеличить · Ctrl++"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg></button>
+							<button onclick={() => zoomBy(-1)} aria-label={t('Уменьшить')} title={t('Уменьшить · Ctrl+−')}><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M5 12h14" /></svg></button>
+							<button class="pct mono" onclick={() => (zoom = 1)} title={t('Вписать · Ctrl+0')}>{Math.round(zoom * 100)}%</button>
+							<button onclick={() => zoomBy(1)} aria-label={t('Увеличить')} title={t('Увеличить · Ctrl++')}><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg></button>
 						</div>
 						<p class="hintbar">{hint}</p>
-						{#if note}<p class="note" role="status">{note} <button onclick={() => (note = '')} aria-label="Скрыть"><Icon name="close" size={12} /></button></p>{/if}
+						{#if note}<p class="note" role="status">{note} <button onclick={() => (note = '')} aria-label={t('Скрыть')}><Icon name="close" size={12} /></button></p>{/if}
 					</div>
 				{/if}
 				{#if mode === 'guide' || live === 'record'}
@@ -853,11 +854,11 @@
 					/>
 				{:else if mode === 'task'}
 					<button class="collapsed" onclick={() => (mode = 'guide')}>
-						<Icon name="video" size={16} /> Гайд · {count(script.steps.length, ['шаг', 'шага', 'шагов'])} · {Math.round(total / 100) / 10} с
+						<Icon name="video" size={16} /> {t('Гайд · {steps} · {sec} с', { steps: count(script.steps.length, ['шаг', 'шага', 'шагов']), sec: Math.round(total / 100) / 10 })}
 						{#if step && taskStepStart(script.steps, step.id) !== null}
-							<span class="muted-inline">· шаг {stepIndex + 1} задания показан в гайде с {(taskStepStart(script.steps, step.id)! / 1000).toFixed(1).replace('.', ',')} с</span>
+							<span class="muted-inline">· {t('шаг {n} задания показан в гайде с {sec} с', { n: stepIndex + 1, sec: (taskStepStart(script.steps, step.id)! / 1000).toFixed(1) })}</span>
 						{/if}
-						<span class="grow"></span> Открыть дорожки
+						<span class="grow"></span> {t('Открыть дорожки')}
 					</button>
 				{/if}
 			</section>
@@ -889,15 +890,15 @@
 								background={lesson.task.canvas?.background ?? '#FFFFFF'}
 							/>
 						{:else}
-							<p class="empty">В задании пока нет шагов. <button class="link" onclick={addStep}>Добавить первый шаг</button></p>
+							<p class="empty">{t('В задании пока нет шагов.')} <button class="link" onclick={addStep}>{t('Добавить первый шаг')}</button></p>
 						{/if}
 					{:else if mode === 'guide'}
 						<GuidePanel bind:script bind:brush selected={guideStep} {lesson} width={size.w} height={size.h} onmap={() => (mapFor = 'guide')} onghost={ghostFromGuide} onmove={moveGuideStep} />
 					{:else if card}
-						<p class="sec">Карточка в каталоге</p>
+						<p class="sec">{t('Карточка в каталоге')}</p>
 						<div class="card-preview" inert><LessonTile {card} /></div>
 						{#if issues.length}
-							<p class="sec">Замечания</p>
+							<p class="sec">{t('Замечания')}</p>
 							{#each issues as i (i.field + i.message)}<p class="issue" class:err={i.severity === 'error'}><span class="mono">{i.field}</span> {i.message}</p>{/each}
 						{/if}
 					{/if}
@@ -910,15 +911,15 @@
 {#if mapFor && lesson}
 	<InterfaceMap
 		value={mapFor === 'hint' ? (step?.hint?.target ?? null) : (script.steps[guideStep]?.highlight ?? null)}
-		step={mapFor === 'hint' ? `шаг ${stepIndex + 1}` : `шаг гайда ${guideStep + 1}`}
+		step={mapFor === 'hint' ? t('шаг {n}', { n: stepIndex + 1 }) : t('шаг гайда {n}', { n: guideStep + 1 })}
 		onclose={() => (mapFor = null)}
-		onpick={(t) => {
+		onpick={(target) => {
 			if (mapFor === 'hint' && lesson) {
 				const s = lesson.task.steps[stepIndex];
-				s.hint = { ...(s.hint ?? { text: '' }), target: t ?? undefined };
-				if (!t) delete s.hint.target;
+				s.hint = { ...(s.hint ?? { text: '' }), target: target ?? undefined };
+				if (!target) delete s.hint.target;
 			} else if (guideStep >= 0) {
-				if (t) script.steps[guideStep].highlight = t;
+				if (target) script.steps[guideStep].highlight = target;
 				else delete script.steps[guideStep].highlight;
 			}
 			mapFor = null;

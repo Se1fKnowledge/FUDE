@@ -80,11 +80,13 @@ impl AppState {
             // Close the old one first: two editors would fight over the same files.
             *guard = None;
             let exe = self.executable.as_ref().ok_or_else(|| {
-                AppError::msg(
+                AppError::msg(fude_core::i18n::pick(
                     "Редактор PhotoCraft не найден. Соберите его (cargo build --release -p photocraft) или укажите путь в переменной FUDE_PHOTOCRAFT.",
-                )
+                    "The PhotoCraft editor was not found. Build it (cargo build --release -p photocraft) or give its path in the FUDE_PHOTOCRAFT variable.",
+                ))
             })?;
-            let editor = Editor::launch(exe, &self.data.join("control.token"), read_root, &self.attempts_dir())?;
+            let mut editor = Editor::launch(exe, &self.data.join("control.token"), read_root, &self.attempts_dir())?;
+            crate::lang::apply_to_editor(&mut editor);
             lock(&self.layout).attached = None;
             *guard = Some(editor);
         }

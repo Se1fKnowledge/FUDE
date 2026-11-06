@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { initLang, onLangChange, t } from '#lib/i18n.svelte.ts';
 	import '#lib/styles.css';
 	import { onMount, type Snippet } from 'svelte';
 	import { page } from '$app/state';
@@ -13,7 +14,11 @@
 
 	let splash = $state(true);
 
+	// The backend keeps the language too (lesson texts, messages, the editor's menus).
+	onLangChange((lang) => api.setLang(lang).catch(() => {}));
+
 	onMount(() => {
+		initLang();
 		const stopTheme = initTheme();
 		// The splash plays once per launch, not on every reload while developing.
 		if (sessionStorage.getItem('fude-splash')) splash = false;
@@ -41,7 +46,7 @@
 
 {#if session.error && !session.boot}
 	<main class="fatal">
-		<h1 class="h1">FUDE не запустился</h1>
+		<h1 class="h1">{t('FUDE не запустился')}</h1>
 		<p class="muted">{session.error}</p>
 	</main>
 {:else if focus}

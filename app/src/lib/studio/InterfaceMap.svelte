@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { t } from '#lib/i18n.svelte.ts';
 	import Icon from '../components/Icon.svelte';
 	import { TOOLS } from '../checks.ts';
 	import { GROUP_LABELS, OPTIONS, PANELS, search, TOOL_ICONS, type TargetGroup } from './targets.ts';
@@ -28,15 +29,15 @@
 <dialog bind:this={dialog} class="map" aria-labelledby="map-title" onclose={onclose}>
 	<header>
 		<div>
-			<h2 id="map-title">Куда нажать{step ? ` — ${step}` : ''}</h2>
-			<p>Щёлкните по месту в окне PhotoCraft. Ученик увидит там кольцо «начните здесь».</p>
+			<h2 id="map-title">{t('Куда нажать')}{step ? ` — ${step}` : ''}</h2>
+			<p>{t('Щёлкните по месту в окне PhotoCraft. Ученик увидит там кольцо «начните здесь».')}</p>
 		</div>
-		<button class="x" onclick={() => dialog?.close()} aria-label="Закрыть"><Icon name="close" size={16} /></button>
+		<button class="x" onclick={() => dialog?.close()} aria-label={t('Закрыть')}><Icon name="close" size={16} /></button>
 	</header>
 	<div class="body">
-		<div class="window" aria-label="Схема окна PhotoCraft">
+		<div class="window" aria-label={t('Схема окна PhotoCraft')}>
 			<div class="menubar">
-				{#each ['Файл', 'Правка', 'Изображение', 'Слой', 'Выделение', 'Фильтр', 'Вид', 'Окно'] as m (m)}<span>{m}</span>{/each}
+				{#each [t('Файл'), t('Правка'), t('Изображение'), t('Слой'), t('Выделение'), t('Фильтр'), t('Вид'), t('Окно')] as m (m)}<span>{m}</span>{/each}
 			</div>
 			<div class="options">
 				{#each OPTIONS.slice(0, 4) as o (o)}
@@ -60,7 +61,7 @@
 			</div>
 		</div>
 		<aside>
-			<label class="search"><Icon name="search" size={14} /><input type="search" placeholder="Найти: кисть, слои, жёсткость" bind:value={query} /></label>
+			<label class="search"><Icon name="search" size={14} /><input type="search" placeholder={t('Найти: кисть, слои, жёсткость')} bind:value={query} /></label>
 			<div class="list">
 				{#each groups as { g, items } (g)}
 					<p class="group">{GROUP_LABELS[g]}</p>
@@ -71,14 +72,14 @@
 						</button>
 					{/each}
 				{:else}
-					<p class="empty">Ничего не нашлось. Попробуйте «кисть» или «слои».</p>
+					<p class="empty">{t('Ничего не нашлось. Попробуйте «кисть» или «слои».')}</p>
 				{/each}
 			</div>
 			<footer>
-				{#if value}<button class="ghost-btn" onclick={() => onpick(null)}>Убрать</button>{/if}
+				{#if value}<button class="ghost-btn" onclick={() => onpick(null)}>{t('Убрать')}</button>{/if}
 				<span class="grow"></span>
-				<button class="ghost-btn" onclick={() => dialog?.close()}>Отмена</button>
-				<button class="primary" disabled={!picked} onclick={() => onpick(picked)}>Выбрать{picked ? ` «${targetLabel(picked)}»` : ''}</button>
+				<button class="ghost-btn" onclick={() => dialog?.close()}>{t('Отмена')}</button>
+				<button class="primary" disabled={!picked} onclick={() => onpick(picked)}>{t('Выбрать')}{picked ? ` «${targetLabel(picked)}»` : ''}</button>
 			</footer>
 		</aside>
 	</div>

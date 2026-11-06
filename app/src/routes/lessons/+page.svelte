@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { t } from '#lib/i18n.svelte.ts';
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { api, errorText, type Catalog, type CategoryView, type LessonCard } from '#lib/api.ts';
@@ -39,22 +40,22 @@
 		const req = all.find((x) => x.title === l.after);
 		return req ? (req.category === l.category ? two(req.number) : `«${req.title}»`) : '';
 	};
-	const LABELS = ['', 'Первый шаг', 'Лёгкий', 'Средний', 'Сложный', 'Мастер'];
+	const LABELS = ['', t('Первый шаг'), t('Лёгкий'), t('Средний'), t('Сложный'), t('Мастер')];
 	const filters = [
-		['all', 'Все'],
-		['progress', 'В процессе'],
-		['open', 'Не начатые'],
-		['passed', 'Пройденные']
+		['all', t('Все')],
+		['progress', t('В процессе')],
+		['open', t('Не начатые')],
+		['passed', t('Пройденные')]
 	] as const;
 </script>
 
 <div class="page reveal">
 	<header class="page-head">
 		<div>
-			<h1 class="display-l">Уроки</h1>
+			<h1 class="display-l">{t('Уроки')}</h1>
 			{#if catalog}
 				<p>
-					{count(catalog.total, ['урок', 'урока', 'уроков'])} в {count(catalog.categories.length, ['категории', 'категориях', 'категориях'])} · пройдено {catalog.passed}
+					{t('{lessons} в {categories} · пройдено {passed}', { lessons: count(catalog.total, ['урок', 'урока', 'уроков']), categories: count(catalog.categories.length, ['категории', 'категориях', 'категориях']), passed: catalog.passed })}
 				</p>
 			{/if}
 		</div>
@@ -64,16 +65,16 @@
 		<p class="muted">{error}</p>
 	{:else if catalog}
 		<div class="layout">
-			<nav class="categories card" aria-label="Категории">
+			<nav class="categories card" aria-label={t('Категории')}>
 				<div class="head">
-					<span class="caps muted">Категории</span>
-					<span class="body-s muted">Пройдено {catalog.passed} из {catalog.total}</span>
+					<span class="caps muted">{t('Категории')}</span>
+					<span class="body-s muted">{t('Пройдено {n} из {of}', { n: catalog.passed, of: catalog.total })}</span>
 				</div>
 				{#each catalog.categories as c (c.id)}
 					<button class="cat" class:active={c.id === selected && !query} onclick={() => (selected = c.id)} aria-pressed={c.id === selected}>
 						<span class="glyph kanji" style="background: {tint(c)}; color: {ink(c)}">{c.kanji ?? '筆'}</span>
 						<span class="info">
-							<span class="label">{c.title}{#if c.user}<span class="mine">своя</span>{/if}</span>
+							<span class="label">{c.title}{#if c.user}<span class="mine">{t('своя')}</span>{/if}</span>
 							<span class="body-s muted">{count(c.lessons.length, ['урок', 'урока', 'уроков'])} · {duration(c.minutes)}</span>
 						</span>
 						<span class="ratio">
@@ -87,7 +88,7 @@
 			<section class="list">
 				{#if query}
 					<div class="banner search">
-						<h2 class="h1">Поиск: «{page.url.searchParams.get('q')}»</h2>
+						<h2 class="h1">{t('Поиск: «{q}»', { q: page.url.searchParams.get('q') ?? '' })}</h2>
 						<p>{count(lessons.length, ['урок найден', 'урока найдено', 'уроков найдено'])}</p>
 					</div>
 				{:else if category}
@@ -101,13 +102,13 @@
 							<span><Icon name="chart" size={17} /> {LABELS[category.difficulty[0]]} → {LABELS[category.difficulty[1]]}</span>
 							<span class="progress">
 								<span class="bar"><i style="width: {(category.passed / Math.max(1, category.lessons.length)) * 100}%"></i></span>
-								{category.passed} из {category.lessons.length}
+								{t('{n} из {of}', { n: category.passed, of: category.lessons.length })}
 							</span>
 						</div>
 					</div>
 				{/if}
 
-				<div class="filters" role="group" aria-label="Фильтр уроков">
+				<div class="filters" role="group" aria-label={t('Фильтр уроков')}>
 					{#each filters as [key, label] (key)}
 						<button class="chip" aria-pressed={filter === key} onclick={() => (filter = key)}>{label}</button>
 					{/each}
@@ -119,23 +120,23 @@
 							<span class="num" class:done={l.status === 'passed'}>{two(l.number)}</span>
 							<a class="what" href={l.status === 'locked' ? undefined : `/lesson/${l.id}`} aria-disabled={l.status === 'locked'}>
 								<span class="h3 title">{l.title}</span>
-								<span class="body-s muted">{l.minutes} мин · {l.summary}</span>
+								<span class="body-s muted">{t('{n} мин', { n: l.minutes })} · {l.summary}</span>
 							</a>
 							<Difficulty level={l.difficulty} label={l.difficultyLabel} />
 							<span class="act">
 								{#if l.status === 'passed'}
-									<a class="passed" href="/lesson/{l.id}">Пройден <Hanko kanji="済" size={26} /></a>
+									<a class="passed" href="/lesson/{l.id}">{t('Пройден')} <Hanko kanji="済" size={26} /></a>
 								{:else if l.status === 'progress'}
-									<a class="btn btn-accent btn-s" href={l.stage === 'practice' ? `/practice/${l.id}` : `/lesson/${l.id}`}>Продолжить</a>
+									<a class="btn btn-accent btn-s" href={l.stage === 'practice' ? `/practice/${l.id}` : `/lesson/${l.id}`}>{t('Продолжить')}</a>
 								{:else if l.status === 'open'}
-									<a class="btn btn-quiet btn-s" href="/lesson/{l.id}">Начать</a>
+									<a class="btn btn-quiet btn-s" href="/lesson/{l.id}">{t('Начать')}</a>
 								{:else}
-									<span class="lock body-s" title="Сначала пройдите «{l.after}»"><Icon name="lock" size={16} /> После урока {afterNumber(l)}</span>
+									<span class="lock body-s" title={t('Сначала пройдите «{title}»', { title: l.after ?? '' })}><Icon name="lock" size={16} /> {t('После урока {n}', { n: afterNumber(l) })}</span>
 								{/if}
 							</span>
 						</li>
 					{:else}
-						<li class="empty muted">Здесь пока пусто.</li>
+						<li class="empty muted">{t('Здесь пока пусто.')}</li>
 					{/each}
 				</ol>
 			</section>

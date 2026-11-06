@@ -1,6 +1,7 @@
 // The guide on tracks. A guide is a list of steps that run one after another: each step makes
 // its calls, shows its caption and highlight, then waits `pause` milliseconds. The timeline
 // draws each step's parts on their own track at the time the step runs.
+import { t } from '#lib/i18n.svelte.ts';
 import type { GuideCall, GuideScript, GuideStep } from '../api.ts';
 import { TOOLS } from '../checks.ts';
 
@@ -10,11 +11,11 @@ export const MIN_PAUSE = 100;
 
 export type Track = 'caption' | 'highlight' | 'action' | 'stroke' | 'task';
 export const TRACKS: { id: Track; label: string }[] = [
-	{ id: 'caption', label: 'Подписи' },
-	{ id: 'highlight', label: 'Подсветка' },
-	{ id: 'action', label: 'Действия' },
-	{ id: 'stroke', label: 'Штрихи' },
-	{ id: 'task', label: 'Шаги задания' }
+	{ id: 'caption', label: t('Подписи') },
+	{ id: 'highlight', label: t('Подсветка') },
+	{ id: 'action', label: t('Действия') },
+	{ id: 'stroke', label: t('Штрихи') },
+	{ id: 'task', label: t('Шаги задания') }
 ];
 
 export interface Clip {
@@ -63,7 +64,7 @@ export function clips(steps: GuideStep[], taskLabels: Record<string, string> = {
 		if (s.highlight) out.push({ track: 'highlight', step: i, start, end, label: targetLabel(s.highlight) });
 		const strokes = s.calls.filter(isStroke).length;
 		const actions = s.calls.filter((c) => !isStroke(c));
-		if (strokes) out.push({ track: 'stroke', step: i, start, end, label: strokes === 1 ? 'Штрих' : `Штрихи ×${strokes}` });
+		if (strokes) out.push({ track: 'stroke', step: i, start, end, label: strokes === 1 ? t('Штрих') : t('Штрихи ×{n}', { n: strokes }) });
 		if (actions.length) out.push({ track: 'action', step: i, start, end, label: actions.map(describeCall).join(' · ') });
 		if (s.task_step) {
 			const last = out.findLast((c) => c.track === 'task');
@@ -124,33 +125,33 @@ export function captionAt(steps: GuideStep[], ms: number): string {
 const toolName = (t: string) => TOOLS.find(([id]) => id.toLowerCase() === t.toLowerCase())?.[1] ?? t;
 
 const PANELS: Record<string, string> = {
-	Layers: 'Слои',
-	Color: 'Цвет',
-	Brushes: 'Кисти',
-	BrushSettings: 'Настройки кисти',
-	History: 'История',
-	Properties: 'Свойства',
-	Navigator: 'Навигатор',
-	Toolbar: 'Инструменты',
-	OptionsBar: 'Параметры инструмента'
+	Layers: t('Слои'),
+	Color: t('Цвет'),
+	Brushes: t('Кисти'),
+	BrushSettings: t('Настройки кисти'),
+	History: t('История'),
+	Properties: t('Свойства'),
+	Navigator: t('Навигатор'),
+	Toolbar: t('Инструменты'),
+	OptionsBar: t('Параметры инструмента')
 };
 const OPTIONS: Record<string, string> = {
-	brushSize: 'Размер кисти',
-	hardness: 'Жёсткость',
-	opacity: 'Непрозрачность',
-	flow: 'Нажим',
-	zoom: 'Масштаб',
-	blend: 'Режим наложения',
-	layerOpacity: 'Непрозрачность слоя'
+	brushSize: t('Размер кисти'),
+	hardness: t('Жёсткость'),
+	opacity: t('Непрозрачность'),
+	flow: t('Нажим'),
+	zoom: t('Масштаб'),
+	blend: t('Режим наложения'),
+	layerOpacity: t('Непрозрачность слоя')
 };
 
 /** «tool:Brush» → «Кисть», «panel:Layers» → «Панель «Слои»». */
 export function targetLabel(target: string): string {
 	const [kind, name = ''] = target.split(':');
 	if (kind === 'tool') return toolName(name);
-	if (kind === 'panel') return `Панель «${PANELS[name] ?? name}»`;
+	if (kind === 'panel') return t('Панель «{name}»', { name: PANELS[name] ?? name });
 	if (kind === 'option') return OPTIONS[name] ?? name;
-	if (kind === 'menu') return `Меню: ${name}`;
+	if (kind === 'menu') return t('Меню: {name}', { name });
 	return target;
 }
 
@@ -161,54 +162,54 @@ export function describeCall(c: GuideCall): string {
 	if (c.method === 'ui.set') {
 		const p = c.params;
 		if (typeof p.tool === 'string') return toolName(p.tool);
-		if (p.brushSize !== undefined) return `Кисть ${p.brushSize} px`;
-		if (p.zoom !== undefined) return `Масштаб ${pct(p.zoom)}`;
-		if (p.fit) return 'Вписать';
-		return 'Вид';
+		if (p.brushSize !== undefined) return t('Кисть {n} px', { n: String(p.brushSize) });
+		if (p.zoom !== undefined) return t('Масштаб {v}', { v: pct(p.zoom) });
+		if (p.fit) return t('Вписать');
+		return t('Вид');
 	}
-	if (c.method === 'ui.pointer') return 'Движение мыши';
+	if (c.method === 'ui.pointer') return t('Движение мыши');
 	const command = String(c.params.command ?? '');
 	const p = (c.params.params ?? {}) as Record<string, unknown>;
 	switch (command) {
 		case 'layer.new.layer':
-			return typeof p.name === 'string' ? `Слой «${p.name}»` : 'Новый слой';
+			return typeof p.name === 'string' ? t('Слой «{name}»', { name: p.name }) : t('Новый слой');
 		case 'layer.setProps':
-			return p.opacity !== undefined ? `Слой ${pct(p.opacity)}` : 'Свойства слоя';
+			return p.opacity !== undefined ? t('Слой {v}', { v: pct(p.opacity) }) : t('Свойства слоя');
 		case 'layer.select':
 		case 'layer.selectTop':
 		case 'layer.selectBottom':
-			return 'Выбор слоя';
+			return t('Выбор слоя');
 		case 'layer.delete':
-			return 'Удалить слой';
+			return t('Удалить слой');
 		case 'tools.setBrush': {
 			const b = ((p.brush ?? p) as Record<string, unknown>) ?? {};
-			const parts = [b.size !== undefined ? `${b.size} px` : '', b.hardness !== undefined ? `жёсткость ${pct(b.hardness)}` : '', b.opacity !== undefined ? pct(b.opacity) : ''].filter(Boolean);
-			return parts.length ? `Кисть ${parts.join(', ')}` : 'Кисть';
+			const parts = [b.size !== undefined ? `${b.size} px` : '', b.hardness !== undefined ? t('жёсткость {v}', { v: pct(b.hardness) }) : '', b.opacity !== undefined ? pct(b.opacity) : ''].filter(Boolean);
+			return parts.length ? t('Кисть {v}', { v: parts.join(', ') }) : t('Кисть');
 		}
 		case 'tools.setColors':
-			return typeof p.foreground === 'string' ? `Цвет ${p.foreground}` : 'Цвета';
+			return typeof p.foreground === 'string' ? t('Цвет {v}', { v: p.foreground }) : t('Цвета');
 		case 'tools.defaultColors':
-			return 'Цвета по умолчанию';
+			return t('Цвета по умолчанию');
 		case 'tools.swapColors':
-			return 'Поменять цвета';
+			return t('Поменять цвета');
 		case 'select.rect':
-			return 'Выделение';
+			return t('Выделение');
 		case 'select.all':
-			return 'Выделить всё';
+			return t('Выделить всё');
 		case 'select.deselect':
-			return 'Снять выделение';
+			return t('Снять выделение');
 		case 'select.inverse':
-			return 'Инверсия';
+			return t('Инверсия');
 		case 'edit.fill':
-			return 'Заливка';
+			return t('Заливка');
 		case 'edit.undo':
-			return 'Отмена';
+			return t('Отмена');
 		case 'edit.redo':
-			return 'Повтор';
+			return t('Повтор');
 		case 'file.new':
-			return 'Новый холст';
+			return t('Новый холст');
 		case 'paint.stroke':
-			return 'Штрих';
+			return t('Штрих');
 		default:
 			return command || c.method;
 	}

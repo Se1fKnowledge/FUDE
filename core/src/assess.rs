@@ -262,7 +262,7 @@ fn evaluate(kind: &CheckKind, context: &Context, snapshot: &Snapshot) -> Verdict
     let state = &snapshot.state;
     if kind.needs_canvas() {
         let Some(canvas) = &snapshot.canvas else {
-            return (false, "Нет снимка холста для проверки.".into(), None);
+            return (false, crate::tr!("Нет снимка холста для проверки.", "No canvas snapshot to check."), None);
         };
         return canvas_check(kind, context, canvas);
     }
@@ -272,37 +272,53 @@ fn evaluate(kind: &CheckKind, context: &Context, snapshot: &Snapshot) -> Verdict
             let current = state.tool.as_deref().and_then(canonical_tool);
             let name = tool_label(wanted);
             let fail = match current {
-                Some(c) => format!("Выберите инструмент «{name}» — сейчас выбран «{}».", tool_label(c)),
-                None => format!("Выберите инструмент «{name}»."),
+                Some(c) => crate::tr!("Выберите инструмент «{name}» — сейчас выбран «{}».", "Pick the «{name}» tool — «{}» is selected now.", tool_label(c)),
+                None => crate::tr!("Выберите инструмент «{name}».", "Pick the «{name}» tool."),
             };
-            verdict(current == Some(wanted), format!("Инструмент «{name}»."), fail, None)
+            verdict(current == Some(wanted), crate::tr!("Инструмент «{name}».", "Tool «{name}»."), fail, None)
         }
         CheckKind::Brush { size, hardness, opacity } => {
             let Some(brush) = state.brush else {
-                return (false, "Редактор не сообщил параметры кисти.".into(), None);
+                return (false, crate::tr!("Редактор не сообщил параметры кисти.", "The editor did not report the brush settings."), None);
             };
             let parts = [
-                (size.as_ref(), brush.size, 1.0, "Размер кисти", " px"),
-                (hardness.as_ref(), brush.hardness, 100.0, "Жёсткость кисти", "%"),
-                (opacity.as_ref(), brush.opacity, 100.0, "Непрозрачность кисти", "%"),
+                (size.as_ref(), brush.size, 1.0, crate::i18n::pick("Размер кисти", "Brush size"), " px"),
+                (hardness.as_ref(), brush.hardness, 100.0, crate::i18n::pick("Жёсткость кисти", "Brush hardness"), "%"),
+                (opacity.as_ref(), brush.opacity, 100.0, crate::i18n::pick("Непрозрачность кисти", "Brush opacity"), "%"),
             ];
             for (range, value, scale, label, unit) in parts {
                 if let Some(range) = range
                     && !range.contains(value)
                 {
-                    let fail = format!("{label} — {}{unit}, нужно {}{unit}.", num(value * scale), range.scaled(scale));
+                    let fail =
+                        crate::tr!("{label} — {}{unit}, нужно {}{unit}.", "{label} is {}{unit}, needed {}{unit}.", num(value * scale), range.scaled(scale));
                     return (false, fail, Some(value));
                 }
             }
-            (true, format!("Кисть {} px, жёсткость {}%, непрозрачность {}%.", num(brush.size), pct(brush.hardness), pct(brush.opacity)), None)
+            (
+                true,
+                crate::tr!(
+                    "Кисть {} px, жёсткость {}%, непрозрачность {}%.",
+                    "Brush {} px, hardness {}%, opacity {}%.",
+                    num(brush.size),
+                    pct(brush.hardness),
+                    pct(brush.opacity)
+                ),
+                None,
+            )
         }
         CheckKind::Zoom { zoom } => match state.zoom {
-            Some(z) => verdict(zoom.contains(z), format!("Масштаб {}%.", pct(z)), format!("Масштаб {}%, нужно {}%.", pct(z), zoom.scaled(100.0)), Some(z)),
-            None => (false, "Редактор не сообщил масштаб.".into(), None),
+            Some(z) => verdict(
+                zoom.contains(z),
+                crate::tr!("Масштаб {}%.", "Zoom {}%.", pct(z)),
+                crate::tr!("Масштаб {}%, нужно {}%.", "Zoom {}%, needed {}%.", pct(z), zoom.scaled(100.0)),
+                Some(z),
+            ),
+            None => (false, crate::tr!("Редактор не сообщил масштаб.", "The editor did not report the zoom."), None),
         },
         _ => {
             let Some(doc) = &state.document else {
-                return (false, "В редакторе не открыт документ.".into(), None);
+                return (false, crate::tr!("В редакторе не открыт документ.", "No document is open in the editor."), None);
             };
             document_check(kind, doc, state)
         }
@@ -313,7 +329,12 @@ fn document_check(kind: &CheckKind, doc: &DocumentState, state: &EditorState) ->
     match kind {
         CheckKind::Layers { count } => {
             let n = doc.layers.len() as f64;
-            verdict(count.contains(n), format!("Слоёв: {}.", num(n)), format!("Слоёв в документе: {}, нужно {count}.", num(n)), Some(n))
+            verdict(
+                count.contains(n),
+                crate::tr!("Слоёв: {}.", "Layers: {}.", num(n)),
+                crate::tr!("Слоёв в документе: {}, нужно {count}.", "Layers in the document: {}, needed {count}.", num(n)),
+                Some(n),
+            )
         }
         CheckKind::Layer { name, visible, opacity, layer_type } => {
             let found = doc.layers.iter().find(|l| {
@@ -323,28 +344,48 @@ fn document_check(kind: &CheckKind, doc: &DocumentState, state: &EditorState) ->
                     && layer_type.as_ref().is_none_or(|k| l.kind.eq_ignore_ascii_case(k))
             });
             match found {
-                Some(l) => (true, format!("Слой «{}».", l.name), Some(l.opacity)),
-                None => (false, format!("Нет слоя{}.", describe_layer(name.as_deref(), *visible, opacity.as_ref())), None),
+                Some(l) => (true, crate::tr!("Слой «{}».", "Layer «{}».", l.name), Some(l.opacity)),
+                None => (false, crate::tr!("Нет слоя{}.", "No layer{}.", describe_layer(name.as_deref(), *visible, opacity.as_ref())), None),
             }
         }
         CheckKind::Selection { present, width, height } => match (doc.selection, present) {
-            (None, true) => (false, "Нет выделения.".into(), None),
-            (None, false) => (true, "Выделения нет.".into(), None),
-            (Some(_), false) => (false, "Снимите выделение: Выделение › Отменить выделение (Ctrl+D).".into(), None),
+            (None, true) => (false, crate::tr!("Нет выделения.", "No selection."), None),
+            (None, false) => (true, crate::tr!("Выделения нет.", "There is no selection."), None),
+            (Some(_), false) => {
+                (false, crate::tr!("Снимите выделение: Выделение › Отменить выделение (Ctrl+D).", "Deselect: Select › Deselect (Ctrl+D)."), None)
+            }
             (Some([_, _, w, h]), true) => {
                 let (fw, fh) = (w / f64::from(doc.width.max(1)), h / f64::from(doc.height.max(1)));
-                let size = format!("{}×{}% холста", pct(fw), pct(fh));
+                let size = crate::tr!("{}×{}% холста", "{}×{}% of the canvas", pct(fw), pct(fh));
                 if let Some(r) = width
                     && !r.contains(fw)
                 {
-                    return (false, format!("Ширина выделения — {}% холста, нужно {}%.", pct(fw), r.scaled(100.0)), Some(fw));
+                    return (
+                        false,
+                        crate::tr!(
+                            "Ширина выделения — {}% холста, нужно {}%.",
+                            "The selection is {}% of the canvas wide, needed {}%.",
+                            pct(fw),
+                            r.scaled(100.0)
+                        ),
+                        Some(fw),
+                    );
                 }
                 if let Some(r) = height
                     && !r.contains(fh)
                 {
-                    return (false, format!("Высота выделения — {}% холста, нужно {}%.", pct(fh), r.scaled(100.0)), Some(fh));
+                    return (
+                        false,
+                        crate::tr!(
+                            "Высота выделения — {}% холста, нужно {}%.",
+                            "The selection is {}% of the canvas high, needed {}%.",
+                            pct(fh),
+                            r.scaled(100.0)
+                        ),
+                        Some(fh),
+                    );
                 }
-                (true, format!("Выделение {size}."), None)
+                (true, crate::tr!("Выделение {size}.", "Selection {size}."), None)
             }
         },
         CheckKind::History { entries, can_redo } => {
@@ -352,22 +393,38 @@ fn document_check(kind: &CheckKind, doc: &DocumentState, state: &EditorState) ->
             if let Some(r) = entries
                 && !r.contains(n)
             {
-                return (false, format!("Шагов в истории: {}, нужно {r}.", num(n)), Some(n));
+                return (false, crate::tr!("Шагов в истории: {}, нужно {r}.", "History steps: {}, needed {r}.", num(n)), Some(n));
             }
             match can_redo {
-                Some(true) if !doc.can_redo => (false, "Отмените последнее действие: Редактирование › Отменить (Ctrl+Z).".into(), Some(n)),
-                Some(false) if doc.can_redo => (false, "Последнее действие отменено — повторите его (Ctrl+Shift+Z) или продолжайте рисовать.".into(), Some(n)),
-                _ => (true, format!("Шагов в истории: {}.", num(n)), Some(n)),
+                Some(true) if !doc.can_redo => (
+                    false,
+                    crate::tr!("Отмените последнее действие: Редактирование › Отменить (Ctrl+Z).", "Undo the last action: Edit › Undo (Ctrl+Z)."),
+                    Some(n),
+                ),
+                Some(false) if doc.can_redo => (
+                    false,
+                    crate::tr!(
+                        "Последнее действие отменено — повторите его (Ctrl+Shift+Z) или продолжайте рисовать.",
+                        "The last action is undone — redo it (Ctrl+Shift+Z) or keep drawing."
+                    ),
+                    Some(n),
+                ),
+                _ => (true, crate::tr!("Шагов в истории: {}.", "History steps: {}.", num(n)), Some(n)),
             }
         }
         CheckKind::Foreground { color, tolerance } => {
             let (Some(have), Some(want)) = (state.foreground, parse_hex(color)) else {
-                return (false, "Редактор не сообщил основной цвет.".into(), None);
+                return (false, crate::tr!("Редактор не сообщил основной цвет.", "The editor did not report the foreground colour."), None);
             };
             let d = distance(have, want);
-            verdict(d <= *tolerance, "Основной цвет подходит.".into(), format!("Основной цвет не тот: нужен {color}."), Some(d))
+            verdict(
+                d <= *tolerance,
+                crate::tr!("Основной цвет подходит.", "The foreground colour fits."),
+                crate::tr!("Основной цвет не тот: нужен {color}.", "Wrong foreground colour: {color} is needed."),
+                Some(d),
+            )
         }
-        _ => (false, "Проверка не относится к документу.".into(), None),
+        _ => (false, crate::tr!("Проверка не относится к документу.", "The check is not about the document."), None),
     }
 }
 
@@ -377,12 +434,12 @@ fn describe_layer(name: Option<&str>, visible: Option<bool>, opacity: Option<&Ra
         parts.push(format!(" «{n}»"));
     }
     match visible {
-        Some(true) => parts.push(", видимого".into()),
-        Some(false) => parts.push(", скрытого".into()),
+        Some(true) => parts.push(crate::tr!(", видимого", ", visible")),
+        Some(false) => parts.push(crate::tr!(", скрытого", ", hidden")),
         None => {}
     }
     if let Some(r) = opacity {
-        parts.push(format!(", с непрозрачностью {}%", r.scaled(100.0)));
+        parts.push(crate::tr!(", с непрозрачностью {}%", ", with opacity {}%", r.scaled(100.0)));
     }
     parts.concat()
 }
@@ -390,23 +447,23 @@ fn describe_layer(name: Option<&str>, visible: Option<bool>, opacity: Option<&Ra
 /// Russian names of the tools lessons use most, as in the PhotoCraft Russian catalog.
 pub fn tool_label(tool: &str) -> &str {
     match tool {
-        "Move" => "Перемещение",
-        "RectMarquee" => "Прямоугольная область",
-        "EllipseMarquee" => "Овальная область",
-        "Lasso" => "Лассо",
-        "MagicWand" => "Волшебная палочка",
-        "Eyedropper" => "Пипетка",
-        "Brush" => "Кисть",
-        "Pencil" => "Карандаш",
-        "Eraser" => "Ластик",
-        "Gradient" => "Градиент",
-        "PaintBucket" => "Заливка",
-        "Hand" => "Рука",
-        "Zoom" => "Масштаб",
-        "Smudge" => "Палец",
-        "Blur" => "Размытие",
-        "Dodge" => "Осветлитель",
-        "Burn" => "Затемнитель",
+        "Move" => crate::i18n::pick("Перемещение", "Move"),
+        "RectMarquee" => crate::i18n::pick("Прямоугольная область", "Rectangular marquee"),
+        "EllipseMarquee" => crate::i18n::pick("Овальная область", "Elliptical marquee"),
+        "Lasso" => crate::i18n::pick("Лассо", "Lasso"),
+        "MagicWand" => crate::i18n::pick("Волшебная палочка", "Magic wand"),
+        "Eyedropper" => crate::i18n::pick("Пипетка", "Eyedropper"),
+        "Brush" => crate::i18n::pick("Кисть", "Brush"),
+        "Pencil" => crate::i18n::pick("Карандаш", "Pencil"),
+        "Eraser" => crate::i18n::pick("Ластик", "Eraser"),
+        "Gradient" => crate::i18n::pick("Градиент", "Gradient"),
+        "PaintBucket" => crate::i18n::pick("Заливка", "Paint bucket"),
+        "Hand" => crate::i18n::pick("Рука", "Hand"),
+        "Zoom" => crate::i18n::pick("Масштаб", "Zoom"),
+        "Smudge" => crate::i18n::pick("Палец", "Smudge"),
+        "Blur" => crate::i18n::pick("Размытие", "Blur"),
+        "Dodge" => crate::i18n::pick("Осветлитель", "Dodge"),
+        "Burn" => crate::i18n::pick("Затемнитель", "Burn"),
         other => other,
     }
 }
@@ -430,46 +487,61 @@ fn canvas_check(kind: &CheckKind, context: &Context, canvas: &RgbaImage) -> Verd
             let share = changed_share(canvas, &context.base, region);
             verdict(
                 changed.contains(share),
-                format!("Закрашено {}% области.", pct(share)),
-                format!("Закрашено {}% области, нужно {}%.", pct(share), changed.scaled(100.0)),
+                crate::tr!("Закрашено {}% области.", "{}% of the area is painted.", pct(share)),
+                crate::tr!("Закрашено {}% области, нужно {}%.", "{}% of the area is painted, needed {}%.", pct(share), changed.scaled(100.0)),
                 Some(share),
             )
         }
         CheckKind::Luminance { region, value } => {
             let l = luminance(mean(canvas, region));
-            verdict(value.contains(l), format!("Яркость {}%.", pct(l)), format!("Яркость области — {}%, нужно {}%.", pct(l), value.scaled(100.0)), Some(l))
+            verdict(
+                value.contains(l),
+                crate::tr!("Яркость {}%.", "Brightness {}%.", pct(l)),
+                crate::tr!("Яркость области — {}%, нужно {}%.", "The area's brightness is {}%, needed {}%.", pct(l), value.scaled(100.0)),
+                Some(l),
+            )
         }
         CheckKind::Darker { region, than, by } => {
             let (a, b) = (luminance(mean(canvas, region)), luminance(mean(canvas, than)));
             let d = b - a;
             verdict(
                 d >= *by,
-                format!("Область темнее соседней на {}%.", pct(d)),
-                format!("Область должна быть темнее соседней хотя бы на {}%, сейчас разница {}%.", pct(*by), pct(d)),
+                crate::tr!("Область темнее соседней на {}%.", "The area is {}% darker than its neighbour.", pct(d)),
+                crate::tr!(
+                    "Область должна быть темнее соседней хотя бы на {}%, сейчас разница {}%.",
+                    "The area should be at least {}% darker than its neighbour, the difference is {}% now.",
+                    pct(*by),
+                    pct(d)
+                ),
                 Some(d),
             )
         }
         CheckKind::Color { region, color, tolerance } => {
             let Some(want) = parse_hex(color) else {
-                return (false, format!("Неверный цвет в уроке: {color}."), None);
+                return (false, crate::tr!("Неверный цвет в уроке: {color}.", "Wrong colour in the lesson: {color}."), None);
             };
             let d = distance(mean(canvas, region), want);
-            verdict(d <= *tolerance, "Цвет области подходит.".into(), format!("Цвет области далёк от нужного ({color})."), Some(d))
+            verdict(
+                d <= *tolerance,
+                crate::tr!("Цвет области подходит.", "The area's colour fits."),
+                crate::tr!("Цвет области далёк от нужного ({color}).", "The area's colour is far from the one needed ({color})."),
+                Some(d),
+            )
         }
         CheckKind::Similar { reference, score } => {
             let path = reference.as_ref().or(context.task_reference.as_ref());
             let Some(image) = path.and_then(|p| context.references.get(p)) else {
-                return (false, "Нет эталона для сравнения.".into(), None);
+                return (false, crate::tr!("Нет эталона для сравнения.", "No reference to compare with."), None);
             };
             let s = similarity(canvas, image);
             verdict(
                 score.contains(s),
-                format!("Похожесть на эталон {}%.", pct(s)),
-                format!("Похожесть на эталон — {}%, нужно {}%.", pct(s), score.scaled(100.0)),
+                crate::tr!("Похожесть на эталон {}%.", "Similarity to the reference {}%.", pct(s)),
+                crate::tr!("Похожесть на эталон — {}%, нужно {}%.", "Similarity to the reference is {}%, needed {}%.", pct(s), score.scaled(100.0)),
                 Some(s),
             )
         }
-        _ => (false, "Проверка не относится к холсту.".into(), None),
+        _ => (false, crate::tr!("Проверка не относится к холсту.", "The check is not about the canvas."), None),
     }
 }
 

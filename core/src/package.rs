@@ -73,7 +73,7 @@ pub struct ExportReport {
 /// Writes a package with the given categories and lessons to `out`.
 pub fn export(out: &Path, title: &str, items: &[ExportItem]) -> Result<ExportReport> {
     if items.is_empty() {
-        return Err(Error::Package("нечего экспортировать".into()));
+        return Err(Error::Package(crate::tr!("нечего экспортировать", "nothing to export")));
     }
     let mut report = ExportReport::default();
     let mut categories: Vec<(Category, PathBuf, Vec<PathBuf>)> = Vec::new();
@@ -92,7 +92,7 @@ pub fn export(out: &Path, title: &str, items: &[ExportItem]) -> Result<ExportRep
     }
     let mut ids = HashSet::new();
     if let Some((c, _, _)) = categories.iter().find(|(c, _, _)| !ids.insert(c.id.clone())) {
-        return Err(Error::Package(format!("категория «{}» указана дважды", c.id)));
+        return Err(Error::Package(crate::tr!("категория «{}» указана дважды", "category «{}» is given twice", c.id)));
     }
 
     let file = File::create(out).map_err(error::io(out))?;
@@ -112,8 +112,10 @@ pub fn export(out: &Path, title: &str, items: &[ExportItem]) -> Result<ExportRep
         add(&mut zip, &format!("{}/{CATEGORY_FILE}", category.id), &bytes, out)?;
         report.files += 1;
         for lesson_dir in lessons {
-            let name =
-                lesson_dir.file_name().and_then(|n| n.to_str()).ok_or_else(|| Error::Package(format!("{}: имя папки не в UTF-8", lesson_dir.display())))?;
+            let name = lesson_dir
+                .file_name()
+                .and_then(|n| n.to_str())
+                .ok_or_else(|| Error::Package(crate::tr!("{}: имя папки не в UTF-8", "{}: the folder name is not UTF-8", lesson_dir.display())))?;
             for file in walk(lesson_dir)? {
                 let Some(rel) = paths::relative_to(lesson_dir, &file) else { continue };
                 let entry = format!("{}/{name}/{rel}", category.id);
@@ -219,7 +221,11 @@ pub fn import(package: &Path, library: &Library, user_root: &Path, options: &Imp
     let errors: Vec<&Issue> = staged.iter().flat_map(|s| &s.issues).filter(|i| i.is_error()).collect();
     if !errors.is_empty() {
         let list: Vec<String> = errors.iter().map(ToString::to_string).collect();
-        return Err(Error::Package(format!("уроки в пакете не прошли проверку:\n  {}", list.join("\n  "))));
+        return Err(Error::Package(crate::tr!(
+            "уроки в пакете не прошли проверку:\n  {}",
+            "lessons in the package failed the check:\n  {}",
+            list.join("\n  ")
+        )));
     }
 
     // Decide everything before moving anything.
@@ -229,10 +235,18 @@ pub fn import(package: &Path, library: &Library, user_root: &Path, options: &Imp
         for (lesson, _) in &s.lessons {
             if let Some(existing) = library.lesson(&lesson.id) {
                 if !existing.editable {
-                    return Err(Error::Package(format!("урок «{}» уже есть среди встроенных, его нельзя заменить", lesson.id)));
+                    return Err(Error::Package(crate::tr!(
+                        "урок «{}» уже есть среди встроенных, его нельзя заменить",
+                        "lesson «{}» is already among the built-in ones and cannot be replaced",
+                        lesson.id
+                    )));
                 }
                 if !options.replace {
-                    return Err(Error::Package(format!("урок «{}» уже есть в библиотеке; выберите замену, чтобы обновить его", lesson.id)));
+                    return Err(Error::Package(crate::tr!(
+                        "урок «{}» уже есть в библиотеке; выберите замену, чтобы обновить его",
+                        "lesson «{}» is already in the library; choose replace to update it",
+                        lesson.id
+                    )));
                 }
                 replaced_dirs.push(existing.dir.clone());
                 report.lessons_replaced.push(lesson.id.clone());
@@ -294,26 +308,26 @@ struct Staged {
 
 fn read_staged(root: &Path) -> Result<(Manifest, Vec<Staged>)> {
     let path = root.join(MANIFEST);
-    let text = fs::read_to_string(&path).map_err(|_| Error::Package(format!("нет файла {MANIFEST}")))?;
+    let text = fs::read_to_string(&path).map_err(|_| Error::Package(crate::tr!("нет файла {MANIFEST}", "no {MANIFEST} file")))?;
     let manifest: Manifest = toml::from_str(&text).map_err(|e| Error::Package(format!("{MANIFEST}: {}", e.message())))?;
     if manifest.format != FORMAT {
-        return Err(Error::Package(format!("версия формата {} не поддерживается", manifest.format)));
+        return Err(Error::Package(crate::tr!("версия формата {} не поддерживается", "format version {} is not supported", manifest.format)));
     }
     if manifest.categories.is_empty() {
-        return Err(Error::Package("в пакете нет категорий".into()));
+        return Err(Error::Package(crate::tr!("в пакете нет категорий", "the package has no categories")));
     }
     let listed: HashSet<&str> = manifest.categories.iter().map(String::as_str).collect();
     for dir in subdirs(root) {
         let name = dir.file_name().and_then(|n| n.to_str()).unwrap_or_default();
         if !listed.contains(name) {
-            return Err(Error::Package(format!("папка «{name}» не указана в {MANIFEST}")));
+            return Err(Error::Package(crate::tr!("папка «{name}» не указана в {MANIFEST}", "folder «{name}» is not listed in {MANIFEST}")));
         }
     }
     let mut staged = Vec::new();
     let mut ids = HashSet::new();
     for id in &manifest.categories {
         if !validate::is_slug(id) {
-            return Err(Error::Package(format!("«{id}» — не id категории")));
+            return Err(Error::Package(crate::tr!("«{id}» — не id категории", "«{id}» is not a category id")));
         }
         let dir = root.join(id);
         let category = load_category(&dir).map_err(|e| Error::Package(e.to_string()))?;
@@ -321,13 +335,19 @@ fn read_staged(root: &Path) -> Result<(Manifest, Vec<Staged>)> {
         let mut lessons = Vec::new();
         for lesson_dir in subdirs(&dir) {
             if !lesson_dir.join(LESSON_FILE).is_file() {
-                issues.push(Issue::error(paths::relative_to(root, &lesson_dir).unwrap_or_default(), "папка без lesson.toml"));
+                issues.push(Issue::error(
+                    paths::relative_to(root, &lesson_dir).unwrap_or_default(),
+                    crate::i18n::pick("папка без lesson.toml", "a folder without lesson.toml"),
+                ));
                 continue;
             }
             match library::read_lesson(&lesson_dir, id) {
                 Ok((lesson, warnings)) => {
                     if !ids.insert(lesson.id.clone()) {
-                        issues.push(Issue::error(&lesson.id, "урок с таким id в пакете дважды"));
+                        issues.push(Issue::error(
+                            &lesson.id,
+                            crate::i18n::pick("урок с таким id в пакете дважды", "a lesson with this id is in the package twice"),
+                        ));
                     }
                     issues.extend(prefixed(&lesson.id, warnings));
                     lessons.push((lesson, lesson_dir));
@@ -340,7 +360,7 @@ fn read_staged(root: &Path) -> Result<(Manifest, Vec<Staged>)> {
             }
         }
         if lessons.is_empty() && !has_errors(&issues) {
-            issues.push(Issue::warning(id, "в категории нет уроков"));
+            issues.push(Issue::warning(id, crate::i18n::pick("в категории нет уроков", "the category has no lessons")));
         }
         staged.push(Staged { category, dir, lessons, issues });
     }
@@ -357,9 +377,9 @@ fn prefixed(prefix: &str, issues: Vec<Issue>) -> impl Iterator<Item = Issue> + '
 /// Unpacks `package` into `target`, refusing anything unsafe before writing a byte.
 pub fn unpack(package: &Path, target: &Path, limits: Limits) -> Result<()> {
     let file = File::open(package).map_err(error::io(package))?;
-    let mut archive = ZipArchive::new(file).map_err(|e| Error::Package(format!("не zip-архив: {e}")))?;
+    let mut archive = ZipArchive::new(file).map_err(|e| Error::Package(crate::tr!("не zip-архив: {e}", "not a zip archive: {e}")))?;
     if archive.len() > limits.max_files {
-        return Err(Error::Package(format!("больше {} файлов", limits.max_files)));
+        return Err(Error::Package(crate::tr!("больше {} файлов", "more than {} files", limits.max_files)));
     }
     let mut total = 0u64;
     let mut names = HashSet::new();
@@ -367,28 +387,28 @@ pub fn unpack(package: &Path, target: &Path, limits: Limits) -> Result<()> {
         let entry = archive.by_index_raw(i).map_err(|e| zip_error(package, e))?;
         let name = entry.name().to_string();
         let trimmed = name.strip_suffix('/').unwrap_or(&name);
-        paths::check_relative(trimmed).map_err(|e| Error::Package(format!("небезопасный путь: {e}")))?;
+        paths::check_relative(trimmed).map_err(|e| Error::Package(crate::tr!("небезопасный путь: {e}", "unsafe path: {e}")))?;
         if entry.enclosed_name().is_none() {
-            return Err(Error::Package(format!("небезопасный путь «{name}»")));
+            return Err(Error::Package(crate::tr!("небезопасный путь «{name}»", "unsafe path «{name}»")));
         }
         if entry.unix_mode().is_some_and(|mode| mode & 0o170000 == 0o120000) {
-            return Err(Error::Package(format!("«{name}»: ссылки в пакете запрещены")));
+            return Err(Error::Package(crate::tr!("«{name}»: ссылки в пакете запрещены", "«{name}»: links are not allowed in a package")));
         }
         if entry.is_dir() {
             continue;
         }
         if !paths::has_extension(trimmed, ALLOWED_EXTENSIONS) {
-            return Err(Error::Package(format!("«{name}»: такой тип файла в уроке запрещён")));
+            return Err(Error::Package(crate::tr!("«{name}»: такой тип файла в уроке запрещён", "«{name}»: this file type is not allowed in a lesson")));
         }
         if !names.insert(trimmed.to_lowercase()) {
-            return Err(Error::Package(format!("«{name}» в пакете дважды")));
+            return Err(Error::Package(crate::tr!("«{name}» в пакете дважды", "«{name}» is in the package twice")));
         }
         if entry.size() > limits.max_file_bytes {
-            return Err(Error::Package(format!("«{name}» больше {} МиБ", limits.max_file_bytes >> 20)));
+            return Err(Error::Package(crate::tr!("«{name}» больше {} МиБ", "«{name}» is larger than {} MiB", limits.max_file_bytes >> 20)));
         }
         total = total.saturating_add(entry.size());
         if total > limits.max_total_bytes {
-            return Err(Error::Package(format!("пакет больше {} МиБ", limits.max_total_bytes >> 20)));
+            return Err(Error::Package(crate::tr!("пакет больше {} МиБ", "the package is larger than {} MiB", limits.max_total_bytes >> 20)));
         }
     }
     let mut written = 0u64;
@@ -407,7 +427,7 @@ pub fn unpack(package: &Path, target: &Path, limits: Limits) -> Result<()> {
         let budget = limits.max_file_bytes.min(limits.max_total_bytes.saturating_sub(written));
         let copied = io::copy(&mut (&mut entry).take(budget.saturating_add(1)), &mut file).map_err(error::io(&out))?;
         if copied > budget {
-            return Err(Error::Package(format!("«{name}» больше, чем заявлено в архиве")));
+            return Err(Error::Package(crate::tr!("«{name}» больше, чем заявлено в архиве", "«{name}» is larger than the archive says")));
         }
         written += copied;
     }
@@ -430,6 +450,6 @@ pub fn ensure_inside(root: &Path, path: &Path) -> Result<()> {
     if path_c.starts_with(&root) && path_c != root {
         Ok(())
     } else {
-        Err(Error::Invalid(format!("{}: вне папки пользовательских уроков", path.display())))
+        Err(Error::Invalid(crate::tr!("{}: вне папки пользовательских уроков", "{}: outside the user lessons folder", path.display())))
     }
 }

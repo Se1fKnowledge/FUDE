@@ -18,27 +18,27 @@ const MAX_LEN: usize = 255;
 /// Checks that `path` is a safe relative path; the error explains why it is not.
 pub fn check_relative(path: &str) -> Result<(), String> {
     if path.is_empty() {
-        return Err("пустой путь".into());
+        return Err(crate::tr!("пустой путь", "an empty path"));
     }
     if path.len() > MAX_LEN {
-        return Err(format!("путь длиннее {MAX_LEN} символов"));
+        return Err(crate::tr!("путь длиннее {MAX_LEN} символов", "a path longer than {MAX_LEN} characters"));
     }
     if path.contains('\\') {
-        return Err(format!("«{path}»: разделяйте папки знаком «/»"));
+        return Err(crate::tr!("«{path}»: разделяйте папки знаком «/»", "«{path}»: separate folders with «/»"));
     }
     if path.starts_with('/') {
-        return Err(format!("«{path}»: путь должен быть относительным"));
+        return Err(crate::tr!("«{path}»: путь должен быть относительным", "«{path}»: the path must be relative"));
     }
     if path.contains(':') {
-        return Err(format!("«{path}»: двоеточие в пути запрещено"));
+        return Err(crate::tr!("«{path}»: двоеточие в пути запрещено", "«{path}»: a colon is not allowed in a path"));
     }
     if path.chars().any(char::is_control) {
-        return Err(format!("«{path}»: управляющие символы в пути запрещены"));
+        return Err(crate::tr!("«{path}»: управляющие символы в пути запрещены", "«{path}»: control characters are not allowed in a path"));
     }
     for part in path.split('/') {
         match part {
-            "" => return Err(format!("«{path}»: пустая часть пути")),
-            "." | ".." => return Err(format!("«{path}»: «.» и «..» в пути запрещены")),
+            "" => return Err(crate::tr!("«{path}»: пустая часть пути", "«{path}»: an empty part of the path")),
+            "." | ".." => return Err(crate::tr!("«{path}»: «.» и «..» в пути запрещены", "«{path}»: «.» and «..» are not allowed in a path")),
             _ => {}
         }
     }

@@ -8,6 +8,7 @@ pub mod author;
 pub mod db;
 pub mod editor;
 pub mod error;
+pub mod lang;
 pub mod learn;
 pub mod play;
 pub mod practice;
@@ -50,6 +51,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     scope.allow_directory(&builtin, true)?;
     scope.allow_directory(&user, true)?;
     let db = db::Db::open(&data.join("fude.db"), learn::now())?;
+    lang::restore(&db)?;
     let host = main_window_handle(app);
     let handle = app.handle().clone();
     window::install_host(
@@ -97,6 +99,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             learn::boot,
+            lang::set_lang,
             learn::profile_save,
             learn::catalog,
             learn::lesson,

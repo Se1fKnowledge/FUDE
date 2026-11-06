@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { t } from '#lib/i18n.svelte.ts';
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { api, errorText, type ResultView } from '#lib/api.ts';
@@ -22,14 +23,14 @@
 	const toNext = $derived(r && r.rank.next !== null ? r.rank.next - r.rank.xp : null);
 	const verdict = $derived.by(() => {
 		if (!r) return '';
-		if (r.hints === 0) return 'Без единой подсказки — так держать. Сравните свою работу с эталоном: что бы вы сделали иначе?';
-		return `Задание выполнено с ${count(r.hints, ['подсказкой', 'подсказками', 'подсказками'])}. Пройдите урок ещё раз самостоятельно — это даст больше опыта и очков навыка.`;
+		if (r.hints === 0) return t('Без единой подсказки — так держать. Сравните свою работу с эталоном: что бы вы сделали иначе?');
+		return t('Задание выполнено с {n}. Пройдите урок ещё раз самостоятельно — это даст больше опыта и очков навыка.', { n: count(r.hints, ['подсказкой', 'подсказками', 'подсказками']) });
 	});
 </script>
 
 <div class="result">
 	<a class="brand" href="/"><Hanko kanji="筆" size={32} /> <span>FUDE</span></a>
-	<a class="close" href="/" aria-label="На главную"><Icon name="close" /></a>
+	<a class="close" href="/" aria-label={t('На главную')}><Icon name="close" /></a>
 	<div class="ring" aria-hidden="true"><Enso size={620} color="color-mix(in srgb, var(--ink-900) 5%, transparent)" seed={12} /></div>
 
 	{#if error}
@@ -37,9 +38,9 @@
 	{:else if r}
 		<section class="head">
 			<Hanko kanji={r.passed ? '完' : '再'} size={110} tone={r.passed ? 'shu' : 'ink'} tilt={-5} stamp />
-			<h1 class="display-xl">{r.card?.title ?? 'Урок'}</h1>
+			<h1 class="display-xl">{r.card?.title ?? t('Урок')}</h1>
 			<p class="muted">
-				{r.passed ? 'Урок пройден' : 'Урок не закончен'} · {r.card?.categoryTitle}, урок {r.card?.number} из {r.card?.of}
+				{r.passed ? t('Урок пройден') : t('Урок не закончен')} · {t('{category}, урок {n} из {of}', { category: r.card?.categoryTitle ?? '', n: r.card?.number ?? 0, of: r.card?.of ?? 0 })}
 			</p>
 			<p class="verdict">{verdict}</p>
 		</section>
@@ -48,33 +49,33 @@
 			<div class="fact card">
 				<span class="ico ai"><Icon name="target" /></span>
 				<span>
-					<span class="body-s muted">Сходство</span>
+					<span class="body-s muted">{t('Сходство')}</span>
 					<span class="value number">{r.similarity !== null ? percent(r.similarity) : '—'}</span>
-					<span class="body-s muted">{r.similarity !== null ? 'с эталоном урока' : 'у урока нет эталона'}</span>
+					<span class="body-s muted">{r.similarity !== null ? t('с эталоном урока') : t('у урока нет эталона')}</span>
 				</span>
 			</div>
 			<div class="fact card">
 				<span class="ico"><Icon name="clock" /></span>
 				<span>
-					<span class="body-s muted">Время</span>
+					<span class="body-s muted">{t('Время')}</span>
 					<span class="value number">{clock(r.seconds)}</span>
-					<span class="body-s muted">норма — {r.normMinutes} мин</span>
+					<span class="body-s muted">{t('норма — {n} мин', { n: r.normMinutes })}</span>
 				</span>
 			</div>
 			<div class="fact card">
 				<span class="ico"><Icon name="bulb" /></span>
 				<span>
-					<span class="body-s muted">Подсказки</span>
-					<span class="value number">{r.hints} из {r.steps}</span>
-					<span class="body-s muted">{r.hints === 0 ? 'без подсказок — ×1,5 опыта' : 'шагов с подсказкой'}</span>
+					<span class="body-s muted">{t('Подсказки')}</span>
+					<span class="value number">{t('{n} из {of}', { n: r.hints, of: r.steps })}</span>
+					<span class="body-s muted">{r.hints === 0 ? t('без подсказок — ×1,5 опыта') : t('шагов с подсказкой')}</span>
 				</span>
 			</div>
 			<div class="fact dark">
 				<span class="ico kaki"><Icon name="sparkle" /></span>
 				<span>
-					<span class="body-s">Опыт</span>
+					<span class="body-s">{t('Опыт')}</span>
 					<span class="value number xp">+{r.xp} XP</span>
-					<span class="body-s">{r.streak.current > 0 ? `серия ${count(r.streak.current, ['день', 'дня', 'дней'])}` : 'первый день серии'}</span>
+					<span class="body-s">{r.streak.current > 0 ? t('серия {n}', { n: count(r.streak.current, ['день', 'дня', 'дней']) }) : t('первый день серии')}</span>
 				</span>
 			</div>
 		</section>
@@ -82,16 +83,16 @@
 		<section class="lower">
 			<div class="compare card">
 				<figure>
-					{#if r.canvas}<img src={r.canvas} alt="Ваша работа" />{:else}<div class="none">нет снимка</div>{/if}
-					<figcaption>Ваша работа</figcaption>
+					{#if r.canvas}<img src={r.canvas} alt={t('Ваша работа')} />{:else}<div class="none">{t('нет снимка')}</div>{/if}
+					<figcaption>{t('Ваша работа')}</figcaption>
 				</figure>
 				<figure>
-					{#if r.reference}<img src={r.reference} alt="Эталон" />{:else}<div class="none">нет эталона</div>{/if}
-					<figcaption>Эталон</figcaption>
+					{#if r.reference}<img src={r.reference} alt={t('Эталон')} />{:else}<div class="none">{t('нет эталона')}</div>{/if}
+					<figcaption>{t('Эталон')}</figcaption>
 				</figure>
 			</div>
 			<div class="growth card">
-				<h2 class="h2">Рост навыков</h2>
+				<h2 class="h2">{t('Рост навыков')}</h2>
 				{#each r.skills as [label, points] (label)}
 					<div class="skill">
 						<span>{label}</span>
@@ -103,21 +104,21 @@
 					<Hanko kanji="級" size={34} tone="ai" tilt={0} />
 					<span>
 						<span class="body-s muted">{r.rank.title} · {r.rank.name}</span>
-						<span class="label">{toNext !== null ? `До следующего ранга осталось ${toNext} XP` : 'Высший ранг получен'}</span>
+						<span class="label">{toNext !== null ? t('До следующего ранга осталось {n} XP', { n: toNext }) : t('Высший ранг получен')}</span>
 					</span>
 				</div>
 				{#each r.achievements as a (a.id)}
-					<div class="ach reveal"><Hanko kanji={a.kanji} size={30} /> Новое достижение: «{a.title}»</div>
+					<div class="ach reveal"><Hanko kanji={a.kanji} size={30} /> {t('Новое достижение: «{title}»', { title: a.title })}</div>
 				{/each}
 			</div>
 		</section>
 
 		<section class="actions">
 			{#if r.next}
-				<a class="btn btn-accent" href="/lesson/{r.next.id}">Следующий урок: «{r.next.title}»</a>
+				<a class="btn btn-accent" href="/lesson/{r.next.id}">{t('Следующий урок: «{title}»', { title: r.next.title })}</a>
 			{/if}
-			<a class="btn btn-outline" href="/lesson/{r.card?.id}">Повторить урок</a>
-			<a class="btn btn-quiet" href="/">На главную</a>
+			<a class="btn btn-outline" href="/lesson/{r.card?.id}">{t('Повторить урок')}</a>
+			<a class="btn btn-quiet" href="/">{t('На главную')}</a>
 		</section>
 	{/if}
 

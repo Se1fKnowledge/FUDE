@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { t } from '#lib/i18n.svelte.ts';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { open, save } from '@tauri-apps/plugin-dialog';
@@ -51,13 +52,13 @@
 		await run(async () => {
 			await api.categoryCreate(newTitle, newKanji.trim() || null, newAccent, newDescription);
 			newTitle = newKanji = newDescription = '';
-		}, 'Категория создана.');
+		}, t('Категория создана.'));
 	}
 
 	async function createLesson(categoryDir: string) {
 		error = '';
 		try {
-			const dir = await api.lessonCreate(categoryDir, 'Новый урок', 1);
+			const dir = await api.lessonCreate(categoryDir, t('Новый урок'), 1);
 			await refreshSession();
 			goto(`/studio/edit?dir=${encodeURIComponent(dir)}`);
 		} catch (e) {
@@ -79,7 +80,7 @@
 	async function pickPackage() {
 		error = '';
 		report = null;
-		const path = await open({ multiple: false, filters: [{ name: 'Пакет уроков FUDE', extensions: ['fude'] }] });
+		const path = await open({ multiple: false, filters: [{ name: t('Пакет уроков FUDE'), extensions: ['fude'] }] });
 		if (typeof path !== 'string') return;
 		try {
 			pending = { path, info: await api.packageInspect(path) };
@@ -98,17 +99,17 @@
 	}
 
 	async function exportCategory(id: string, title: string) {
-		const out = await save({ defaultPath: `${title}.fude`, filters: [{ name: 'Пакет уроков FUDE', extensions: ['fude'] }] });
+		const out = await save({ defaultPath: `${title}.fude`, filters: [{ name: t('Пакет уроков FUDE'), extensions: ['fude'] }] });
 		if (!out) return;
 		await run(async () => {
 			const n = await api.packageExport(id, [], out);
-			message = `Сохранено: ${count(n, ['урок', 'урока', 'уроков'])} в ${out}`;
+			message = t('Сохранено: {n} в {path}', { n: count(n, ['урок', 'урока', 'уроков']), path: out });
 		});
 	}
 
 	async function removeDir(dir: string, what: string) {
-		if (!confirm(`Удалить ${what}? Это нельзя отменить.`)) return;
-		await run(() => api.remove(dir), 'Удалено.');
+		if (!confirm(t('Удалить {what}? Это нельзя отменить.', { what }))) return;
+		await run(() => api.remove(dir), t('Удалено.'));
 	}
 
 	const TINT: Record<Accent, string> = { ai: 'var(--ai-100)', shu: 'var(--shu-100)', kaki: 'var(--kaki-100)', kin: 'var(--kin-100)' };
@@ -118,10 +119,10 @@
 <div class="page reveal">
 	<header class="page-head">
 		<div>
-			<h1 class="display-l">Мастерская</h1>
-			<p>Свои категории и уроки, импорт и экспорт пакетов <span class="mono">.fude</span></p>
+			<h1 class="display-l">{t('Мастерская')}</h1>
+			<p>{t('Свои категории и уроки, импорт и экспорт пакетов')} <span class="mono">.fude</span></p>
 		</div>
-		<button class="btn btn-primary" onclick={pickPackage}><Icon name="download" size={18} /> Импортировать урок</button>
+		<button class="btn btn-primary" onclick={pickPackage}><Icon name="download" size={18} /> {t('Импортировать урок')}</button>
 	</header>
 
 	{#if error}<div class="banner warn" role="alert"><Icon name="alert" size={18} /> <span>{error}</span></div>{/if}
@@ -130,30 +131,30 @@
 	{#if pending}
 		<section class="card import reveal">
 			<h2 class="h2">«{pending.info.manifest.title}»</h2>
-			<p class="body-s muted">{pending.info.manifest.created_by ?? 'автор не указан'} · {count(pending.info.lessons.length, ['урок', 'урока', 'уроков'])}</p>
+			<p class="body-s muted">{pending.info.manifest.created_by ?? t('автор не указан')} · {count(pending.info.lessons.length, ['урок', 'урока', 'уроков'])}</p>
 			<ul>
 				{#each pending.info.lessons as l (l.id)}<li><span class="mono">{l.id}</span> — {l.title}</li>{/each}
 			</ul>
 			{#if pending.info.issues.some((i) => i.severity === 'error')}
-				<div class="banner warn">В пакете есть ошибки — импорт невозможен.</div>
+				<div class="banner warn">{t('В пакете есть ошибки — импорт невозможен.')}</div>
 				<ul class="issues">
 					{#each pending.info.issues.filter((i) => i.severity === 'error') as i (i.field + i.message)}<li>{i.field}: {i.message}</li>{/each}
 				</ul>
 			{/if}
-			<label class="check"><input type="checkbox" bind:checked={replace} /> Заменить мои уроки с такими же id</label>
+			<label class="check"><input type="checkbox" bind:checked={replace} /> {t('Заменить мои уроки с такими же id')}</label>
 			<div class="row">
-				<button class="btn btn-accent" onclick={doImport} disabled={pending.info.issues.some((i) => i.severity === 'error')}>Импортировать</button>
-				<button class="btn btn-quiet" onclick={() => (pending = null)}>Отмена</button>
+				<button class="btn btn-accent" onclick={doImport} disabled={pending.info.issues.some((i) => i.severity === 'error')}>{t('Импортировать')}</button>
+				<button class="btn btn-quiet" onclick={() => (pending = null)}>{t('Отмена')}</button>
 			</div>
-			<p class="body-s muted">Гайды импортированных уроков могут только рисовать в редакторе: открывать и сохранять файлы им запрещено.</p>
+			<p class="body-s muted">{t('Гайды импортированных уроков могут только рисовать в редакторе: открывать и сохранять файлы им запрещено.')}</p>
 		</section>
 	{/if}
 
 	{#if report}
 		<section class="card import reveal">
-			<h2 class="h2">Импортирован «{report.title}»</h2>
-			<p>Новых уроков: {report.lessons_added.length}, заменено: {report.lessons_replaced.length}, новых категорий: {report.categories_added.length}.</p>
-			<a href="/lessons">Открыть в каталоге →</a>
+			<h2 class="h2">{t('Импортирован «{title}»', { title: report.title })}</h2>
+			<p>{t('Новых уроков: {added}, заменено: {replaced}, новых категорий: {cats}.', { added: report.lessons_added.length, replaced: report.lessons_replaced.length, cats: report.categories_added.length })}</p>
+			<a href="/lessons">{t('Открыть в каталоге')} →</a>
 		</section>
 	{/if}
 
@@ -166,11 +167,11 @@
 							<span class="glyph kanji" style="background: {TINT[c.category.accent]}; color: {INK[c.category.accent]}">{c.category.kanji ?? '筆'}</span>
 							<div>
 								<h2 class="h2">{c.category.title}</h2>
-								<p class="body-s muted">{c.category.description || 'Без описания'} · id <span class="mono">{c.category.id}</span></p>
+								<p class="body-s muted">{c.category.description || t('Без описания')} · id <span class="mono">{c.category.id}</span></p>
 							</div>
 							<div class="tools">
-								<button class="btn btn-quiet btn-s" onclick={() => exportCategory(c.category.id, c.category.title)} disabled={!c.lessons.length}><Icon name="upload" size={16} /> Экспорт</button>
-								<button class="icon-btn" onclick={() => removeDir(c.dir, `категорию «${c.category.title}» со всеми уроками`)} aria-label="Удалить категорию"><Icon name="trash" size={18} /></button>
+								<button class="btn btn-quiet btn-s" onclick={() => exportCategory(c.category.id, c.category.title)} disabled={!c.lessons.length}><Icon name="upload" size={16} /> {t('Экспорт')}</button>
+								<button class="icon-btn" onclick={() => removeDir(c.dir, t('категорию «{title}» со всеми уроками', { title: c.category.title }))} aria-label={t('Удалить категорию')}><Icon name="trash" size={18} /></button>
 							</div>
 						</header>
 						<ol>
@@ -178,43 +179,43 @@
 								<li>
 									<a href="/studio/edit?dir={encodeURIComponent(l.dir)}">
 										<span class="label">{l.title}</span>
-										<span class="body-s muted">{l.id || 'не читается'}</span>
+										<span class="body-s muted">{l.id || t('не читается')}</span>
 									</a>
 									{#if l.broken}
-										<span class="pill pill-kaki">файл повреждён</span>
+										<span class="pill pill-kaki">{t('файл повреждён')}</span>
 									{:else if l.errors}
-										<span class="pill pill-kaki">черновик · {count(l.errors, ['ошибка', 'ошибки', 'ошибок'])}</span>
+										<span class="pill pill-kaki">{t('черновик · {n}', { n: count(l.errors, ['ошибка', 'ошибки', 'ошибок']) })}</span>
 									{:else}
-										<span class="pill pill-ai">в каталоге</span>
+										<span class="pill pill-ai">{t('в каталоге')}</span>
 									{/if}
-									<button class="icon-btn" onclick={() => removeDir(l.dir, `урок «${l.title}»`)} aria-label="Удалить урок"><Icon name="trash" size={17} /></button>
+									<button class="icon-btn" onclick={() => removeDir(l.dir, t('урок «{title}»', { title: l.title }))} aria-label={t('Удалить урок')}><Icon name="trash" size={17} /></button>
 								</li>
 							{:else}
-								<li class="muted body-s">Уроков пока нет.</li>
+								<li class="muted body-s">{t('Уроков пока нет.')}</li>
 							{/each}
 						</ol>
 						<footer>
-							<button class="btn btn-primary btn-s" onclick={() => createLesson(c.dir)}><Icon name="plus" size={16} /> Новый урок</button>
+							<button class="btn btn-primary btn-s" onclick={() => createLesson(c.dir)}><Icon name="plus" size={16} /> {t('Новый урок')}</button>
 							<span class="copy">
-								<select bind:value={copyFrom} aria-label="Встроенный урок для копии">
-									<option value="">Копия встроенного урока…</option>
+								<select bind:value={copyFrom} aria-label={t('Встроенный урок для копии')}>
+									<option value="">{t('Копия встроенного урока…')}</option>
 									{#each studio.builtin as [id, title] (id)}<option value={id}>{title}</option>{/each}
 								</select>
-								<button class="btn btn-quiet btn-s" onclick={() => copy(c.dir)} disabled={!copyFrom}><Icon name="copy" size={16} /> Скопировать</button>
+								<button class="btn btn-quiet btn-s" onclick={() => copy(c.dir)} disabled={!copyFrom}><Icon name="copy" size={16} /> {t('Скопировать')}</button>
 							</span>
 						</footer>
 					</article>
 				{:else}
 					<article class="card empty">
 						<Hanko kanji="創" size={56} />
-						<h2 class="h1">Своих уроков пока нет</h2>
-						<p class="muted">Создайте категорию справа, добавьте в неё урок или импортируйте готовый пакет <span class="mono">.fude</span>.</p>
+						<h2 class="h1">{t('Своих уроков пока нет')}</h2>
+						<p class="muted">{t('Создайте категорию справа, добавьте в неё урок или импортируйте готовый пакет')} <span class="mono">.fude</span>.</p>
 					</article>
 				{/each}
 
 				{#if problems.length}
 					<article class="card problems">
-						<h2 class="h2">Не попали в каталог</h2>
+						<h2 class="h2">{t('Не попали в каталог')}</h2>
 						{#each problems as p (p.path)}
 							<p class="body-s"><span class="mono">{p.path.replace(studio.root, '…')}</span> — {p.message}</p>
 						{/each}
@@ -224,21 +225,21 @@
 
 			<aside>
 				<form class="card create" onsubmit={createCategory}>
-					<h2 class="h2">Новая категория</h2>
-					<label class="field">Название <input type="text" bind:value={newTitle} required maxlength="60" placeholder="Например, Акварель" /></label>
-					<label class="field">Иероглиф <input type="text" bind:value={newKanji} maxlength="2" placeholder="水" /></label>
+					<h2 class="h2">{t('Новая категория')}</h2>
+					<label class="field">{t('Название')} <input type="text" bind:value={newTitle} required maxlength="60" placeholder={t('Например, Акварель')} /></label>
+					<label class="field">{t('Иероглиф')} <input type="text" bind:value={newKanji} maxlength="2" placeholder="水" /></label>
 					<fieldset>
-						<legend class="label">Цвет</legend>
+						<legend class="label">{t('Цвет')}</legend>
 						<div class="accents">
 							{#each ['ai', 'shu', 'kaki', 'kin'] as const as a (a)}
-								<button type="button" class="swatch" style="background: {INK[a]}" aria-pressed={newAccent === a} aria-label={{ ai: 'Индиго', shu: 'Киноварь', kaki: 'Хурма', kin: 'Золото' }[a]} onclick={() => (newAccent = a)}></button>
+								<button type="button" class="swatch" style="background: {INK[a]}" aria-pressed={newAccent === a} aria-label={{ ai: t('Индиго'), shu: t('Киноварь'), kaki: t('Хурма'), kin: t('Золото') }[a]} onclick={() => (newAccent = a)}></button>
 							{/each}
 						</div>
 					</fieldset>
-					<label class="field">Описание <textarea rows="3" bind:value={newDescription}></textarea></label>
-					<button class="btn btn-accent" disabled={!newTitle.trim()}>Создать категорию</button>
+					<label class="field">{t('Описание')} <textarea rows="3" bind:value={newDescription}></textarea></label>
+					<button class="btn btn-accent" disabled={!newTitle.trim()}>{t('Создать категорию')}</button>
 				</form>
-				<p class="body-s muted where">Свои уроки хранятся в <span class="mono">{studio.root}</span></p>
+				<p class="body-s muted where">{t('Свои уроки хранятся в')} <span class="mono">{studio.root}</span></p>
 			</aside>
 		</div>
 	{/if}

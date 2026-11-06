@@ -1,4 +1,5 @@
 <script lang="ts" module>
+	import { t } from '#lib/i18n.svelte.ts';
 	import type { Point, Region, Shape } from '../api.ts';
 
 	export type CanvasTool = 'select' | 'hand' | 'path' | 'line' | 'arrow' | 'ellipse' | 'rect' | 'region' | 'eraser' | 'brush';
@@ -224,19 +225,19 @@
 
 <div class="frame" style:aspect-ratio="{width} / {height}" style:width={scale ? `${width * scale}px` : null} style:height={scale ? `${height * scale}px` : null}>
 	{#if image}
-		<img src={image} alt="Картинка задания" draggable="false" />
+		<img src={image} alt={t('Картинка задания')} draggable="false" />
 	{:else}
 		<div class="blank" style:background></div>
 	{/if}
 	{#if reference && referenceOpacity > 0}
-		<img class="reference" src={reference} alt="Эталон поверх задания" style:opacity={referenceOpacity} draggable="false" />
+		<img class="reference" src={reference} alt={t('Эталон поверх задания')} style:opacity={referenceOpacity} draggable="false" />
 	{/if}
 	<svg
 		bind:this={svg}
 		viewBox="0 0 {width} {height}"
 		class="tool-{tool}"
 		role="application"
-		aria-label="Холст урока: рисуйте линии-призраки и области проверок"
+		aria-label={t('Холст урока: рисуйте линии-призраки и области проверок')}
 		onpointerdown={down}
 		onpointermove={move}
 		onpointerup={up}

@@ -47,8 +47,8 @@ impl Issue {
 impl fmt::Display for Issue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let level = match self.severity {
-            Severity::Error => "ошибка",
-            Severity::Warning => "предупреждение",
+            Severity::Error => crate::i18n::pick("ошибка", "error"),
+            Severity::Warning => crate::i18n::pick("предупреждение", "warning"),
         };
         if self.field.is_empty() { write!(f, "{level}: {}", self.message) } else { write!(f, "{level}: {}: {}", self.field, self.message) }
     }
@@ -163,45 +163,56 @@ pub fn is_lesson_id(text: &str) -> bool {
 /// Checks a hint target: `tool:…`, `panel:…`, `menu:…` or `option:…`.
 pub fn check_target(target: &str) -> Result<(), String> {
     let Some((kind, name)) = target.split_once(':') else {
-        return Err(format!("«{target}»: ожидается tool:…, panel:…, menu:… или option:…"));
+        return Err(crate::tr!("«{target}»: ожидается tool:…, panel:…, menu:… или option:…", "«{target}»: tool:…, panel:…, menu:… or option:… expected"));
     };
     match kind {
         "tool" if canonical_tool(name).is_some() => Ok(()),
-        "tool" => Err(format!("нет такого инструмента PhotoCraft: «{name}»")),
+        "tool" => Err(crate::tr!("нет такого инструмента PhotoCraft: «{name}»", "PhotoCraft has no such tool: «{name}»")),
         "panel" if PANELS.contains(&name) => Ok(()),
-        "panel" => Err(format!("неизвестная панель «{name}»; есть: {}", PANELS.join(", "))),
+        "panel" => Err(crate::tr!("неизвестная панель «{name}»; есть: {}", "unknown panel «{name}»; there are: {}", PANELS.join(", "))),
         "option" if OPTIONS.contains(&name) => Ok(()),
-        "option" => Err(format!("неизвестный параметр «{name}»; есть: {}", OPTIONS.join(", "))),
+        "option" => Err(crate::tr!("неизвестный параметр «{name}»; есть: {}", "unknown option «{name}»; there are: {}", OPTIONS.join(", "))),
         "menu" if !name.is_empty() && name.contains('.') && name.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'.') => Ok(()),
-        "menu" => Err(format!("«{name}»: ожидается id команды меню, например edit.undo")),
-        _ => Err(format!("«{target}»: ожидается tool:…, panel:…, menu:… или option:…")),
+        "menu" => Err(crate::tr!("«{name}»: ожидается id команды меню, например edit.undo", "«{name}»: a menu command id is expected, for example edit.undo")),
+        _ => Err(crate::tr!("«{target}»: ожидается tool:…, panel:…, menu:… или option:…", "«{target}»: tool:…, panel:…, menu:… or option:… expected")),
     }
 }
 
 pub fn category(category: &Category, dir_name: Option<&str>) -> Vec<Issue> {
     let mut issues = Vec::new();
     if !is_slug(&category.id) {
-        issues.push(Issue::error("id", format!("«{}»: только строчные латинские буквы, цифры и «-», до {ID_MAX} символов", category.id)));
+        issues.push(Issue::error(
+            "id",
+            crate::tr!(
+                "«{}»: только строчные латинские буквы, цифры и «-», до {ID_MAX} символов",
+                "«{}»: only lowercase Latin letters, digits and «-», up to {ID_MAX} characters",
+                category.id
+            ),
+        ));
     }
     if let Some(dir) = dir_name
         && dir != category.id
     {
-        issues.push(Issue::error("id", format!("id «{}» не совпадает с именем папки «{dir}»", category.id)));
+        issues
+            .push(Issue::error("id", crate::tr!("id «{}» не совпадает с именем папки «{dir}»", "id «{}» does not match the folder name «{dir}»", category.id)));
     }
     title(&mut issues, "title", &category.title);
     if let Some(kanji) = &category.kanji
         && (kanji.chars().count() != 1)
     {
-        issues.push(Issue::warning("kanji", "ожидается один иероглиф"));
+        issues.push(Issue::warning("kanji", crate::i18n::pick("ожидается один иероглиф", "one kanji is expected")));
     }
     issues
 }
 
 fn title(issues: &mut Vec<Issue>, field: &str, text: &str) {
     if text.trim().is_empty() {
-        issues.push(Issue::error(field, "не может быть пустым"));
+        issues.push(Issue::error(field, crate::i18n::pick("не может быть пустым", "cannot be empty")));
     } else if text.chars().count() > 120 {
-        issues.push(Issue::warning(field, "длиннее 120 символов, не поместится на карточке"));
+        issues.push(Issue::warning(
+            field,
+            crate::i18n::pick("длиннее 120 символов, не поместится на карточке", "longer than 120 characters, it will not fit on the card"),
+        ));
     }
 }
 
@@ -210,40 +221,63 @@ fn title(issues: &mut Vec<Issue>, field: &str, text: &str) {
 pub fn lesson(lesson: &Lesson, dir: Option<&Path>, category_id: Option<&str>) -> Vec<Issue> {
     let mut issues = Vec::new();
     if lesson.format != FORMAT {
-        issues.push(Issue::error("format", format!("версия формата {} не поддерживается (нужна {FORMAT})", lesson.format)));
+        issues.push(Issue::error(
+            "format",
+            crate::tr!("версия формата {} не поддерживается (нужна {FORMAT})", "format version {} is not supported ({FORMAT} is needed)", lesson.format),
+        ));
     }
     if !is_lesson_id(&lesson.id) {
-        issues.push(Issue::error("id", format!("«{}»: ожидается <категория>.<имя>, латиница, цифры и «-»", lesson.id)));
+        issues.push(Issue::error(
+            "id",
+            crate::tr!(
+                "«{}»: ожидается <категория>.<имя>, латиница, цифры и «-»",
+                "«{}»: <category>.<name> is expected, Latin letters, digits and «-»",
+                lesson.id
+            ),
+        ));
     } else if let Some(category) = category_id
         && lesson.category_id() != category
     {
-        issues.push(Issue::error("id", format!("урок «{}» лежит в категории «{category}», id должен начинаться с «{category}.»", lesson.id)));
+        issues.push(Issue::error(
+            "id",
+            crate::tr!(
+                "урок «{}» лежит в категории «{category}», id должен начинаться с «{category}.»",
+                "lesson «{}» is in the «{category}» category, its id must start with «{category}.»",
+                lesson.id
+            ),
+        ));
     }
     title(&mut issues, "title", &lesson.title);
     if !(1..=5).contains(&lesson.difficulty) {
-        issues.push(Issue::error("difficulty", "сложность — от 1 до 5"));
+        issues.push(Issue::error("difficulty", crate::i18n::pick("сложность — от 1 до 5", "the difficulty is from 1 to 5")));
     }
     if lesson.minutes > 600 {
-        issues.push(Issue::warning("minutes", "больше 10 часов — разбейте урок на несколько"));
+        issues.push(Issue::warning(
+            "minutes",
+            crate::i18n::pick("больше 10 часов — разбейте урок на несколько", "more than 10 hours — split the lesson into several"),
+        ));
     }
     if lesson.skills.is_empty() {
-        issues.push(Issue::warning("skills", "урок не развивает ни одну сторону навыка в статистике"));
+        issues.push(Issue::warning(
+            "skills",
+            crate::i18n::pick("урок не развивает ни одну сторону навыка в статистике", "the lesson develops no skill area in the statistics"),
+        ));
     }
     let unique: HashSet<_> = lesson.skills.iter().collect();
     if unique.len() != lesson.skills.len() {
-        issues.push(Issue::warning("skills", "навык указан дважды"));
+        issues.push(Issue::warning("skills", crate::i18n::pick("навык указан дважды", "a skill is given twice")));
     }
     for (i, required) in lesson.requires.iter().enumerate() {
         if !is_lesson_id(required) {
-            issues.push(Issue::error(format!("requires[{i}]"), format!("«{required}» — не id урока")));
+            issues.push(Issue::error(format!("requires[{i}]"), crate::tr!("«{required}» — не id урока", "«{required}» is not a lesson id")));
         } else if *required == lesson.id {
-            issues.push(Issue::error(format!("requires[{i}]"), "урок не может требовать сам себя"));
+            issues.push(Issue::error(format!("requires[{i}]"), crate::i18n::pick("урок не может требовать сам себя", "a lesson cannot require itself")));
         }
     }
 
     file(&mut issues, dir, "theory.file", &lesson.theory.file, &["md"]);
     if lesson.guide.is_empty() {
-        issues.push(Issue::warning("guide", "нет ни сценария гайда, ни видео"));
+        issues.push(Issue::warning("guide", crate::i18n::pick("нет ни сценария гайда, ни видео", "there is neither a guide script nor a video")));
     }
     if let Some(script) = &lesson.guide.script
         && file(&mut issues, dir, "guide.script", script, &["json"])
@@ -267,16 +301,16 @@ pub fn lesson(lesson: &Lesson, dir: Option<&Path>, category_id: Option<&str>) ->
     for (i, q) in lesson.quiz.iter().enumerate() {
         let field = format!("quiz[{i}]");
         if q.question.trim().is_empty() {
-            issues.push(Issue::error(format!("{field}.question"), "вопрос пустой"));
+            issues.push(Issue::error(format!("{field}.question"), crate::i18n::pick("вопрос пустой", "the question is empty")));
         }
         if !(2..=8).contains(&q.options.len()) {
-            issues.push(Issue::error(format!("{field}.options"), "нужно от 2 до 8 вариантов"));
+            issues.push(Issue::error(format!("{field}.options"), crate::i18n::pick("нужно от 2 до 8 вариантов", "2 to 8 options are needed")));
         }
         if q.answer >= q.options.len() {
-            issues.push(Issue::error(format!("{field}.answer"), format!("нет варианта с номером {}", q.answer)));
+            issues.push(Issue::error(format!("{field}.answer"), crate::tr!("нет варианта с номером {}", "there is no option number {}", q.answer)));
         }
         if q.options.iter().any(|o| o.trim().is_empty()) {
-            issues.push(Issue::error(format!("{field}.options"), "пустой вариант ответа"));
+            issues.push(Issue::error(format!("{field}.options"), crate::i18n::pick("пустой вариант ответа", "an empty answer option")));
         }
     }
 
@@ -291,13 +325,13 @@ fn file(issues: &mut Vec<Issue>, dir: Option<&Path>, field: &str, path: &str, ex
         return false;
     }
     if !paths::has_extension(path, extensions) {
-        issues.push(Issue::error(field, format!("«{path}»: нужен файл {}", extensions.join(", "))));
+        issues.push(Issue::error(field, crate::tr!("«{path}»: нужен файл {}", "«{path}»: a {} file is needed", extensions.join(", "))));
         return false;
     }
     if let Some(dir) = dir
         && !paths::resolve(dir, path).is_ok_and(|p| p.is_file())
     {
-        issues.push(Issue::error(field, format!("файл «{path}» не найден")));
+        issues.push(Issue::error(field, crate::tr!("файл «{path}» не найден", "file «{path}» not found")));
         return false;
     }
     true
@@ -306,44 +340,56 @@ fn file(issues: &mut Vec<Issue>, dir: Option<&Path>, field: &str, path: &str, ex
 fn task(issues: &mut Vec<Issue>, lesson: &Lesson, dir: Option<&Path>) {
     let task = &lesson.task;
     if task.brief.trim().is_empty() {
-        issues.push(Issue::warning("task.brief", "нет описания задания"));
+        issues.push(Issue::warning("task.brief", crate::i18n::pick("нет описания задания", "the task has no description")));
     }
     match (&task.open, &task.canvas) {
-        (Some(_), Some(_)) => issues.push(Issue::error("task", "укажите что-то одно: open или canvas")),
-        (None, None) => issues.push(Issue::error("task", "укажите open (картинку задания) или canvas (чистый холст)")),
+        (Some(_), Some(_)) => issues.push(Issue::error("task", crate::i18n::pick("укажите что-то одно: open или canvas", "give only one of open or canvas"))),
+        (None, None) => issues.push(Issue::error(
+            "task",
+            crate::i18n::pick("укажите open (картинку задания) или canvas (чистый холст)", "give open (the task picture) or canvas (a blank canvas)"),
+        )),
         (Some(open), None) => {
             file(issues, dir, "task.open", open, IMAGE_EXTENSIONS);
         }
         (None, Some(canvas)) => {
             if !(16..=8192).contains(&canvas.width) || !(16..=8192).contains(&canvas.height) {
-                issues.push(Issue::error("task.canvas", "размер холста — от 16 до 8192 пикселей"));
+                issues.push(Issue::error(
+                    "task.canvas",
+                    crate::i18n::pick("размер холста — от 16 до 8192 пикселей", "the canvas size is from 16 to 8192 pixels"),
+                ));
             }
             if parse_hex(&canvas.background).is_none() {
-                issues.push(Issue::error("task.canvas.background", format!("«{}»: ожидается цвет #rrggbb", canvas.background)));
+                issues.push(Issue::error(
+                    "task.canvas.background",
+                    crate::tr!("«{}»: ожидается цвет #rrggbb", "«{}»: a #rrggbb colour is expected", canvas.background),
+                ));
             }
         }
     }
     let has_reference = task.reference.as_ref().is_some_and(|r| file(issues, dir, "task.reference", r, IMAGE_EXTENSIONS));
 
     if task.steps.is_empty() {
-        issues.push(Issue::error("task.steps", "в задании нет шагов"));
+        issues.push(Issue::error("task.steps", crate::i18n::pick("в задании нет шагов", "the task has no steps")));
     }
     let mut ids = HashSet::new();
     for (i, step) in task.steps.iter().enumerate() {
         let field = format!("task.steps[{i}]");
         if !is_slug(&step.id) {
-            issues.push(Issue::error(format!("{field}.id"), format!("«{}»: латиница, цифры и «-»", step.id)));
+            issues.push(Issue::error(format!("{field}.id"), crate::tr!("«{}»: латиница, цифры и «-»", "«{}»: Latin letters, digits and «-»", step.id)));
         } else if !ids.insert(step.id.as_str()) {
-            issues.push(Issue::error(format!("{field}.id"), format!("шаг «{}» уже есть", step.id)));
+            issues.push(Issue::error(format!("{field}.id"), crate::tr!("шаг «{}» уже есть", "step «{}» already exists", step.id)));
         }
         if step.text.trim().is_empty() {
-            issues.push(Issue::error(format!("{field}.text"), "текст шага пустой"));
+            issues.push(Issue::error(format!("{field}.text"), crate::i18n::pick("текст шага пустой", "the step text is empty")));
         }
         if let Some(h) = &step.hint {
             hint(issues, &format!("{field}.hint"), h);
         }
         if step.checks.is_empty() {
-            issues.push(Issue::warning(format!("{field}.checks"), "без проверок шаг засчитывается кнопкой «Готово»"));
+            issues.push(Issue::warning(
+                format!("{field}.checks"),
+                crate::i18n::pick("без проверок шаг засчитывается кнопкой «Готово»", "without checks the step counts with the «Done» button"),
+            ));
         }
         for (j, c) in step.checks.iter().enumerate() {
             check(issues, &format!("{field}.checks[{j}]"), c, dir, has_reference);
@@ -353,7 +399,7 @@ fn task(issues: &mut Vec<Issue>, lesson: &Lesson, dir: Option<&Path>) {
 
 fn hint(issues: &mut Vec<Issue>, field: &str, hint: &Hint) {
     if hint.text.trim().is_empty() {
-        issues.push(Issue::error(format!("{field}.text"), "текст подсказки пустой"));
+        issues.push(Issue::error(format!("{field}.text"), crate::i18n::pick("текст подсказки пустой", "the hint text is empty")));
     }
     if let Some(target) = &hint.target
         && let Err(e) = check_target(target)
@@ -370,28 +416,31 @@ fn hint(issues: &mut Vec<Issue>, field: &str, hint: &Hint) {
             Shape::Line { from, to, .. } | Shape::Arrow { from, to, .. } => vec![*from, *to],
             Shape::Path { points, .. } => {
                 if points.len() < 2 {
-                    issues.push(Issue::error(&field, "в линии нужно хотя бы две точки"));
+                    issues.push(Issue::error(&field, crate::i18n::pick("в линии нужно хотя бы две точки", "a line needs at least two points")));
                 }
                 if points.len() > 2000 {
-                    issues.push(Issue::error(&field, "больше 2000 точек"));
+                    issues.push(Issue::error(&field, crate::i18n::pick("больше 2000 точек", "more than 2000 points")));
                 }
                 points.clone()
             }
         };
         if points.iter().flatten().any(|v| !(0.0..=1.0).contains(v)) {
-            issues.push(Issue::error(&field, "координаты — доли холста от 0 до 1"));
+            issues.push(Issue::error(&field, crate::i18n::pick("координаты — доли холста от 0 до 1", "coordinates are fractions of the canvas from 0 to 1")));
         }
         let style = shape.style();
         if let Some(color) = &style.color
             && parse_hex(color).is_none()
         {
-            issues.push(Issue::error(format!("{field}.style.color"), "цвет — в виде #rrggbb"));
+            issues.push(Issue::error(format!("{field}.style.color"), crate::i18n::pick("цвет — в виде #rrggbb", "the colour is #rrggbb")));
         }
         if style.width.is_some_and(|w| !(0.5..=200.0).contains(&w)) {
-            issues.push(Issue::error(format!("{field}.style.width"), "толщина — от 0,5 до 200 пикселей"));
+            issues.push(Issue::error(
+                format!("{field}.style.width"),
+                crate::i18n::pick("толщина — от 0,5 до 200 пикселей", "the width is from 0.5 to 200 pixels"),
+            ));
         }
         if style.opacity.is_some_and(|o| !(0.05..=1.0).contains(&o)) {
-            issues.push(Issue::error(format!("{field}.style.opacity"), "непрозрачность — от 0,05 до 1"));
+            issues.push(Issue::error(format!("{field}.style.opacity"), crate::i18n::pick("непрозрачность — от 0,05 до 1", "the opacity is from 0.05 to 1")));
         }
     }
 }
@@ -400,7 +449,13 @@ fn region(issues: &mut Vec<Issue>, field: &str, r: &Region) {
     let [x, y, w, h] = *r;
     let ok = r.iter().all(|v| v.is_finite()) && x >= 0.0 && y >= 0.0 && w > 0.0 && h > 0.0 && x + w <= 1.0 + 1e-9 && y + h <= 1.0 + 1e-9;
     if !ok {
-        issues.push(Issue::error(field, "область [x, y, ширина, высота] — доли холста от 0 до 1, внутри холста"));
+        issues.push(Issue::error(
+            field,
+            crate::i18n::pick(
+                "область [x, y, ширина, высота] — доли холста от 0 до 1, внутри холста",
+                "the area [x, y, width, height] is fractions of the canvas from 0 to 1, inside the canvas",
+            ),
+        ));
     }
 }
 
@@ -408,15 +463,18 @@ fn range(issues: &mut Vec<Issue>, field: &str, r: &Range, bounds: Option<(f64, f
     if let (Some(a), Some(b)) = (r.min, r.max)
         && a > b
     {
-        issues.push(Issue::error(field, "min больше max"));
+        issues.push(Issue::error(field, crate::i18n::pick("min больше max", "min is greater than max")));
     }
     if r.min.is_none() && r.max.is_none() {
-        issues.push(Issue::warning(field, "диапазон без границ — проверка всегда проходит"));
+        issues.push(Issue::warning(
+            field,
+            crate::i18n::pick("диапазон без границ — проверка всегда проходит", "a range without bounds — the check always passes"),
+        ));
     }
     if let Some((lo, hi)) = bounds
         && [r.min, r.max].into_iter().flatten().any(|v| !(lo..=hi).contains(&v))
     {
-        issues.push(Issue::error(field, format!("значения — от {lo} до {hi}")));
+        issues.push(Issue::error(field, crate::tr!("значения — от {lo} до {hi}", "values are from {lo} to {hi}")));
     }
 }
 
@@ -425,12 +483,15 @@ fn check(issues: &mut Vec<Issue>, field: &str, check: &Check, dir: Option<&Path>
     match &check.kind {
         CheckKind::Tool { tool } => {
             if canonical_tool(tool).is_none() {
-                issues.push(Issue::error(format!("{field}.tool"), format!("нет такого инструмента PhotoCraft: «{tool}»")));
+                issues.push(Issue::error(
+                    format!("{field}.tool"),
+                    crate::tr!("нет такого инструмента PhotoCraft: «{tool}»", "PhotoCraft has no such tool: «{tool}»"),
+                ));
             }
         }
         CheckKind::Brush { size, hardness, opacity } => {
             if size.is_none() && hardness.is_none() && opacity.is_none() {
-                issues.push(Issue::warning(field, "не задан ни один параметр кисти"));
+                issues.push(Issue::warning(field, crate::i18n::pick("не задан ни один параметр кисти", "no brush setting is given")));
             }
             if let Some(r) = size {
                 range(issues, &format!("{field}.size"), r, Some((0.5, 5000.0)));
@@ -446,7 +507,7 @@ fn check(issues: &mut Vec<Issue>, field: &str, check: &Check, dir: Option<&Path>
         CheckKind::Layers { count } => range(issues, &format!("{field}.count"), count, Some((0.0, 10000.0))),
         CheckKind::Layer { name, visible, opacity, layer_type } => {
             if name.is_none() && visible.is_none() && opacity.is_none() && layer_type.is_none() {
-                issues.push(Issue::warning(field, "без условий подойдёт любой слой"));
+                issues.push(Issue::warning(field, crate::i18n::pick("без условий подойдёт любой слой", "without conditions any layer fits")));
             }
             if let Some(r) = opacity {
                 range(issues, &format!("{field}.opacity"), r, unit);
@@ -461,7 +522,7 @@ fn check(issues: &mut Vec<Issue>, field: &str, check: &Check, dir: Option<&Path>
         }
         CheckKind::History { entries, can_redo } => {
             if entries.is_none() && can_redo.is_none() {
-                issues.push(Issue::warning(field, "не задано ни entries, ни can_redo"));
+                issues.push(Issue::warning(field, crate::i18n::pick("не задано ни entries, ни can_redo", "neither entries nor can_redo is given")));
             }
             if let Some(r) = entries {
                 range(issues, &format!("{field}.entries"), r, Some((0.0, 100000.0)));
@@ -483,7 +544,7 @@ fn check(issues: &mut Vec<Issue>, field: &str, check: &Check, dir: Option<&Path>
             region(issues, &format!("{field}.region"), r);
             region(issues, &format!("{field}.than"), than);
             if !(0.0..=1.0).contains(by) {
-                issues.push(Issue::error(format!("{field}.by"), "от 0 до 1"));
+                issues.push(Issue::error(format!("{field}.by"), crate::i18n::pick("от 0 до 1", "from 0 to 1")));
             }
         }
         CheckKind::Color { region: r, color, tolerance } => {
@@ -497,7 +558,10 @@ fn check(issues: &mut Vec<Issue>, field: &str, check: &Check, dir: Option<&Path>
                 Some(r) => {
                     file(issues, dir, &format!("{field}.reference"), r, IMAGE_EXTENSIONS);
                 }
-                None if !has_reference => issues.push(Issue::error(format!("{field}.reference"), "нет эталона: задайте reference здесь или в task.reference")),
+                None if !has_reference => issues.push(Issue::error(
+                    format!("{field}.reference"),
+                    crate::i18n::pick("нет эталона: задайте reference здесь или в task.reference", "no reference: set reference here or in task.reference"),
+                )),
                 None => {}
             }
         }
@@ -506,13 +570,13 @@ fn check(issues: &mut Vec<Issue>, field: &str, check: &Check, dir: Option<&Path>
 
 fn colour(issues: &mut Vec<Issue>, field: &str, color: &str) {
     if parse_hex(color).is_none() {
-        issues.push(Issue::error(field, format!("«{color}»: ожидается цвет #rrggbb")));
+        issues.push(Issue::error(field, crate::tr!("«{color}»: ожидается цвет #rrggbb", "«{color}»: a #rrggbb colour is expected")));
     }
 }
 
 fn tolerance_ok(issues: &mut Vec<Issue>, field: &str, tolerance: f64) {
     if !(0.0..=1.0).contains(&tolerance) {
-        issues.push(Issue::error(format!("{field}.tolerance"), "от 0 до 1"));
+        issues.push(Issue::error(format!("{field}.tolerance"), crate::i18n::pick("от 0 до 1", "from 0 to 1")));
     }
 }
 

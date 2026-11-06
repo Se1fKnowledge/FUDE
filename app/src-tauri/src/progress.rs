@@ -68,16 +68,16 @@ pub struct Rank {
 }
 
 pub fn rank_name(index: usize) -> String {
-    if index >= 10 { "1 дан".into() } else { format!("{} кю", 10 - index) }
+    if index >= 10 { fude_core::tr!("1 дан", "1 dan") } else { fude_core::tr!("{} кю", "{} kyu", 10 - index) }
 }
 
 pub fn rank(xp: u32) -> Rank {
     let index = RANKS.iter().rposition(|&floor| xp >= floor).unwrap_or(0);
     let title = match index {
-        0..=3 => "Новичок",
-        4..=6 => "Ученик кисти",
-        7..=9 => "Подмастерье",
-        _ => "Мастер",
+        0..=3 => fude_core::i18n::pick("Новичок", "Beginner"),
+        4..=6 => fude_core::i18n::pick("Ученик кисти", "Brush apprentice"),
+        7..=9 => fude_core::i18n::pick("Подмастерье", "Journeyman"),
+        _ => fude_core::i18n::pick("Мастер", "Master"),
     };
     Rank { index, name: rank_name(index), title: title.into(), xp, floor: RANKS[index], next: RANKS.get(index + 1).copied() }
 }
@@ -298,17 +298,105 @@ pub fn achievements(f: &Facts, unlocked: &HashMap<String, String>) -> Vec<Achiev
     let dan = (rank(total_xp(f.attempts)).index >= 10) as u32;
 
     let list = [
-        ("first", "一", "Первый мазок", "Пройдите первый урок".to_string(), "Мастерство", passed.len().min(1) as u32, 1),
-        ("streak7", "火", "Огонь в сердце", "Семь дней практики подряд".into(), "Серии", best_streak, 7),
-        ("core-shadow", "影", "Первая тень", "«Собственная тень и полутон» без подсказок".into(), "Самостоятельность", core_shadow, 1),
-        ("basics", "基", "Крепкий фундамент", "Вся категория «Основы интерфейса»".into(), "Мастерство", basics, basics_n),
-        ("early", "朝", "Ранняя птица", "Пять уроков до 9:00".into(), "Серии", early, 5),
-        ("self", "独", "Сам себе сэнсэй", "Десять заданий без подсказок".into(), "Самостоятельность", clean, 10),
-        ("light", "光", "Свет мастера", "Вся категория «Свет и тень»".into(), "Мастерство", light, light_n),
-        ("quick", "速", "Быстрая рука", "Три урока быстрее их нормы времени".into(), "Скорость", quick, 3),
-        ("season", "季", "Сезон кисти", "Тридцать дней практики подряд".into(), "Серии", best_streak, 30),
-        ("author", "創", "Свой урок", "Создайте урок в мастерской".into(), "Творчество", f.user_lessons.min(1), 1),
-        ("sensei", "師", "Сэнсэй", "Получите 1 дан".into(), "Мастерство", dan, 1),
+        (
+            "first",
+            "一",
+            fude_core::i18n::pick("Первый мазок", "First stroke"),
+            fude_core::tr!("Пройдите первый урок", "Complete the first lesson"),
+            fude_core::i18n::pick("Мастерство", "Mastery"),
+            passed.len().min(1) as u32,
+            1,
+        ),
+        (
+            "streak7",
+            "火",
+            fude_core::i18n::pick("Огонь в сердце", "Fire in the heart"),
+            fude_core::tr!("Семь дней практики подряд", "Seven days of practice in a row"),
+            fude_core::i18n::pick("Серии", "Streaks"),
+            best_streak,
+            7,
+        ),
+        (
+            "core-shadow",
+            "影",
+            fude_core::i18n::pick("Первая тень", "First shadow"),
+            fude_core::tr!("«Собственная тень и полутон» без подсказок", "«Core shadow and halftone» without hints"),
+            fude_core::i18n::pick("Самостоятельность", "Independence"),
+            core_shadow,
+            1,
+        ),
+        (
+            "basics",
+            "基",
+            fude_core::i18n::pick("Крепкий фундамент", "Solid foundation"),
+            fude_core::tr!("Вся категория «Основы интерфейса»", "The whole «Interface basics» category"),
+            fude_core::i18n::pick("Мастерство", "Mastery"),
+            basics,
+            basics_n,
+        ),
+        (
+            "early",
+            "朝",
+            fude_core::i18n::pick("Ранняя птица", "Early bird"),
+            fude_core::tr!("Пять уроков до 9:00", "Five lessons before 9:00"),
+            fude_core::i18n::pick("Серии", "Streaks"),
+            early,
+            5,
+        ),
+        (
+            "self",
+            "独",
+            fude_core::i18n::pick("Сам себе сэнсэй", "Your own sensei"),
+            fude_core::tr!("Десять заданий без подсказок", "Ten tasks without hints"),
+            fude_core::i18n::pick("Самостоятельность", "Independence"),
+            clean,
+            10,
+        ),
+        (
+            "light",
+            "光",
+            fude_core::i18n::pick("Свет мастера", "Master's light"),
+            fude_core::tr!("Вся категория «Свет и тень»", "The whole «Light and shadow» category"),
+            fude_core::i18n::pick("Мастерство", "Mastery"),
+            light,
+            light_n,
+        ),
+        (
+            "quick",
+            "速",
+            fude_core::i18n::pick("Быстрая рука", "Quick hand"),
+            fude_core::tr!("Три урока быстрее их нормы времени", "Three lessons faster than their time norm"),
+            fude_core::i18n::pick("Скорость", "Speed"),
+            quick,
+            3,
+        ),
+        (
+            "season",
+            "季",
+            fude_core::i18n::pick("Сезон кисти", "Season of the brush"),
+            fude_core::tr!("Тридцать дней практики подряд", "Thirty days of practice in a row"),
+            fude_core::i18n::pick("Серии", "Streaks"),
+            best_streak,
+            30,
+        ),
+        (
+            "author",
+            "創",
+            fude_core::i18n::pick("Свой урок", "Your own lesson"),
+            fude_core::tr!("Создайте урок в мастерской", "Create a lesson in the workshop"),
+            fude_core::i18n::pick("Творчество", "Creativity"),
+            f.user_lessons.min(1),
+            1,
+        ),
+        (
+            "sensei",
+            "師",
+            fude_core::i18n::pick("Сэнсэй", "Sensei"),
+            fude_core::tr!("Получите 1 дан", "Reach 1 dan"),
+            fude_core::i18n::pick("Мастерство", "Mastery"),
+            dan,
+            1,
+        ),
     ];
     list.into_iter()
         .map(|(id, kanji, title, description, group, current, target)| Achievement {
@@ -328,10 +416,10 @@ pub fn achievements(f: &Facts, unlocked: &HashMap<String, String>) -> Vec<Achiev
 
 pub fn greeting(hour: u32) -> &'static str {
     match hour {
-        5..=11 => "Доброе утро",
-        12..=16 => "Добрый день",
-        17..=22 => "Добрый вечер",
-        _ => "Доброй ночи",
+        5..=11 => fude_core::i18n::pick("Доброе утро", "Good morning"),
+        12..=16 => fude_core::i18n::pick("Добрый день", "Good afternoon"),
+        17..=22 => fude_core::i18n::pick("Добрый вечер", "Good evening"),
+        _ => fude_core::i18n::pick("Доброй ночи", "Good night"),
     }
 }
 

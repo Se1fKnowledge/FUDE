@@ -1,5 +1,6 @@
 // Places in the PhotoCraft window a hint can point at («куда нажать»), grouped the way the
 // interface map shows them. The ids are the ones the lesson format accepts (validate.rs).
+import { t } from '#lib/i18n.svelte.ts';
 import { TOOLS } from '../checks.ts';
 import { targetLabel } from './timeline.ts';
 
@@ -12,22 +13,22 @@ export interface Target {
 }
 
 export const GROUP_LABELS: Record<TargetGroup, string> = {
-	tool: 'Инструменты',
-	panel: 'Панели',
-	option: 'Параметры инструмента',
-	menu: 'Команды меню'
+	tool: t('Инструменты'),
+	panel: t('Панели'),
+	option: t('Параметры инструмента'),
+	menu: t('Команды меню')
 };
 
 export const PANELS = ['Layers', 'Color', 'Brushes', 'History', 'Properties', 'Navigator'];
 export const OPTIONS = ['brushSize', 'hardness', 'opacity', 'flow', 'blend', 'layerOpacity'];
 export const MENU: [string, string][] = [
-	['edit.undo', 'Отменить'],
-	['edit.redo', 'Повторить'],
-	['select.all', 'Выделить всё'],
-	['select.deselect', 'Снять выделение'],
-	['select.inverse', 'Инверсия выделения'],
-	['layer.new.layer', 'Новый слой'],
-	['edit.fill', 'Заливка']
+	['edit.undo', t('Отменить')],
+	['edit.redo', t('Повторить')],
+	['select.all', t('Выделить всё')],
+	['select.deselect', t('Снять выделение')],
+	['select.inverse', t('Инверсия выделения')],
+	['layer.new.layer', t('Новый слой')],
+	['edit.fill', t('Заливка')]
 ];
 
 export const TARGETS: Target[] = [
@@ -39,7 +40,7 @@ export const TARGETS: Target[] = [
 
 /** Targets whose Russian name or id contains `query` (any case, ё = е). */
 export function search(query: string, list: Target[] = TARGETS): Target[] {
-	const norm = (s: string) => s.toLowerCase().replaceAll('ё', 'е').trim();
+	const norm = (s: string) => s.toLowerCase().replaceAll('ё', 'е').trim(); // i18n-ignore: ё and е match in search
 	const q = norm(query);
 	if (!q) return list;
 	return list.filter((t) => norm(t.label).includes(q) || norm(t.id).includes(q));

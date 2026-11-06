@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { t } from '#lib/i18n.svelte.ts';
 	import type { GuideStep } from '../api.ts';
 	import Icon from '../components/Icon.svelte';
 	import { count } from '../format.ts';
@@ -82,39 +83,39 @@
 	const ICON: Record<Track, 'pencil' | 'target' | 'sparkle' | 'brush' | 'book'> = { caption: 'pencil', highlight: 'target', action: 'sparkle', stroke: 'brush', task: 'book' };
 </script>
 
-<section class="timeline" aria-label="Дорожки гайда">
+<section class="timeline" aria-label={t('Дорожки гайда')}>
 	<div class="transport">
-		<button class="play" onclick={onplay} aria-label={playing ? 'Пауза' : 'Проиграть на холсте'} disabled={!steps.length || recording}>
+		<button class="play" onclick={onplay} aria-label={playing ? t('Пауза') : t('Проиграть на холсте')} disabled={!steps.length || recording}>
 			<Icon name={playing ? 'stop' : 'play'} size={14} />
 		</button>
 		<span class="time mono">{clock(playhead)} / {clock(layout.total)}</span>
-		<span class="count">{steps.length ? count(steps.length, ['шаг', 'шага', 'шагов']) : 'Гайд пуст'}</span>
+		<span class="count">{steps.length ? count(steps.length, ['шаг', 'шага', 'шагов']) : t('Гайд пуст')}</span>
 		<span class="grow"></span>
-		<button class="tbtn" onclick={onaddcaption} disabled={recording}><Icon name="plus" size={14} /> Подпись</button>
-		<button class="tbtn" onclick={onsplit} disabled={!steps.length || recording} title="Разрезать шаг под плейхедом: штрих делится на два, иначе пауза"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M6 3a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM6 15a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM20 4 8.1 15.9M14.5 14.5 20 20M8.1 8.1 12 12" /></svg> Разрезать</button>
-		<button class="tbtn" onclick={onremove} disabled={selected < 0 || recording} aria-label="Удалить выбранный шаг"><Icon name="trash" size={14} /></button>
+		<button class="tbtn" onclick={onaddcaption} disabled={recording}><Icon name="plus" size={14} /> {t('Подпись')}</button>
+		<button class="tbtn" onclick={onsplit} disabled={!steps.length || recording} title={t('Разрезать шаг под плейхедом: штрих делится на два, иначе пауза')}><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M6 3a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM6 15a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM20 4 8.1 15.9M14.5 14.5 20 20M8.1 8.1 12 12" /></svg> {t('Разрезать')}</button>
+		<button class="tbtn" onclick={onremove} disabled={selected < 0 || recording} aria-label={t('Удалить выбранный шаг')}><Icon name="trash" size={14} /></button>
 		<button class="rec" class:on={recording} onclick={onrecord}>
-			<span class="dot"></span>{recording ? recordLabel || 'Остановить запись' : 'Записать в PhotoCraft'}
+			<span class="dot"></span>{recording ? recordLabel || t('Остановить запись') : t('Записать в PhotoCraft')}
 		</button>
 	</div>
 
 	<div class="body">
 		<div class="labels" style:width="{LABEL}px">
 			<div class="ruler-pad"></div>
-			{#each TRACKS as t (t.id)}
-				<div class="label-row"><Icon name={ICON[t.id]} size={14} /> {t.label}</div>
+			{#each TRACKS as tr (tr.id)}
+				<div class="label-row"><Icon name={ICON[tr.id]} size={14} /> {tr.label}</div>
 			{/each}
 		</div>
 		<div class="lanes" bind:this={lanes} bind:clientWidth={laneWidth} onpointermove={resizeMove} onpointerup={() => (resizing = null)} role="presentation">
 			<div class="inner" style:width="{width}px">
-				<div class="ruler" onpointerdown={seekFrom} role="slider" aria-label="Время гайда" aria-valuemin={0} aria-valuemax={layout.total} aria-valuenow={Math.round(playhead)} tabindex="0">
+				<div class="ruler" onpointerdown={seekFrom} role="slider" aria-label={t('Время гайда')} aria-valuemin={0} aria-valuemax={layout.total} aria-valuenow={Math.round(playhead)} tabindex="0">
 					{#each ticks as s (s)}
-						<span class="tick" class:major={s % 2 === 0} style:left="{s * 1000 * pxPerMs}px">{#if s % 2 === 0}{s} с{/if}</span>
+						<span class="tick" class:major={s % 2 === 0} style:left="{s * 1000 * pxPerMs}px">{#if s % 2 === 0}{t('{n} с', { n: s })}{/if}</span>
 					{/each}
 				</div>
-				{#each TRACKS as t (t.id)}
+				{#each TRACKS as tr (tr.id)}
 					<div class="lane" onpointerdown={seekFrom} role="presentation">
-						{#each byTrack(t.id) as c (c.track + c.step)}
+						{#each byTrack(tr.id) as c (c.track + c.step)}
 							<div
 								class="clip {c.track}"
 								class:on={c.step === selected}
@@ -128,7 +129,7 @@
 							>
 								<span>{c.label}</span>
 								{#if c.track !== 'caption' && c.step === selected}
-									<span class="grip" onpointerdown={(e) => startResize(e, c.step)} role="presentation" title="Потяните, чтобы изменить паузу"></span>
+									<span class="grip" onpointerdown={(e) => startResize(e, c.step)} role="presentation" title={t('Потяните, чтобы изменить паузу')}></span>
 								{/if}
 							</div>
 						{/each}

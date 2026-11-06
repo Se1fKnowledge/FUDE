@@ -1,5 +1,7 @@
 <script lang="ts">
+	import { LANGS, i18n, setLang, t } from '#lib/i18n.svelte.ts';
 	import { api, errorText } from '#lib/api.ts';
+	import { count } from '#lib/format.ts';
 	import Enso from './Enso.svelte';
 	import Hanko from './Hanko.svelte';
 
@@ -29,29 +31,40 @@
 	<div class="enso"><Enso size={520} color="color-mix(in srgb, var(--ink-900) 7%, transparent)" seed={9} /></div>
 	<form class="card" onsubmit={save}>
 		<Hanko kanji="筆" size={52} />
-		<h1 class="display-l">Добро пожаловать в FUDE</h1>
+		<div class="langs" role="group" aria-label={t('Язык интерфейса')}>
+			{#each LANGS as l (l.code)}
+				<button type="button" class="chip" aria-pressed={i18n.lang === l.code} onclick={() => setLang(l.code)}>{l.label}</button>
+			{/each}
+		</div>
+		<h1 class="display-l">{t('Добро пожаловать в FUDE')}</h1>
 		<p class="muted">
-			Здесь вы учитесь рисовать прямо в редакторе: гайд показывает приём, теория объясняет, а задание вы выполняете сами. Всё хранится на этом компьютере.
+			{t('Здесь вы учитесь рисовать прямо в редакторе: гайд показывает приём, теория объясняет, а задание вы выполняете сами. Всё хранится на этом компьютере.')}
 		</p>
 		<label class="field">
-			Как к вам обращаться?
+			{t('Как к вам обращаться?')}
 			<!-- svelte-ignore a11y_autofocus -->
-			<input type="text" bind:value={name} maxlength="40" placeholder="Имя" autofocus required />
+			<input type="text" bind:value={name} maxlength="40" placeholder={t('Имя')} autofocus required />
 		</label>
 		<fieldset>
-			<legend>Цель на день</legend>
+			<legend>{t('Цель на день')}</legend>
 			<div class="segmented">
 				{#each [1, 2, 3, 5] as g (g)}
-					<button type="button" aria-pressed={goal === g} onclick={() => (goal = g)}>{g} {g === 1 ? 'задание' : g < 5 ? 'задания' : 'заданий'}</button>
+					<button type="button" aria-pressed={goal === g} onclick={() => (goal = g)}>{count(g, ['задание', 'задания', 'заданий'])}</button>
 				{/each}
 			</div>
 		</fieldset>
 		{#if error}<p class="error" role="alert">{error}</p>{/if}
-		<button class="btn btn-accent" disabled={busy || !name.trim()}>Начать путь</button>
+		<button class="btn btn-accent" disabled={busy || !name.trim()}>{t('Начать путь')}</button>
 	</form>
 </div>
 
 <style>
+	.langs {
+		display: flex;
+		gap: 8px;
+		margin-bottom: 20px;
+	}
+
 	.welcome {
 		position: fixed;
 		inset: 0;
