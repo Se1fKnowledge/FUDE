@@ -14,7 +14,7 @@
 | ядро уроков и уроки | `cargo test -p fude-core` (из корня) | 105 прошли, 0 упали |
 | бэкенд приложения | `cargo test -p fude-app` | 49 прошли, 0 упали |
 | гайды в настоящем PhotoCraft | `cargo test -p fude-app --test real_editor -- --ignored` | 12 из 12 гайдов решают свои задания |
-| интерфейс | `cd app && npm test` | 55 прошли, 0 упали |
+| интерфейс | `cd app && npm test` | 60 прошли, 0 упали |
 | типы интерфейса | `cd app && npm run check` | 0 ошибок, 0 предупреждений |
 | clippy | `cargo clippy --workspace --all-targets --locked -- -D warnings` | без предупреждений |
 | формат | `cargo fmt --all --check` | без отличий |
