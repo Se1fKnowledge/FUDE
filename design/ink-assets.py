@@ -1,6 +1,6 @@
 """Ink art for the app from real sumi brush strokes: the menu and card strokes, the ensō circles
-and the mountain washes. Writes luminance masks (white = ink) to app/src/lib/assets/ink/; the
-components fill them with a theme colour, so one picture serves both themes.
+and the mountain washes. Writes masks (white = ink; the small CSS ones carry the ink as alpha)
+to app/src/lib/assets/ink/; the components fill them with a theme colour, so one picture serves both themes.
 
 Source: «Sumi Strokes» Photoshop brushes by Denny Tang (SparkleStock, free download, SparkleStock
 Standard License). The brush file itself stays out of the repository; only a few strokes,
@@ -25,6 +25,11 @@ OUT = os.path.join(ROOT, 'app', 'src', 'lib', 'assets', 'ink')
 STROKES = [(21, False), (22, False), (34, False), (47, False), (61, False), (77, False), (26, True), (42, True)]
 # Strokes bent into an ensō: (tip number, mirror).
 ENSO = [(21, False), (26, False), (61, False), (77, False)]
+# Short dabs for the difficulty scale, round taps for the days of the activity year, and
+# strokes stood upright (loaded end on top) for the week bars.
+DABS = [4, 16, 18, 22, 26]
+TAPS = [18, 22, 4, 41]
+BARS = [77, 34, 22]
 
 
 # --- ABR reading (Photoshop 6+ sampled brushes) -------------------------------------------------
@@ -111,6 +116,16 @@ def save(a: np.ndarray, name: str) -> None:
     print(f'{name}: {a.shape[1]}x{a.shape[0]}, {os.path.getsize(path) // 1024} KB')
 
 
+def save_alpha(a: np.ndarray, name: str) -> None:
+    """White ink with the ink as alpha: for CSS masks, which read alpha."""
+    path = os.path.join(OUT, name)
+    rgba = np.zeros((*a.shape, 4), np.uint8)
+    rgba[..., :3] = 255
+    rgba[..., 3] = (np.clip(a, 0, 1) * 255).astype(np.uint8)
+    Image.fromarray(rgba, 'RGBA').save(path, 'WEBP', quality=88, method=6)
+    print(f'{name}: {a.shape[1]}x{a.shape[0]}, {os.path.getsize(path) // 1024} KB')
+
+
 # --- the pieces ---------------------------------------------------------------------------------
 
 def stroke(t: np.ndarray, width: int = 640) -> np.ndarray:
@@ -186,6 +201,12 @@ def main(abr: str) -> None:
         save(stroke(crop(tips[n - 1], fl)), f'stroke-{i}.webp')
     for i, (n, fl) in enumerate(ENSO, 1):
         save(enso(crop(tips[n - 1], fl)), f'enso-{i}.webp')
+    for i, n in enumerate(DABS, 1):
+        save_alpha(resize(crop(tips[n - 1]), 68, 40), f'dab-{i}.webp')
+    for i, n in enumerate(TAPS, 1):
+        save_alpha(resize(crop(tips[n - 1]), 60, 60), f'tap-{i}.webp')
+    for i, n in enumerate(BARS, 1):
+        save_alpha(resize(np.rot90(crop(tips[n - 1]), -1), 52, 360), f'bar-{i}.webp')
     w, h = 2400, 260
     save(blur(mountains(tips, w, h, 3, 9, 0.62, 0.95, 40, [(22, False), (21, False), (61, False), (77, False), (34, False)], 0.8), 2.5), 'mist-far.webp')
     save(blur(mountains(tips, w, h, 4, 8, 0.42, 0.98, 46, [(61, False), (34, False), (21, False), (47, False), (22, False)], 0.85), 0.8), 'mist-mid.webp')

@@ -1,18 +1,16 @@
 <script lang="ts">
-	// Five ink dabs, filled up to the level, with the word: colour is never the only cue.
+	import { DABS, maskUrl } from '#lib/ink.ts';
+
+	// Five dabs of real ink, filled up to the level, with the word: colour is never the only cue.
 	let { level, label, compact = false }: { level: number; label: string; compact?: boolean } = $props();
 </script>
 
 <span class="difficulty" class:compact title="Сложность {level} из 5">
-	<svg width="96" height="14" viewBox="0 0 96 14" aria-hidden="true">
-		{#each [0, 1, 2, 3, 4] as i (i)}
-			<path
-				d="M{i * 19 + 2} 9.5c3-4 9-6.5 14-5.5 1 .3 1 1.2.2 1.6-3.8 1.8-8.6 3.6-13 4.9-1.3.4-2-.2-1.2-1z"
-				fill={i < level ? 'var(--ink-900)' : 'var(--paper-line)'}
-				transform="rotate(-8 {i * 19 + 9} 7)"
-			/>
+	<span class="dabs" aria-hidden="true">
+		{#each DABS as src, i (src)}
+			<span class="dab" class:on={i < level} style="mask-image: {maskUrl(src)}"></span>
 		{/each}
-	</svg>
+	</span>
 	{#if !compact}<span class="label">{label}</span>{/if}
 	<span class="sr-only">Сложность: {label}, {level} из 5</span>
 </span>
@@ -23,6 +21,25 @@
 		align-items: center;
 		gap: 10px;
 		white-space: nowrap;
+	}
+
+	.dabs {
+		display: inline-flex;
+		gap: 2px;
+		width: 96px;
+	}
+
+	.dab {
+		width: 17px;
+		height: 10px;
+		background: var(--paper-line);
+		mask-size: 100% 100%;
+		mask-repeat: no-repeat;
+		transform: rotate(-8deg);
+	}
+
+	.dab.on {
+		background: var(--ink-900);
 	}
 
 	.label {

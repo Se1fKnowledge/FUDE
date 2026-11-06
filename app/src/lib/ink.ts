@@ -3,6 +3,18 @@
 // theme colour, so the same stroke works on washi and in the dark theme. A seed picks the
 // picture, so a menu item keeps the same stroke between renders.
 
+import bar1 from '#lib/assets/ink/bar-1.webp';
+import bar2 from '#lib/assets/ink/bar-2.webp';
+import bar3 from '#lib/assets/ink/bar-3.webp';
+import dab1 from '#lib/assets/ink/dab-1.webp';
+import dab2 from '#lib/assets/ink/dab-2.webp';
+import dab3 from '#lib/assets/ink/dab-3.webp';
+import dab4 from '#lib/assets/ink/dab-4.webp';
+import dab5 from '#lib/assets/ink/dab-5.webp';
+import tap1 from '#lib/assets/ink/tap-1.webp';
+import tap2 from '#lib/assets/ink/tap-2.webp';
+import tap3 from '#lib/assets/ink/tap-3.webp';
+import tap4 from '#lib/assets/ink/tap-4.webp';
 import enso1 from '#lib/assets/ink/enso-1.webp';
 import enso2 from '#lib/assets/ink/enso-2.webp';
 import enso3 from '#lib/assets/ink/enso-3.webp';
@@ -31,10 +43,30 @@ export const ENSO_START = -70;
 /** Mountain washes, far to near, each 2400×260. */
 export const MIST = { far: mistFar, mid: mistMid, near: mistNear, width: 2400, height: 260 };
 
+/** Short dabs, one per step of the difficulty scale. These and the two below carry the ink as
+ * alpha, for CSS `mask-image`. */
+export const DABS = [dab1, dab2, dab3, dab4, dab5];
+
+/** Round taps of ink: the days of the activity year. */
+export const TAPS = [tap1, tap2, tap3, tap4];
+
+/** Strokes stood upright, loaded end on top and a dry foot: the week bars. */
+export const BARS = [bar1, bar2, bar3];
+
+/** A CSS `mask-image` value for a picture. */
+export const maskUrl = (src: string) => `url("${src}")`;
+
 /** The picture a seed stands for: the same seed always gives the same one. */
 export function pick<T>(list: readonly T[], seed: number): T {
 	const i = Math.abs(Math.trunc(seed)) % list.length;
 	return list[i];
+}
+
+/** A seed from text (a date, a name), for pictures that should stay put between renders. */
+export function seedOf(text: string): number {
+	let h = 0;
+	for (let i = 0; i < text.length; i++) h = (Math.imul(h, 31) + text.charCodeAt(i)) | 0;
+	return Math.abs(h);
 }
 
 /** Where a `width`×`height` window looks into a mountain picture scaled to the window's height:

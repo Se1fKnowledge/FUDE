@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { api, errorText, type Activity, type Day } from '#lib/api.ts';
 	import Icon from '#lib/components/Icon.svelte';
+	import { BARS, maskUrl, pick, seedOf, TAPS } from '#lib/ink.ts';
 	import { count, duration, longDate, monthShort, timeOf } from '#lib/format.ts';
 
 	let data = $state<Activity | null>(null);
@@ -60,7 +61,7 @@
 				<span class="body-s muted">каждый квадрат — день, цвет — сколько заданий вы выполнили</span>
 				<span class="legend body-s muted">
 					Меньше
-					{#each [0, 1, 2, 3, 4] as l (l)}<span class="cell l{l}"></span>{/each}
+					{#each [0, 1, 2, 3, 4] as l (l)}<span class="cell l{l}" style="--tap: {maskUrl(pick(TAPS, l))}"></span>{/each}
 					Больше
 					<span class="sep"></span>
 					<span class="gold"></span> без подсказок
@@ -79,6 +80,7 @@
 								class="cell l{level(d)}"
 								class:future={future(d)}
 								class:today={d.date === data.today}
+								style="--tap: {maskUrl(pick(TAPS, seedOf(d.date)))}"
 								role="img"
 								aria-label="{longDate(d.date)}: {count(d.tasks, ['задание', 'задания', 'заданий'])}"
 								onmouseenter={() => (hover = d)}
@@ -117,7 +119,7 @@
 					{#each data.week as d, i (d.date)}
 						<div class="bar">
 							<span class="v body-s">{d.minutes ? `${d.minutes} мин` : ''}</span>
-							<span class="ink" class:today={d.date === data.today} style="height: {Math.max(d.minutes ? 8 : 2, (d.minutes / maxWeek) * 180)}px"></span>
+							<span class="ink" class:today={d.date === data.today} style="height: {Math.max(d.minutes ? 8 : 2, (d.minutes / maxWeek) * 180)}px; mask-image: {maskUrl(pick(BARS, i))}"></span>
 							<span class="body-s">{DAYS[i]}</span>
 						</div>
 					{/each}
@@ -205,17 +207,27 @@
 		overflow: visible;
 	}
 
+	/* A day is a tap of real ink; its colour says how much was done. */
 	.cell {
+		--ink: var(--paper-sunken);
 		position: relative;
 		display: grid;
 		place-items: center;
 		width: 15px;
 		height: 15px;
 		border-radius: 3px;
-		background: var(--paper-sunken);
+	}
+
+	.cell::before {
+		content: '';
+		position: absolute;
+		inset: -1px;
+		background: var(--ink);
+		mask: var(--tap) center / 100% 100% no-repeat;
 	}
 
 	.cell i {
+		position: relative;
 		width: 5px;
 		height: 5px;
 		border-radius: 50%;
@@ -223,19 +235,36 @@
 	}
 
 	.l1 {
-		background: var(--ai-100);
+		--ink: var(--ai-100);
 	}
 
 	.l2 {
-		background: var(--ai-300);
+		--ink: var(--ai-300);
 	}
 
 	.l3 {
-		background: var(--ai-500);
+		--ink: var(--ai-500);
 	}
 
 	.l4 {
-		background: var(--ai-900);
+		--ink: var(--ai-900);
+	}
+
+	/* On dark paper more work means brighter ink, not darker. */
+	:global(:root[data-theme='dark']) .l1 {
+		--ink: var(--ai-300);
+	}
+
+	:global(:root[data-theme='dark']) .l2 {
+		--ink: var(--ai-500);
+	}
+
+	:global(:root[data-theme='dark']) .l3 {
+		--ink: var(--ai-700);
+	}
+
+	:global(:root[data-theme='dark']) .l4 {
+		--ink: color-mix(in srgb, var(--ai-700) 45%, var(--ink-900));
 	}
 
 	.future {
@@ -353,12 +382,12 @@
 		color: var(--ink-500);
 	}
 
-	/* A vertical brush stroke: rounded loaded top, dry ragged foot. */
+	/* A real stroke stood upright: loaded top, dry foot. */
 	.ink {
 		width: 26px;
-		border-radius: 13px 13px 6px 6px / 14px 14px 4px 4px;
-		background: linear-gradient(var(--ai-500), var(--ai-500) 85%, rgb(47 93 140 / 60%));
-		mask: linear-gradient(90deg, #000 70%, rgb(0 0 0 / 70%));
+		background: var(--ai-500);
+		mask-size: 100% 100%;
+		mask-repeat: no-repeat;
 		transition: height 700ms var(--ease-out);
 	}
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ENSO, MIST, mistWindow, pick, STROKES } from './ink';
+import { BARS, DABS, ENSO, maskUrl, MIST, mistWindow, pick, seedOf, STROKES, TAPS } from './ink';
 
 describe('ink pictures', () => {
 	it('ships every stroke, ensō and mountain layer', () => {
@@ -7,6 +7,17 @@ describe('ink pictures', () => {
 		expect(ENSO).toHaveLength(4);
 		for (const src of [...STROKES, ...ENSO, MIST.far, MIST.mid, MIST.near]) expect(src).toMatch(/\.webp/);
 		expect(new Set(STROKES).size).toBe(STROKES.length);
+		expect(DABS).toHaveLength(5);
+		expect(TAPS.length).toBeGreaterThan(1);
+		expect(BARS.length).toBeGreaterThan(1);
+		expect(maskUrl(DABS[0])).toBe(`url("${DABS[0]}")`);
+	});
+
+	it('gives a day the same tap every time, and days differ', () => {
+		expect(seedOf('2026-11-06')).toBe(seedOf('2026-11-06'));
+		expect(seedOf('2026-11-06')).toBeGreaterThanOrEqual(0);
+		const taps = new Set(['2026-11-01', '2026-11-02', '2026-11-03', '2026-11-04', '2026-11-05', '2026-11-06'].map((d) => pick(TAPS, seedOf(d))));
+		expect(taps.size).toBeGreaterThan(1);
 	});
 
 	it('picks the same picture for the same seed, any seed', () => {
