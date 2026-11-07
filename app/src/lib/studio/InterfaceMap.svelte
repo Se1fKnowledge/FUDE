@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { t } from '#lib/i18n.svelte.ts';
+	import { quote, t } from '#lib/i18n.svelte.ts';
 	import Icon from '../components/Icon.svelte';
 	import { TOOLS } from '../checks.ts';
 	import { GROUP_LABELS, OPTIONS, PANELS, search, TOOL_ICONS, type TargetGroup } from './targets.ts';
@@ -79,7 +79,7 @@
 				{#if value}<button class="ghost-btn" onclick={() => onpick(null)}>{t('Убрать')}</button>{/if}
 				<span class="grow"></span>
 				<button class="ghost-btn" onclick={() => dialog?.close()}>{t('Отмена')}</button>
-				<button class="primary" disabled={!picked} onclick={() => onpick(picked)}>{t('Выбрать')}{picked ? ` «${targetLabel(picked)}»` : ''}</button>
+				<button class="primary" disabled={!picked} onclick={() => onpick(picked)}>{t('Выбрать')}{picked ? ` ${quote(targetLabel(picked))}` : ''}</button>
 			</footer>
 		</aside>
 	</div>

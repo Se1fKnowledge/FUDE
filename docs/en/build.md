@@ -6,7 +6,7 @@
 
 | What | Why | How |
 |---|---|---|
-| Visual Studio 2022 Build Tools, the «Desktop development with C++» component | the MSVC linker for Rust | `winget install Microsoft.VisualStudio.2022.BuildTools --override "--add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"` |
+| Visual Studio 2022 Build Tools, the “Desktop development with C++” component | the MSVC linker for Rust | `winget install Microsoft.VisualStudio.2022.BuildTools --override "--add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"` |
 | Rust 1.99 or newer (via rustup; FUDE needs 1.99, the editor 1.95) | the compiler | `winget install Rustlang.Rustup`, then `rustup default stable` |
 | Git | the sources | `winget install Git.Git` |
 

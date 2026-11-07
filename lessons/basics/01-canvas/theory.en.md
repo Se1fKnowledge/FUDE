@@ -16,17 +16,17 @@ Experienced artists switch all the time: they work a detail up close and then zo
 
 | Action | How |
 |---|---|
-| The «Zoom» tool | key **Z** |
-| Zoom in | a click with «Zoom» or **Ctrl+=** |
+| The “Zoom” tool | key **Z** |
+| Zoom in | a click with “Zoom” or **Ctrl+=** |
 | Zoom out | **Alt+click** or **Ctrl+−** |
 | Show the whole canvas | **Ctrl+0** |
 | Actual size, 100% | **Ctrl+1** |
-| The «Hand» tool | key **H** |
-| The «Hand» for a moment | hold **Space** |
+| The “Hand” tool | key **H** |
+| The “Hand” for a moment | hold **Space** |
 
-## The «Hand» on Space
+## The “Hand” on Space
 
-When the canvas is zoomed in, part of it goes past the edge of the window. The «Hand» moves the view without touching the drawing. Switching to it from the menu is slow, so almost everyone draws like this: hold Space, move the canvas with the mouse, let go of Space — and the brush is back in hand.
+When the canvas is zoomed in, part of it goes past the edge of the window. The “Hand” moves the view without touching the drawing. Switching to it from the menu is slow, so almost everyone draws like this: hold Space, move the canvas with the mouse, let go of Space — and the brush is back in hand.
 
 ## Sensei's advice
 

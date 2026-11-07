@@ -124,7 +124,7 @@ pub fn studio_lesson_create(state: State<'_, AppState>, category_dir: String, ti
     lock(&state.db).log(
         now(),
         "author",
-        &fude_core::tr!("Создан урок «{}»", "Lesson created «{}»", lesson.title),
+        &fude_core::tr!("Создан урок «{}»", "Lesson created “{}”", lesson.title),
         fude_core::i18n::pick("Мастерская", "Workshop"),
     )?;
     refresh_achievements(&state)?;
@@ -273,7 +273,7 @@ pub fn package_import(state: State<'_, AppState>, path: String, replace: bool) -
     let library = state.library();
     let report = package::import(Path::new(&path), &library, &state.user, &ImportOptions { replace }, Limits::default())?;
     let detail = fude_core::tr!("уроков: {}", "lessons: {}", report.lessons_added.len() + report.lessons_replaced.len());
-    lock(&state.db).log(now(), "import", &fude_core::tr!("Импортирован пакет «{}»", "Package imported «{}»", report.title), &detail)?;
+    lock(&state.db).log(now(), "import", &fude_core::tr!("Импортирован пакет «{}»", "Package imported “{}”", report.title), &detail)?;
     Ok(report)
 }
 

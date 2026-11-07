@@ -31,7 +31,7 @@ This is part of **aerial perspective**: the air between us and the object become
 1. A new layer for the glow.
 2. A huge soft brush, opacity 15–30%: the halo in several passes, brighter at the edge of the silhouette.
 3. A thin brush, a light warm colour: the outline along the edge, brighter at the top.
-4. The «Color Dodge» or «Screen» layer mode makes the light richer.
+4. The “Color Dodge” or “Screen” layer mode makes the light richer.
 5. Leave the middle of the silhouette alone.
 
 ## Sensei's advice

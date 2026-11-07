@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { t } from '#lib/i18n.svelte.ts';
+	import { quote, t } from '#lib/i18n.svelte.ts';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { open, save } from '@tauri-apps/plugin-dialog';
@@ -130,7 +130,7 @@
 
 	{#if pending}
 		<section class="card import reveal">
-			<h2 class="h2">«{pending.info.manifest.title}»</h2>
+			<h2 class="h2">{quote(pending.info.manifest.title)}</h2>
 			<p class="body-s muted">{pending.info.manifest.created_by ?? t('автор не указан')} · {count(pending.info.lessons.length, ['урок', 'урока', 'уроков'])}</p>
 			<ul>
 				{#each pending.info.lessons as l (l.id)}<li><span class="mono">{l.id}</span> — {l.title}</li>{/each}

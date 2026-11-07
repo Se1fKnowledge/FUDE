@@ -222,10 +222,10 @@ pub fn attach(dir: &Path, source: &Path, subdir: &str, allowed: &[&str], max_byt
         .ok_or_else(|| Error::Invalid(crate::tr!("{}: нет имени файла", "{}: the file has no name", source.display())))?;
     let ext = paths::extension(name)
         .filter(|e| allowed.contains(&e.as_str()))
-        .ok_or_else(|| Error::Invalid(crate::tr!("«{name}»: нужен файл {}", "«{name}»: a {} file is needed", allowed.join(", "))))?;
+        .ok_or_else(|| Error::Invalid(crate::tr!("«{name}»: нужен файл {}", "“{name}”: a {} file is needed", allowed.join(", "))))?;
     let size = fs::metadata(source).map_err(error::io(source))?.len();
     if size > max_bytes {
-        return Err(Error::Invalid(crate::tr!("«{name}» больше {} МиБ", "«{name}» is larger than {} MiB", max_bytes >> 20)));
+        return Err(Error::Invalid(crate::tr!("«{name}» больше {} МиБ", "“{name}” is larger than {} MiB", max_bytes >> 20)));
     }
     let stem = slugify(name.rsplit_once('.').map_or(name, |(s, _)| s));
     let folder = dir.join(subdir);

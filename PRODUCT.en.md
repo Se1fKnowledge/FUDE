@@ -63,19 +63,19 @@ Added by the user later:
 - Importing ready lessons from a file (a `.fude` package) and exporting your own.
 - Uploading an ordinary video into a lesson, not only an animated guide.
 - The lesson studio: the task canvas, ghost lines, the guide on timeline tracks, recording a guide from the editor, the live check.
-- The dark «Sumi» theme.
+- The dark “Sumi” theme.
 - Ink in the interface from real brush strokes, not drawn in code.
 - Two languages: Russian and English, in the whole app, the lessons and the documentation.
 
-Built-in content: two categories of six lessons — «Interface basics» and «Light and shadow».
+Built-in content: two categories of six lessons — “Interface basics” and “Light and shadow”.
 
-Suggested in the mockup, not yet confirmed by the user: kyu/dan ranks, the «Independence» measure (hints lower it), task auto-check with comparison to a reference, the «Daily challenge», «Sensei's advice», the lesson result screen.
+Suggested in the mockup, not yet confirmed by the user: kyu/dan ranks, the “Independence” measure (hints lower it), task auto-check with comparison to a reference, the “Daily challenge”, “Sensei's advice”, the lesson result screen.
 
 Decided: local storage only (SQLite), SvelteKit + TypeScript, lessons are folders with `lesson.toml`, guides are scripts of PhotoCraft commands plus an uploaded video.
 
 ## Brand commitments
 
-The working name in the mockup is FUDE (筆, «brush»); the user has not approved it.
+The working name in the mockup is FUDE (筆, “brush”); the user has not approved it.
 
 Visual requirements the user set:
 - first a Figma mockup, then the app;

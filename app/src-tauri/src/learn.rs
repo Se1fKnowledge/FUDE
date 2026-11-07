@@ -230,7 +230,7 @@ pub struct LessonView {
 #[tauri::command]
 pub fn lesson(state: State<'_, AppState>, id: String) -> AppResult<LessonView> {
     let c = ctx(&state)?;
-    let entry = c.library.lesson(&id).ok_or_else(|| AppError::msg(fude_core::tr!("урок «{id}» не найден", "lesson «{id}» not found")))?;
+    let entry = c.library.lesson(&id).ok_or_else(|| AppError::msg(fude_core::tr!("урок «{id}» не найден", "lesson “{id}” not found")))?;
     let l = &entry.lesson;
     let dir = &entry.dir;
     let lang = fude_core::i18n::lang();
@@ -267,7 +267,7 @@ pub fn lesson_stage(state: State<'_, AppState>, id: String, stage: String) -> Ap
     db.set_stage(&id, &stage, now())?;
     if fresh && stage == "guide" {
         let title = state.library().lesson(&id).map(|e| e.lesson.title.clone()).unwrap_or(id);
-        db.log(now(), "start", &fude_core::tr!("Начат урок «{title}»", "Started the lesson «{title}»"), "")?;
+        db.log(now(), "start", &fude_core::tr!("Начат урок «{title}»", "Started the lesson “{title}”"), "")?;
     }
     Ok(())
 }
@@ -364,7 +364,7 @@ pub fn refresh_achievements(state: &AppState) -> AppResult<(Vec<Achievement>, Ve
     let mut fresh = Vec::new();
     for a in progress::achievements(&facts, &db.unlocked()?) {
         if a.reached() && a.unlocked.is_none() && db.unlock(a.id, now())? {
-            db.log(now(), "achievement", &fude_core::tr!("Получено достижение «{}»", "Achievement received «{}»", a.title), &a.description)?;
+            db.log(now(), "achievement", &fude_core::tr!("Получено достижение «{}»", "Achievement received “{}”", a.title), &a.description)?;
             fresh.push(a);
         }
     }
@@ -484,7 +484,7 @@ fn advice(attempts: &[Attempt], lessons: &[LessonInfo], skills: &[SkillScore]) -
     if let Some(a) = hinted {
         let title = lessons.iter().find(|l| l.id == a.lesson).map_or(a.lesson.as_str(), |l| l.title.as_str());
         return Some(Advice {
-            text: fude_core::tr!("Больше всего подсказок понадобилось в уроке «{title}».", "You needed the most hints in the lesson «{title}»."),
+            text: fude_core::tr!("Больше всего подсказок понадобилось в уроке «{title}».", "You needed the most hints in the lesson “{title}”."),
             detail: fude_core::tr!(
                 "Пройдите его ещё раз без подсказок: самостоятельный проход даёт в полтора раза больше опыта и очков навыка.",
                 "Do it again without hints: going through on your own gives one and a half times the experience and skill points."
@@ -495,9 +495,9 @@ fn advice(attempts: &[Attempt], lessons: &[LessonInfo], skills: &[SkillScore]) -
     let weakest = skills.iter().filter(|s| lessons.iter().any(|l| l.skills.contains(&s.skill))).min_by(|a, b| a.score.total_cmp(&b.score))?;
     let lesson = lessons.iter().find(|l| l.skills.contains(&weakest.skill) && !passed.contains(&l.id) && progress::unlocked(l, &passed));
     Some(Advice {
-        text: fude_core::tr!("Слабее всего пока «{}».", "The weakest so far is «{}».", weakest.label),
+        text: fude_core::tr!("Слабее всего пока «{}».", "The weakest so far is “{}”.", weakest.label),
         detail: match lesson {
-            Some(l) => fude_core::tr!("Следующий шаг — урок «{}».", "Next step — the lesson «{}».", l.title),
+            Some(l) => fude_core::tr!("Следующий шаг — урок «{}».", "Next step — the lesson “{}”.", l.title),
             None => fude_core::tr!("Откройте уроки, которые развивают этот навык.", "Open the lessons that develop this skill."),
         },
         lesson: lesson.map(|l| l.id.clone()),

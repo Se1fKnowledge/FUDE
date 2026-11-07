@@ -23,7 +23,7 @@ A selection can be filled in three ways:
 
 1. **Edit › Fill** (Shift+F5) — a window to choose the colour.
 2. **Alt+Backspace** — fill with the foreground colour, **Ctrl+Backspace** — with the background colour.
-3. The **«Paint bucket»** tool (G) — fills the area of similar colour under the click.
+3. The **“Paint bucket”** tool (G) — fills the area of similar colour under the click.
 
 ## Useful commands
 

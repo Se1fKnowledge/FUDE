@@ -69,7 +69,12 @@ pub fn pick<T>(ru: T, en: T) -> T {
     }
 }
 
-/// A message in the current language: `tr!("урок «{id}» не найден", "lesson «{id}» not found")`.
+/// A name in the quotes of the current language: «Тень» in Russian, “Shadow” in English.
+pub fn quote(name: &str) -> String {
+    pick(format!("«{name}»"), format!("“{name}”"))
+}
+
+/// A message in the current language: `tr!("урок «{id}» не найден", "lesson “{id}” not found")`.
 /// Both texts are format strings and may use the variables in scope or extra arguments.
 #[macro_export]
 macro_rules! tr {
@@ -94,8 +99,8 @@ mod tests {
     #[test]
     fn picks_by_language_and_overrides_per_thread() {
         let id = "light.sphere";
-        assert_eq!(with_lang(Lang::Ru, || tr!("урок «{id}» не найден", "lesson «{id}» not found")), "урок «light.sphere» не найден");
-        assert_eq!(with_lang(Lang::En, || tr!("урок «{id}» не найден", "lesson «{id}» not found")), "lesson «light.sphere» not found");
+        assert_eq!(with_lang(Lang::Ru, || tr!("урок «{id}» не найден", "lesson “{id}” not found")), "урок «light.sphere» не найден");
+        assert_eq!(with_lang(Lang::En, || tr!("урок «{id}» не найден", "lesson “{id}” not found")), "lesson “light.sphere” not found");
         assert_eq!(with_lang(Lang::En, || tr!("{} из {}", "{} of {}", 2, 5)), "2 of 5");
         assert_eq!(with_lang(Lang::En, || with_lang(Lang::Ru, lang)), Lang::Ru);
     }

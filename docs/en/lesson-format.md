@@ -24,7 +24,7 @@ lessons/
         ├── theory.md           the theory (Markdown)
         ├── guide.json          the animated guide (optional)
         ├── media/guide.mp4     a video (optional)
-        ├── en.toml             English translation (optional, see «Languages»)
+        ├── en.toml             English translation (optional, see “Languages”)
         └── assets/             task pictures, the reference
 ```
 
@@ -33,7 +33,7 @@ If two roots have a category with the same id, their lessons are merged. If a le
 ## category.toml
 
 ```toml
-id = "light"                 # a-z, 0-9, «-»; up to 48 characters; matches the folder name
+id = "light"                 # a-z, 0-9, “-”; up to 48 characters; matches the folder name
 title = "Свет и тень"
 kanji = "影"                 # optional: the kanji on the card
 description = "Как свет лепит форму: от источника до рефлекса."
@@ -79,7 +79,7 @@ reference = "assets/reference.png"  # optional: the reference for the similar ch
 id = "layer"                 # unique within the lesson
 text = "Создайте новый слой для тени."
   [task.steps.hint]
-  text = "Кнопка «Новый слой» внизу панели «Слои»."
+  text = "Кнопка “Новый слой” внизу панели “Слои”."
   target = "panel:Layers"
   [[task.steps.checks]]
   kind = "layers"
@@ -110,7 +110,7 @@ All paths are relative, with `/`, inside the lesson folder. Absolute paths, `..`
 ```toml
 [task.steps.hint]
 text = "Возьмите мягкую кисть и проведите от точки касания вправо."
-target = "tool:Brush"        # where to point the «start here» ring
+target = "tool:Brush"        # where to point the “start here” ring
 
 [[task.steps.hint.shapes]]   # ghost shapes on the canvas
 kind = "ellipse"             # ellipse | rect | line | path
@@ -131,7 +131,7 @@ Targets (`target`): `tool:<Tool>` (as in PhotoCraft: `Brush`, `Eraser`, `RectMar
 
 Shape kinds: `ellipse` and `rect` (the `rect` field), `line` and `arrow` (the `from` and `to` fields), `path` (the `points` field, 2 to 2000 points).
 
-Shape coordinates are fractions of the canvas from 0 to 1. The app draws them on a separate «FUDE · hint» layer and removes the layer when the step is passed.
+Shape coordinates are fractions of the canvas from 0 to 1. The app draws them on a separate “FUDE · hint” layer and removes the layer when the step is passed.
 
 The optional `style` table sets how a shape looks; without it a shape is vermilion (`#BC3823`), 35% opacity, 0.6% of the shorter side of the canvas wide, solid:
 
@@ -149,7 +149,7 @@ Shapes are easier to draw in the lesson studio (see [app.md](app.md#the-lesson-s
 
 Each check is a `[[task.steps.checks]]` table with a `kind` field. A step is passed when all its checks pass. Any check can have a `message` field — what to show the student if it fails; otherwise the core composes the message itself, in the interface language.
 
-Steps are passed in order, and a passed step stays passed (`assess::Progress`): if the student changes the tool at step 3, step 1 «Pick the brush» is not "undone". So a check that must hold to the end (for example, «the light has not darkened») goes into the same step as the work it guards, not into a separate step. A step without checks counts with the «Done» button.
+Steps are passed in order, and a passed step stays passed (`assess::Progress`): if the student changes the tool at step 3, step 1 “Pick the brush” is not "undone". So a check that must hold to the end (for example, “the light has not darkened”) goes into the same step as the work it guards, not into a separate step. A step without checks counts with the “Done” button.
 
 Ranges are written as `{ min = …, max = … }`; either bound can be left out.
 
@@ -210,7 +210,7 @@ The app saves the canvas to a PNG (`app.save`) and compares it with the original
 
 - `open` or `canvas` (as in `task`) — what the guide starts from; can be left out, then the guide runs in the current document.
 - `caption` — the caption at the bottom of the screen (an empty one keeps the previous); `highlight` — a target in the interface (the same as for hints); `pause` — the pause after the step in milliseconds (0–15000, default 600).
-- `task_step` — optional: the id of the task step this part of the guide shows. Only the author needs it — the studio draws the «Task steps» track from it; the player does not read it.
+- `task_step` — optional: the id of the task step this part of the guide shows. Only the author needs it — the studio draws the “Task steps” track from it; the player does not read it.
 - Allowed methods: `ui.set` (only `tool`, `zoom`, `center`, `rotation`, `fit`, `brushSize`), `ui.pointer` and `engine.execute`.
 - Allowed `engine.execute` commands: `paint.stroke`, `layer.new.layer`, `layer.setProps`, `layer.select`, `layer.selectTop`, `layer.selectBottom`, `layer.delete`, `select.rect`, `select.all`, `select.deselect`, `select.inverse`, `edit.fill`, `edit.undo`, `edit.redo`, `tools.setBrush`, `tools.setColors`, `tools.defaultColors`, `tools.swapColors`, `file.new`.
 - Limits: up to 400 steps, up to 2000 calls, up to 5000 points in one stroke.
@@ -234,7 +234,7 @@ A lesson is written in one language (the built-in ones in Russian) and can get a
 ```toml
 [text]
 "Холст и масштаб" = "Canvas and zoom"
-"Выберите инструмент «Масштаб» (Z)." = "Pick the «Zoom» tool (Z)."
+"Выберите инструмент “Масштаб” (Z)." = "Pick the “Zoom” tool (Z)."
 "Ctrl+0 — показать холст целиком" = "Ctrl+0 — show the whole canvas"
 ```
 

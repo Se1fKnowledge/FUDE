@@ -174,7 +174,7 @@ impl Practice {
         } else {
             fude_core::tr!("+{xp} XP · подсказок: {}", "+{xp} XP · hints: {}", self.hints)
         };
-        db.log(now, "pass", &fude_core::tr!("Пройден урок «{}»", "Lesson done «{}»", self.lesson.title), &detail)?;
+        db.log(now, "pass", &fude_core::tr!("Пройден урок «{}»", "Lesson done “{}”", self.lesson.title), &detail)?;
         db.clear_stage(&self.lesson.id)?;
         self.finished = true;
         Ok(xp)

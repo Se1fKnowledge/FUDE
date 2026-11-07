@@ -29,7 +29,7 @@ pub fn apply_to_editor(editor: &mut Editor) {
 
 #[tauri::command]
 pub fn set_lang(state: State<'_, AppState>, lang: String) -> AppResult<()> {
-    let lang = Lang::from_code(&lang).ok_or_else(|| AppError::msg(format!("unknown language «{lang}»")))?;
+    let lang = Lang::from_code(&lang).ok_or_else(|| AppError::msg(format!("unknown language “{lang}”")))?;
     lock(&state.db).set_setting(SETTING, lang.code())?;
     i18n::set_lang(lang);
     if let Some(editor) = lock(&state.editor).as_mut() {
@@ -38,13 +38,13 @@ pub fn set_lang(state: State<'_, AppState>, lang: String) -> AppResult<()> {
     Ok(())
 }
 
-/// Journal wordings in both languages; `{}` is the part that stays (a name in «», a number).
+/// Journal wordings in both languages; `{}` is the part that stays (a quoted name, a number).
 const JOURNAL: [(&str, &str); 9] = [
-    ("Начат урок «{}»", "Started the lesson «{}»"),
-    ("Получено достижение «{}»", "Achievement received «{}»"),
-    ("Пройден урок «{}»", "Lesson done «{}»"),
-    ("Создан урок «{}»", "Lesson created «{}»"),
-    ("Импортирован пакет «{}»", "Package imported «{}»"),
+    ("Начат урок «{}»", "Started the lesson “{}”"),
+    ("Получено достижение «{}»", "Achievement received “{}”"),
+    ("Пройден урок «{}»", "Lesson done “{}”"),
+    ("Создан урок «{}»", "Lesson created “{}”"),
+    ("Импортирован пакет «{}»", "Package imported “{}”"),
     ("+{} XP · без подсказок", "+{} XP · no hints"),
     ("+{} · подсказок: {}", "+{} · hints: {}"),
     ("уроков: {}", "lessons: {}"),
@@ -77,10 +77,12 @@ fn fill(pattern: &str, values: &[&str]) -> String {
 }
 
 /// A journal line in `lang`, if it was written in the other language with a known wording.
+/// English lines saved before English got its own quotes («…» instead of “…”) are recognised too.
 pub fn reword(text: &str, lang: Lang) -> String {
     for (ru, en) in JOURNAL {
-        let (from, to) = if lang == Lang::En { (ru, en) } else { (en, ru) };
-        if let Some(values) = holes(from, text) {
+        let old_en = en.replace('“', "«").replace('”', "»");
+        let (from, to) = if lang == Lang::En { ([ru, old_en.as_str()], en) } else { ([en, old_en.as_str()], ru) };
+        if let Some(values) = from.iter().find_map(|f| holes(f, text)) {
             return fill(to, &values);
         }
     }
@@ -110,7 +112,8 @@ pub fn names(state: &AppState) -> Vec<(String, String)> {
     out
 }
 
-/// `text` with quoted names («…») and whole known names put into `lang`.
+/// `text` with quoted names («…» or “…”) and whole known names put into `lang`. The quotes
+/// themselves stay as they are: they belong to the wording around the name.
 fn rename(text: &str, lang: Lang, names: &[(String, String)]) -> String {
     let swap = |s: &str| -> Option<String> {
         names.iter().find_map(|(ru, en)| match lang {
@@ -124,15 +127,17 @@ fn rename(text: &str, lang: Lang, names: &[(String, String)]) -> String {
     }
     let mut out = String::new();
     let mut rest = text;
-    while let Some(open) = rest.find('«') {
-        let after = &rest[open + '«'.len_utf8()..];
-        let Some(close) = after.find('»') else { break };
+    while let Some(open) = rest.find(['«', '“']) {
+        let quote = rest[open..].chars().next().unwrap_or('«');
+        let end = if quote == '«' { '»' } else { '”' };
+        let after = &rest[open + quote.len_utf8()..];
+        let Some(close) = after.find(end) else { break };
         out.push_str(&rest[..open]);
         let name = &after[..close];
-        out.push('«');
+        out.push(quote);
         out.push_str(&swap(name).unwrap_or_else(|| name.to_string()));
-        out.push('»');
-        rest = &after[close + '»'.len_utf8()..];
+        out.push(end);
+        rest = &after[close + end.len_utf8()..];
     }
     out.push_str(rest);
     out
@@ -153,8 +158,10 @@ mod tests {
 
     #[test]
     fn rewords_known_journal_lines_both_ways_and_keeps_the_rest() {
-        assert_eq!(reword("Пройден урок «Холст и масштаб»", Lang::En), "Lesson done «Холст и масштаб»");
-        assert_eq!(reword("Lesson done «Canvas»", Lang::Ru), "Пройден урок «Canvas»");
+        assert_eq!(reword("Пройден урок «Холст и масштаб»", Lang::En), "Lesson done “Холст и масштаб”");
+        assert_eq!(reword("Lesson done “Canvas”", Lang::Ru), "Пройден урок «Canvas»");
+        assert_eq!(reword("Lesson done «Canvas»", Lang::Ru), "Пройден урок «Canvas»", "saved with the old quotes");
+        assert_eq!(reword("Lesson done «Canvas»", Lang::En), "Lesson done “Canvas”", "old quotes brought up to date");
         assert_eq!(reword("+60 XP · без подсказок", Lang::En), "+60 XP · no hints");
         assert_eq!(reword("+60 XP · подсказок: 2", Lang::En), "+60 XP · hints: 2");
         assert_eq!(reword("уроков: 3", Lang::En), "lessons: 3");
@@ -167,6 +174,7 @@ mod tests {
     fn puts_quoted_and_whole_names_into_the_language() {
         let names =
             vec![("Холст и масштаб".to_string(), "Canvas and zoom".to_string()), ("Пройдите первый урок".to_string(), "Complete the first lesson".to_string())];
+        assert_eq!(rename("Lesson done “Холст и масштаб”", Lang::En, &names), "Lesson done “Canvas and zoom”");
         assert_eq!(rename("Lesson done «Холст и масштаб»", Lang::En, &names), "Lesson done «Canvas and zoom»");
         assert_eq!(rename("Пройден урок «Canvas and zoom»", Lang::Ru, &names), "Пройден урок «Холст и масштаб»");
         assert_eq!(rename("Пройдите первый урок", Lang::En, &names), "Complete the first lesson");

@@ -36,7 +36,7 @@ Everything runs on the student's computer. There are no accounts, no server and 
   - reads the state (`ui.inspect`): active tool, brush, zoom, layers, selection, history;
   - sets the theme (`ui.set {"theme":"fudeInk"}`) and the interface language (`prefs.set interface.language`).
 - The editor opens and writes files only inside two roots the app gives it at start: `--automation-read-root` — the lesson folder, `--automation-write-root` — a temporary attempt folder. The editor itself rejects absolute paths and `..`.
-- On Windows the editor window is embedded in the FUDE window: FUDE makes the main window of the PhotoCraft process a frameless child of its own window and places it over the spot the page marks; «Separate window» gives it back. The process stays separate, and with `ui.set {"hostEmbedded": true}` the editor hides its window buttons. Details in [app.md](app.md#the-editor-in-the-fude-window-or-on-its-own).
+- On Windows the editor window is embedded in the FUDE window: FUDE makes the main window of the PhotoCraft process a frameless child of its own window and places it over the spot the page marks; “Separate window” gives it back. The process stays separate, and with `ui.set {"hostEmbedded": true}` the editor hides its window buttons. Details in [app.md](app.md#the-editor-in-the-fude-window-or-on-its-own).
 - The channel listens only on `127.0.0.1` and requires a token. The app creates the token file in its data folder, passes it with `--control-token-file` and sends `auth` as the first line of every connection.
 
 ## Parts of the app
@@ -45,7 +45,7 @@ Everything runs on the student's computer. There are no accounts, no server and 
 |---|---|---|
 | The `fude-core` core ([`core/`](../../core/)) | lesson model, loading the library, format checks, `.fude` packages, authoring, auto-check, guides, hints, languages | done, tests |
 | The `fude-cli` CLI | check a lessons folder, build and unpack a package, check a canvas snapshot | done |
-| Built-in lessons ([`lessons/`](../../lessons/)) | «Interface basics» and «Light and shadow», 6 lessons each, in Russian and English | done |
+| Built-in lessons ([`lessons/`](../../lessons/)) | “Interface basics” and “Light and shadow”, 6 lessons each, in Russian and English | done |
 | Shell ([`app/src-tauri/`](../../app/src-tauri/)) | Tauri: the window, starting the editor, commands on top of the core | done, tests |
 | Interface ([`app/src/`](../../app/src/)) | SvelteKit 3 + Svelte 5 + TypeScript, the mockup screens | done |
 | Progress storage | SQLite: attempts, steps, hints, journal, achievements | done, tests |
@@ -60,7 +60,7 @@ Modules ([`core/src/`](../../core/src/)):
 | `library` | walks the lesson roots, collects categories and lessons; a bad lesson does not break the catalog but goes to the list of problems |
 | `validate` | checks a lesson: fields, difficulty 1–5, paths inside the lesson folder, existing files, allowed extensions, unique steps, dependencies |
 | `guide` | reads a guide script and lets through only allowed editor commands |
-| `hint` | turns a hint's ghost shapes into editor commands (the «FUDE · hint» layer, translucent strokes) |
+| `hint` | turns a hint's ghost shapes into editor commands (the “FUDE · hint” layer, translucent strokes) |
 | `assess` | checks a task step from the editor state and a canvas snapshot |
 | `package` | export and import of `.fude` packages (zip) with zip-slip protection and size limits |
 | `authoring` | creates and saves categories and lessons, transliterates titles into folder names, attaches videos and pictures |
@@ -81,13 +81,13 @@ A lesson has two kinds of guide, possibly both:
 A task step counts when all its checks pass. There are two kinds of checks:
 
 - from the editor state in `ui.inspect`: tool, brush, zoom, layers, selection, history;
-- from a canvas snapshot (`app.save` to a PNG in a temporary folder): the painted share of an area, brightness, «area A darker than B», colour, similarity to the reference.
+- from a canvas snapshot (`app.save` to a PNG in a temporary folder): the painted share of an area, brightness, “area A darker than B”, colour, similarity to the reference.
 
 Areas are given in fractions of the canvas (`[x, y, width, height]` from 0 to 1), so they do not depend on the document size.
 
 ### Hints
 
-A step's hint is a text, a target in the interface (`tool:Brush`, `panel:Layers`, `menu:edit.undo`) the app points a «start here» ring at, and ghost shapes. The core turns the shapes into commands: a new «FUDE · hint» layer at 35% opacity, strokes in vermilion. When the step is done, the app removes that layer. Every hint opening goes into the statistics.
+A step's hint is a text, a target in the interface (`tool:Brush`, `panel:Layers`, `menu:edit.undo`) the app points a “start here” ring at, and ghost shapes. The core turns the shapes into commands: a new “FUDE · hint” layer at 35% opacity, strokes in vermilion. When the step is done, the app removes that layer. Every hint opening goes into the statistics.
 
 ## Storage
 

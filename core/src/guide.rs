@@ -146,7 +146,7 @@ pub fn validate(script: &Script, dir: Option<&Path>) -> Vec<Issue> {
                 if let Some(dir) = dir
                     && !paths::resolve(dir, open).is_ok_and(|p| p.is_file())
                 {
-                    issues.push(Issue::error("open", crate::tr!("файл «{open}» не найден", "file «{open}» not found")));
+                    issues.push(Issue::error("open", crate::tr!("файл «{open}» не найден", "file “{open}” not found")));
                 }
             }
         }
@@ -224,7 +224,7 @@ pub fn check_call(call: &Call) -> std::result::Result<(), String> {
             if !ALLOWED_COMMANDS.contains(&command) {
                 return Err(crate::tr!(
                     "команда «{command}» в гайде запрещена; разрешены: {}",
-                    "the «{command}» command is not allowed in a guide; allowed: {}",
+                    "the “{command}” command is not allowed in a guide; allowed: {}",
                     ALLOWED_COMMANDS.join(", ")
                 ));
             }
@@ -259,7 +259,7 @@ pub fn check_call(call: &Call) -> std::result::Result<(), String> {
         }
         other => Err(crate::tr!(
             "метод «{other}» в гайде запрещён; разрешены ui.set, ui.pointer, engine.execute",
-            "the «{other}» method is not allowed in a guide; allowed: ui.set, ui.pointer, engine.execute"
+            "the “{other}” method is not allowed in a guide; allowed: ui.set, ui.pointer, engine.execute"
         )),
     }
 }
@@ -268,7 +268,7 @@ fn only_keys(params: &serde_json::Map<String, Value>, allowed: &[&str], method: 
     match params.keys().find(|k| !allowed.contains(&k.as_str())) {
         Some(key) => Err(crate::tr!(
             "{method}: поле «{key}» в гайде запрещено; разрешены: {}",
-            "{method}: the «{key}» field is not allowed in a guide; allowed: {}",
+            "{method}: the “{key}” field is not allowed in a guide; allowed: {}",
             allowed.join(", ")
         )),
         None => Ok(()),

@@ -10,7 +10,7 @@ Layer opacity (from 0% to 100%) sets how much the layer covers the layers below:
 - **50%** — what lies below shows halfway through the layer;
 - **0%** — the layer is not visible at all, but everything drawn on it is intact.
 
-The «Opacity» field is at the top of the «Layers» panel.
+The “Opacity” field is at the top of the “Layers” panel.
 
 ### Layer or brush?
 

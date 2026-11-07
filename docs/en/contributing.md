@@ -13,7 +13,7 @@ A finished version reaches `main` by merging `SelfKnowledge` (preferably through
 
 ## Commits
 
-- One commit — one logical change: «theme», «brand removal», «tests», «documentation».
+- One commit — one logical change: “theme”, “brand removal”, “tests”, “documentation”.
 - Changes in `photocraft/` stay separate from the rest of the project: that makes them easier to carry over to a new PhotoCraft version (see [editor.md](editor.md#how-to-update-photocraft-from-the-original-repository)).
 - Commit messages are in Russian; the first line briefly answers "what was done".
 

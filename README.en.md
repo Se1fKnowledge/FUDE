@@ -8,7 +8,7 @@ A diploma project (4th year).
 
 <p align="center">
   <img src="design/app-home-en.png" alt="Home: the current lesson with an ensō and mountains made from real ink strokes, today's tasks, recommendations" width="49%">
-  <img src="design/app-home-dark-en.png" alt="Home in the dark «Sumi» theme" width="49%">
+  <img src="design/app-home-dark-en.png" alt="Home in the dark “Sumi” theme" width="49%">
 </p>
 <p align="center">
   <img src="design/app-guide-en.png" alt="Lesson: the guide draws in the editor embedded in the FUDE window" width="49%">
@@ -29,7 +29,7 @@ A diploma project (4th year).
 
 ## What it is
 
-The student picks a category and a lesson, watches an animated guide, reads the theory and does the task right in the built-in editor. The editor runs inside the FUDE window with a slide-out task panel, which suits one small screen, or in its own window if two monitors are handier. Your own lessons and categories are made in the lesson studio, where you see what you are doing on the task canvas: hint lines, check areas, the reference on top, the guide on timeline tracks, a live check and a "through the student's eyes" preview. Other people's lessons are imported from a `.fude` file. Everything works locally, without accounts. Hint mode shows where to click and draws a ghost shape on the canvas; using hints counts in the statistics. Progress shows on the Achievements, Activity (by day, like GitHub) and Statistics (growth of separate skills) tabs. There are two themes, light «Washi» and dark «Sumi»; the strokes, ensō and mountains in the interface are real ink strokes, not shapes drawn in code.
+The student picks a category and a lesson, watches an animated guide, reads the theory and does the task right in the built-in editor. The editor runs inside the FUDE window with a slide-out task panel, which suits one small screen, or in its own window if two monitors are handier. Your own lessons and categories are made in the lesson studio, where you see what you are doing on the task canvas: hint lines, check areas, the reference on top, the guide on timeline tracks, a live check and a "through the student's eyes" preview. Other people's lessons are imported from a `.fude` file. Everything works locally, without accounts. Hint mode shows where to click and draws a ghost shape on the canvas; using hints counts in the statistics. Progress shows on the Achievements, Activity (by day, like GitHub) and Statistics (growth of separate skills) tabs. There are two themes, light “Washi” and dark “Sumi”; the strokes, ensō and mountains in the interface are real ink strokes, not shapes drawn in code.
 
 The interface, the built-in lessons and the documentation are available in Russian and English.
 
@@ -48,10 +48,10 @@ More on the product, audience and limits — in [PRODUCT.en.md](PRODUCT.en.md).
 | Editor in the FUDE window or in its own window (Windows) | works | [docs/en/app.md](docs/en/app.md) |
 | Lesson and `.fude` package format | done | [docs/en/lesson-format.md](docs/en/lesson-format.md) |
 | Lesson core `fude-core`: library, task checks, guides, hints, live check, guide recording, import and export; CLI `fude-cli` | done, 112 tests | [core/](core/), [docs/en/architecture.md](docs/en/architecture.md) |
-| Built-in lessons: «Interface basics» and «Light and shadow», 12 lessons | done | [lessons/](lessons/) |
+| Built-in lessons: “Interface basics” and “Light and shadow”, 12 lessons | done | [lessons/](lessons/) |
 | App: Tauri + SvelteKit, every mockup screen, practice in PhotoCraft with auto-check and hints, progress in SQLite, lesson workshop | works, 52 + 67 tests | [app/](app/), [docs/en/app.md](docs/en/app.md) |
 | Lesson studio: task canvas, hint lines, check areas, guide on timeline tracks, guide recording from PhotoCraft, live check | works | [docs/en/app.md](docs/en/app.md) |
-| «Washi» and «Sumi» themes, toggle next to the profile | done | [docs/en/design-system.md](docs/en/design-system.md) |
+| “Washi” and “Sumi” themes, toggle next to the profile | done | [docs/en/design-system.md](docs/en/design-system.md) |
 | Ink from real strokes (Sumi Strokes brushes): menu strokes, ensō, mountains, the activity year | done | [docs/en/design-system.md](docs/en/design-system.md) |
 | Two languages, Russian and English: interface, messages, editor, built-in lessons, documentation | done, tests | [docs/en/app.md](docs/en/app.md#language) |
 
@@ -127,7 +127,7 @@ See [docs/en/contributing.md](docs/en/contributing.md).
 ## Licences
 
 - FUDE's own code and materials (lesson core, lessons, documentation, design materials, the app) — **MIT**, see [LICENSE](LICENSE).
-- The ink pictures in [`app/src/lib/assets/ink/`](app/src/lib/assets/ink/ATTRIBUTION.md) (strokes, ensō, mountains) are made from the «Sumi Strokes» brushes (SparkleStock) and fall under the SparkleStock licence, not MIT; details in `ATTRIBUTION.md` next to them.
+- The ink pictures in [`app/src/lib/assets/ink/`](app/src/lib/assets/ink/ATTRIBUTION.md) (strokes, ensō, mountains) are made from the “Sumi Strokes” brushes (SparkleStock) and fall under the SparkleStock licence, not MIT; details in `ATTRIBUTION.md` next to them.
 - The editor in [`photocraft/`](photocraft/) keeps its own licence, **MIT OR Apache-2.0**, like the original PhotoCraft. See [photocraft/LICENSE-MIT](photocraft/LICENSE-MIT), [photocraft/LICENSE-APACHE](photocraft/LICENSE-APACHE) and [photocraft/NOTICE](photocraft/NOTICE). The original authors' copyright line is kept, as those licences require.
 - ArtCraft's name, logos and links were removed from the editor under the brand terms for forks. They remain trademarks of the ArtCraft Team.
 

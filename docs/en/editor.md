@@ -53,15 +53,15 @@ Two fixes along the way are worth knowing:
 PhotoCraft's brand terms require forks and modified versions to remove the ArtCraft name, logos and links. Done:
 
 - the `docs/brand/` logos are removed;
-- the «Help» menu lost «Join the ArtCraft Discord…», «ArtCraft Website» and «PhotoCraft Website» (it led to getartcraft.com); «Report an issue» leads to [FUDE Issues](https://github.com/Se1fKnowledge/FUDE/issues), «PhotoCraft on GitHub» to the source code;
-- the Discord button is gone from the start screen and the «About» window; the «PhotoCraft on GitHub · FUDE» links remain;
+- the “Help” menu lost “Join the ArtCraft Discord…”, “ArtCraft Website” and “PhotoCraft Website” (it led to getartcraft.com); “Report an issue” leads to [FUDE Issues](https://github.com/Se1fKnowledge/FUDE/issues), “PhotoCraft on GitHub” to the source code;
+- the Discord button is gone from the start screen and the “About” window; the “PhotoCraft on GitHub · FUDE” links remain;
 - unused ArtCraft and Discord strings are removed from all 21 translation catalogs;
 - in the Windows (`.wxs`) and Linux (`nfpm.yaml`, `metainfo.xml.in`) installers the addresses point to the FUDE repository;
 - the editor README, user documentation, `ATTRIBUTION.md`, `NOTICE` and the book are updated.
 
 Kept on purpose:
 
-- the copyright line «ArtCraft Team and the PhotoCraft contributors» in `LICENSE-MIT`, `NOTICE` and the README — the MIT and Apache licences require it;
+- the copyright line “ArtCraft Team and the PhotoCraft contributors” in `LICENSE-MIT`, `NOTICE` and the README — the MIT and Apache licences require it;
 - credits and the description of origin (the icon "drawn in ArtCraft", the list of authors) — that is attribution, not use of the mark;
 - PhotoCraft's internal developer instructions (`AGENTS.md`, `docs/user/AGENTS.md`) — they describe the original project's processes.
 
@@ -71,19 +71,19 @@ Tests make sure the brand does not come back (see [testing.md](testing.md)).
 
 The editor in FUDE downloads nothing and opens no pages of the original project:
 
-- **The update check is removed entirely.** At start the editor used to contact `api.github.com` and show a «PhotoCraft updates» window with a link to the download page. Removed: the network module (`apps/photocraft/src/updates.rs` and the `ureq` dependency), the engine commands (`updates_cmds.rs`, `help.checkForUpdates`), the window (`updates_ui.rs`), the «Check for updates automatically» setting and the `updates` / `updatesOpen` fields of the control channel. The FUDE app will update the editor itself.
-- **Links lead only to FUDE.** «PhotoCraft on GitHub» in the «Help» menu and on the start screen became «FUDE on GitHub» (`help.fude`); «Report an issue» leads to FUDE Issues.
-- **PhotoCraft's authors in the «About» window are listed as text**, without links to their profiles.
+- **The update check is removed entirely.** At start the editor used to contact `api.github.com` and show a “PhotoCraft updates” window with a link to the download page. Removed: the network module (`apps/photocraft/src/updates.rs` and the `ureq` dependency), the engine commands (`updates_cmds.rs`, `help.checkForUpdates`), the window (`updates_ui.rs`), the “Check for updates automatically” setting and the `updates` / `updatesOpen` fields of the control channel. The FUDE app will update the editor itself.
+- **Links lead only to FUDE.** “PhotoCraft on GitHub” in the “Help” menu and on the start screen became “FUDE on GitHub” (`help.fude`); “Report an issue” leads to FUDE Issues.
+- **PhotoCraft's authors in the “About” window are listed as text**, without links to their profiles.
 
 What remains and why: copyright lines and licence files (`LICENSE-MIT`, `LICENSE-APACHE`, `NOTICE`, `ATTRIBUTION.md`) — the MIT and Apache-2.0 licences require them and they cannot be removed. Mentions of the original repository's issues in code comments are development history, not links in the program.
 
-Tests: `no_runtime_link_to_the_upstream_repository` checks that no interface, engine or app source file has a link to `github.com/storytold` or `api.github.com` (outside comments); `every_link_goes_to_the_fude_repository` — that all menu links lead to FUDE; the «Help» menu and command tests check that `help.github` and `help.checkForUpdates` no longer exist.
+Tests: `no_runtime_link_to_the_upstream_repository` checks that no interface, engine or app source file has a link to `github.com/storytold` or `api.github.com` (outside comments); `every_link_goes_to_the_fude_repository` — that all menu links lead to FUDE; the “Help” menu and command tests check that `help.github` and `help.checkForUpdates` no longer exist.
 
 ### 4. The "inside the FUDE window" mode
 
 On Windows FUDE embeds the editor window in its own (see [app.md](app.md#the-editor-in-the-fude-window-or-on-its-own)). So the embedded editor stays out of the way, the control channel got a `ui.set {"hostEmbedded": bool}` field ([`control.rs`](../../photocraft/crates/ui-egui/src/control.rs)). While it is `true`:
 
-- the «minimise / maximise / close» window buttons and their space in the top bar are not drawn ([`titlebar.rs`](../../photocraft/crates/ui-egui/src/titlebar.rs), [`panels.rs`](../../photocraft/crates/ui-egui/src/panels.rs));
+- the “minimise / maximise / close” window buttons and their space in the top bar are not drawn ([`titlebar.rs`](../../photocraft/crates/ui-egui/src/titlebar.rs), [`panels.rs`](../../photocraft/crates/ui-egui/src/panels.rs));
 - the top bar does not drag or maximise the window, and there are no edge resize zones ([`lib.rs`](../../photocraft/crates/ui-egui/src/lib.rs));
 - `ui.inspect` reports `hostEmbedded`.
 
@@ -117,7 +117,7 @@ git diff <import commit>..HEAD -- photocraft
 git diff <import commit>..HEAD -- photocraft > fude.patch
 
 # replace photocraft/ with a fresh storytold/photocraft (without its .git),
-# commit «Импорт PhotoCraft <version>», then
+# commit “Импорт PhotoCraft <version>”, then
 git apply --3way fude.patch
 ```
 

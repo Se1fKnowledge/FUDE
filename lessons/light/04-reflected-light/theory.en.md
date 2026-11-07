@@ -30,7 +30,7 @@ This is one of the most beautiful things in painting: an object's surroundings s
 
 ## Technique
 
-- A separate «Reflected light» layer.
+- A separate “Reflected light” layer.
 - A soft brush, opacity 15–25%, a tone slightly lighter than the shadow with a tint of the floor.
 - A few arcing strokes along the edge, then a check: is the reflected light darker than the light?
 

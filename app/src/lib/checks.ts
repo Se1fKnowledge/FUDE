@@ -1,5 +1,5 @@
 // What the lesson editor offers for each check kind (docs/lesson-format.md, «Проверки»).
-import { t } from '#lib/i18n.svelte.ts';
+import { quote, t } from '#lib/i18n.svelte.ts';
 import type { Check, CheckKind } from './api.ts';
 
 export const CHECK_KINDS: { kind: CheckKind['kind']; label: string; canvas: boolean }[] = [
@@ -80,7 +80,7 @@ export function describe(check: Check): string {
 		case 'tool':
 			return `${label}: ${TOOLS.find(([id]) => id === check.tool)?.[1] ?? check.tool}`;
 		case 'layer':
-			return check.name ? `${label} «${check.name}»` : label;
+			return check.name ? `${label} ${quote(check.name)}` : label;
 		case 'foreground':
 		case 'color':
 			return `${label} ${check.color}`;

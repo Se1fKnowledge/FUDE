@@ -24,9 +24,9 @@ A cast shadow on a lit floor is usually **darker** than the ball's core shadow: 
 
 ## Technique
 
-- A separate «Shadow» layer under the ball layer or above the floor.
+- A separate “Shadow” layer under the ball layer or above the floor.
 - A soft brush, opacity 30–50%: the oval of the shadow, then the dark point of contact.
-- The «Multiply» layer mode keeps the floor's colour under the shadow.
+- The “Multiply” layer mode keeps the floor's colour under the shadow.
 
 ## Sensei's advice
 

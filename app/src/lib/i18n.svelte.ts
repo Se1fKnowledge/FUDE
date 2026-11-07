@@ -43,6 +43,11 @@ export function t(ru: string, vars?: Vars): string {
 	return fill(i18n.lang === 'en' ? (EN[ru] ?? ru) : ru, vars);
 }
 
+/** A name in the quotes of the current language: «Тень» in Russian, “Shadow” in English. */
+export function quote(name: string): string {
+	return i18n.lang === 'en' ? `“${name}”` : `«${name}»`;
+}
+
 /** Marks a Russian label kept in data (a menu list, a lookup table) as a translation key without
  * translating it yet; show it with t(label). The coverage test finds these too. */
 export const tk = (ru: string): string => ru;

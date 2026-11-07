@@ -111,13 +111,13 @@ fn run(args: &[String]) -> Result<ExitCode, String> {
             let roots: Vec<Root> = a.positional.iter().map(Root::builtin).collect();
             let library = Library::scan(&roots);
             for c in &library.categories {
-                println!("{}", fude_core::tr!("{} «{}»: {} уроков", "{} «{}»: {} lessons", c.category.id, c.category.title, c.lessons.len()));
+                println!("{}", fude_core::tr!("{} «{}»: {} уроков", "{} “{}”: {} lessons", c.category.id, c.category.title, c.lessons.len()));
                 for l in &c.lessons {
                     println!(
                         "{}",
                         fude_core::tr!(
                             "  {} «{}», сложность {}, шагов {}",
-                            "  {} «{}», difficulty {}, {} steps",
+                            "  {} “{}”, difficulty {}, {} steps",
                             l.lesson.id,
                             l.lesson.title,
                             l.lesson.difficulty,
@@ -173,12 +173,12 @@ fn run(args: &[String]) -> Result<ExitCode, String> {
             let file = PathBuf::from(a.at(0, fude_core::i18n::pick("файл пакета", "package file"))?);
             let scratch = std::env::temp_dir();
             let info = package::inspect(&file, &scratch, Limits::default()).map_err(e)?;
-            println!("«{}» ({})", info.manifest.title, info.manifest.created_by.unwrap_or_default());
+            println!("{} ({})", fude_core::i18n::quote(&info.manifest.title), info.manifest.created_by.unwrap_or_default());
             for c in &info.categories {
-                println!("{}", fude_core::tr!("  категория {} «{}»", "  category {} «{}»", c.id, c.title));
+                println!("{}", fude_core::tr!("  категория {} «{}»", "  category {} “{}”", c.id, c.title));
             }
             for l in &info.lessons {
-                println!("{}", fude_core::tr!("  урок {} «{}», сложность {}", "  lesson {} «{}», difficulty {}", l.id, l.title, l.difficulty));
+                println!("{}", fude_core::tr!("  урок {} «{}», сложность {}", "  lesson {} “{}”, difficulty {}", l.id, l.title, l.difficulty));
             }
             for i in &info.issues {
                 println!("  {i}");
@@ -193,7 +193,7 @@ fn run(args: &[String]) -> Result<ExitCode, String> {
             let library = Library::scan(&roots);
             let options = ImportOptions { replace: a.switches.contains("replace") };
             let report = package::import(&file, &library, &user, &options, Limits::default()).map_err(e)?;
-            println!("{}", fude_core::tr!("Импортирован «{}»", "Imported «{}»", report.title));
+            println!("{}", fude_core::tr!("Импортирован «{}»", "Imported “{}”", report.title));
             println!("{}", fude_core::tr!("  новые категории: {}", "  new categories: {}", list(&report.categories_added)));
             println!("{}", fude_core::tr!("  новые уроки: {}", "  new lessons: {}", list(&report.lessons_added)));
             println!("{}", fude_core::tr!("  заменены: {}", "  replaced: {}", list(&report.lessons_replaced)));
@@ -210,10 +210,10 @@ fn run(args: &[String]) -> Result<ExitCode, String> {
                 "shu" => Accent::Shu,
                 "kaki" => Accent::Kaki,
                 "kin" => Accent::Kin,
-                other => return Err(fude_core::tr!("неизвестный цвет «{other}»: ai, shu, kaki или kin", "unknown colour «{other}»: ai, shu, kaki or kin")),
+                other => return Err(fude_core::tr!("неизвестный цвет «{other}»: ai, shu, kaki или kin", "unknown colour “{other}”: ai, shu, kaki or kin")),
             };
             let (dir, category) = authoring::create_category(&user, title, a.get("kanji"), accent, "").map_err(e)?;
-            println!("{}", fude_core::tr!("{} — категория «{}»", "{} — category «{}»", dir.display(), category.title));
+            println!("{}", fude_core::tr!("{} — категория «{}»", "{} — category “{}”", dir.display(), category.title));
             Ok(ExitCode::SUCCESS)
         }
         "new-lesson" => {
@@ -288,7 +288,7 @@ fn run(args: &[String]) -> Result<ExitCode, String> {
             );
             Ok(if outcome.passed { ExitCode::SUCCESS } else { ExitCode::FAILURE })
         }
-        other => Err(fude_core::tr!("неизвестная команда «{other}»\n\n{}", "unknown command «{other}»\n\n{}", help())),
+        other => Err(fude_core::tr!("неизвестная команда «{other}»\n\n{}", "unknown command “{other}”\n\n{}", help())),
     }
 }
 

@@ -113,7 +113,7 @@ impl Library {
                             if !seen.insert(lesson.id.clone()) {
                                 library.problem(
                                     &lesson_dir.join(LESSON_FILE),
-                                    crate::tr!("урок «{}» уже есть в библиотеке", "lesson «{}» is already in the library", lesson.id),
+                                    crate::tr!("урок «{}» уже есть в библиотеке", "lesson “{}” is already in the library", lesson.id),
                                     vec![],
                                 );
                                 continue;
@@ -155,7 +155,7 @@ impl Library {
                         entry.dir.join(LESSON_FILE),
                         crate::tr!(
                             "урок «{}» требует «{required}», которого нет в библиотеке",
-                            "lesson «{}» requires «{required}», which is not in the library",
+                            "lesson “{}” requires “{required}”, which is not in the library",
                             entry.lesson.id
                         ),
                     ));
@@ -191,7 +191,7 @@ pub fn read_lesson(dir: &Path, category_id: &str) -> Result<(Lesson, Vec<Issue>)
     let mut issues = validate::lesson(&lesson, Some(dir), Some(category_id));
     issues.extend(crate::locale::check(dir, &lesson));
     if has_errors(&issues) {
-        return Err((crate::tr!("урок «{}» не прошёл проверку", "lesson «{}» failed the check", lesson.id), issues));
+        return Err((crate::tr!("урок «{}» не прошёл проверку", "lesson “{}” failed the check", lesson.id), issues));
     }
     Ok((lesson, issues))
 }

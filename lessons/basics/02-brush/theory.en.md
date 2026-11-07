@@ -16,7 +16,7 @@ Hardness is about the edge of the stamp:
 - **100%** — a crisp edge, like a felt-tip pen;
 - **0%** — the edge melts like ink on damp washi paper.
 
-A soft brush is handy for smooth transitions of light and shadow — the «Light and shadow» category is all about them. A hard one is for silhouettes and crisp borders.
+A soft brush is handy for smooth transitions of light and shadow — the “Light and shadow” category is all about them. A hard one is for silhouettes and crisp borders.
 
 **Shift+[** and **Shift+]** change the hardness from the keyboard.
 

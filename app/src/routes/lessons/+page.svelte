@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { t } from '#lib/i18n.svelte.ts';
+	import { quote, t } from '#lib/i18n.svelte.ts';
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { api, errorText, type Catalog, type CategoryView, type LessonCard } from '#lib/api.ts';
@@ -38,7 +38,7 @@
 	const afterNumber = (l: LessonCard) => {
 		const all = catalog?.categories.flatMap((c) => c.lessons) ?? [];
 		const req = all.find((x) => x.title === l.after);
-		return req ? (req.category === l.category ? two(req.number) : `«${req.title}»`) : '';
+		return req ? (req.category === l.category ? two(req.number) : quote(req.title)) : '';
 	};
 	const LABELS = ['', t('Первый шаг'), t('Лёгкий'), t('Средний'), t('Сложный'), t('Мастер')];
 	const filters = [

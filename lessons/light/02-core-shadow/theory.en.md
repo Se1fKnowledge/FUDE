@@ -29,7 +29,7 @@ The halftone takes up most of the lit side. Make it narrow and the ball looks li
 - A soft brush: hardness 0–30%.
 - Low opacity: the shadow is **built up**, not laid down in one stroke.
 - Strokes follow the form: an arc along the terminator, not across it.
-- Shadows are handy on a separate layer in «Multiply» mode — then they darken without changing the colour.
+- Shadows are handy on a separate layer in “Multiply” mode — then they darken without changing the colour.
 
 ## Sensei's advice
 

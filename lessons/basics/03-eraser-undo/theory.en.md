@@ -12,7 +12,7 @@ The eraser (**E**) is a brush in reverse. It has the same settings:
 
 A soft eraser with low opacity is handy for "toning down" places that are too dark without erasing them completely.
 
-On the background layer the eraser paints with the background colour; on an ordinary layer it makes pixels transparent. More on layers in the «Layers» lesson.
+On the background layer the eraser paints with the background colour; on an ordinary layer it makes pixels transparent. More on layers in the “Layers” lesson.
 
 ## The history
 
@@ -22,9 +22,9 @@ The editor remembers every action: a stroke, a fill, a new layer. That is the hi
 |---|---|
 | Undo | **Ctrl+Z** |
 | Redo | **Ctrl+Shift+Z** |
-| The «History» panel | Window › History |
+| The “History” panel | Window › History |
 
-You can undo many steps in a row. In the «History» panel you can click any step to go back to it.
+You can undo many steps in a row. In the “History” panel you can click any step to go back to it.
 
 If you do something new after undoing, the undone steps disappear: the history takes a new branch.
 

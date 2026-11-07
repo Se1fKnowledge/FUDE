@@ -92,7 +92,7 @@ pub fn export(out: &Path, title: &str, items: &[ExportItem]) -> Result<ExportRep
     }
     let mut ids = HashSet::new();
     if let Some((c, _, _)) = categories.iter().find(|(c, _, _)| !ids.insert(c.id.clone())) {
-        return Err(Error::Package(crate::tr!("категория «{}» указана дважды", "category «{}» is given twice", c.id)));
+        return Err(Error::Package(crate::tr!("категория «{}» указана дважды", "category “{}” is given twice", c.id)));
     }
 
     let file = File::create(out).map_err(error::io(out))?;
@@ -237,14 +237,14 @@ pub fn import(package: &Path, library: &Library, user_root: &Path, options: &Imp
                 if !existing.editable {
                     return Err(Error::Package(crate::tr!(
                         "урок «{}» уже есть среди встроенных, его нельзя заменить",
-                        "lesson «{}» is already among the built-in ones and cannot be replaced",
+                        "lesson “{}” is already among the built-in ones and cannot be replaced",
                         lesson.id
                     )));
                 }
                 if !options.replace {
                     return Err(Error::Package(crate::tr!(
                         "урок «{}» уже есть в библиотеке; выберите замену, чтобы обновить его",
-                        "lesson «{}» is already in the library; choose replace to update it",
+                        "lesson “{}” is already in the library; choose replace to update it",
                         lesson.id
                     )));
                 }
@@ -320,14 +320,14 @@ fn read_staged(root: &Path) -> Result<(Manifest, Vec<Staged>)> {
     for dir in subdirs(root) {
         let name = dir.file_name().and_then(|n| n.to_str()).unwrap_or_default();
         if !listed.contains(name) {
-            return Err(Error::Package(crate::tr!("папка «{name}» не указана в {MANIFEST}", "folder «{name}» is not listed in {MANIFEST}")));
+            return Err(Error::Package(crate::tr!("папка «{name}» не указана в {MANIFEST}", "folder “{name}” is not listed in {MANIFEST}")));
         }
     }
     let mut staged = Vec::new();
     let mut ids = HashSet::new();
     for id in &manifest.categories {
         if !validate::is_slug(id) {
-            return Err(Error::Package(crate::tr!("«{id}» — не id категории", "«{id}» is not a category id")));
+            return Err(Error::Package(crate::tr!("«{id}» — не id категории", "“{id}” is not a category id")));
         }
         let dir = root.join(id);
         let category = load_category(&dir).map_err(|e| Error::Package(e.to_string()))?;
@@ -389,22 +389,22 @@ pub fn unpack(package: &Path, target: &Path, limits: Limits) -> Result<()> {
         let trimmed = name.strip_suffix('/').unwrap_or(&name);
         paths::check_relative(trimmed).map_err(|e| Error::Package(crate::tr!("небезопасный путь: {e}", "unsafe path: {e}")))?;
         if entry.enclosed_name().is_none() {
-            return Err(Error::Package(crate::tr!("небезопасный путь «{name}»", "unsafe path «{name}»")));
+            return Err(Error::Package(crate::tr!("небезопасный путь «{name}»", "unsafe path “{name}”")));
         }
         if entry.unix_mode().is_some_and(|mode| mode & 0o170000 == 0o120000) {
-            return Err(Error::Package(crate::tr!("«{name}»: ссылки в пакете запрещены", "«{name}»: links are not allowed in a package")));
+            return Err(Error::Package(crate::tr!("«{name}»: ссылки в пакете запрещены", "“{name}”: links are not allowed in a package")));
         }
         if entry.is_dir() {
             continue;
         }
         if !paths::has_extension(trimmed, ALLOWED_EXTENSIONS) {
-            return Err(Error::Package(crate::tr!("«{name}»: такой тип файла в уроке запрещён", "«{name}»: this file type is not allowed in a lesson")));
+            return Err(Error::Package(crate::tr!("«{name}»: такой тип файла в уроке запрещён", "“{name}”: this file type is not allowed in a lesson")));
         }
         if !names.insert(trimmed.to_lowercase()) {
-            return Err(Error::Package(crate::tr!("«{name}» в пакете дважды", "«{name}» is in the package twice")));
+            return Err(Error::Package(crate::tr!("«{name}» в пакете дважды", "“{name}” is in the package twice")));
         }
         if entry.size() > limits.max_file_bytes {
-            return Err(Error::Package(crate::tr!("«{name}» больше {} МиБ", "«{name}» is larger than {} MiB", limits.max_file_bytes >> 20)));
+            return Err(Error::Package(crate::tr!("«{name}» больше {} МиБ", "“{name}” is larger than {} MiB", limits.max_file_bytes >> 20)));
         }
         total = total.saturating_add(entry.size());
         if total > limits.max_total_bytes {
@@ -427,7 +427,7 @@ pub fn unpack(package: &Path, target: &Path, limits: Limits) -> Result<()> {
         let budget = limits.max_file_bytes.min(limits.max_total_bytes.saturating_sub(written));
         let copied = io::copy(&mut (&mut entry).take(budget.saturating_add(1)), &mut file).map_err(error::io(&out))?;
         if copied > budget {
-            return Err(Error::Package(crate::tr!("«{name}» больше, чем заявлено в архиве", "«{name}» is larger than the archive says")));
+            return Err(Error::Package(crate::tr!("«{name}» больше, чем заявлено в архиве", "“{name}” is larger than the archive says")));
         }
         written += copied;
     }

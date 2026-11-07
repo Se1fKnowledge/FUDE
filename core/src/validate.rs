@@ -163,18 +163,18 @@ pub fn is_lesson_id(text: &str) -> bool {
 /// Checks a hint target: `tool:…`, `panel:…`, `menu:…` or `option:…`.
 pub fn check_target(target: &str) -> Result<(), String> {
     let Some((kind, name)) = target.split_once(':') else {
-        return Err(crate::tr!("«{target}»: ожидается tool:…, panel:…, menu:… или option:…", "«{target}»: tool:…, panel:…, menu:… or option:… expected"));
+        return Err(crate::tr!("«{target}»: ожидается tool:…, panel:…, menu:… или option:…", "“{target}”: tool:…, panel:…, menu:… or option:… expected"));
     };
     match kind {
         "tool" if canonical_tool(name).is_some() => Ok(()),
-        "tool" => Err(crate::tr!("нет такого инструмента PhotoCraft: «{name}»", "PhotoCraft has no such tool: «{name}»")),
+        "tool" => Err(crate::tr!("нет такого инструмента PhotoCraft: «{name}»", "PhotoCraft has no such tool: “{name}”")),
         "panel" if PANELS.contains(&name) => Ok(()),
-        "panel" => Err(crate::tr!("неизвестная панель «{name}»; есть: {}", "unknown panel «{name}»; there are: {}", PANELS.join(", "))),
+        "panel" => Err(crate::tr!("неизвестная панель «{name}»; есть: {}", "unknown panel “{name}”; there are: {}", PANELS.join(", "))),
         "option" if OPTIONS.contains(&name) => Ok(()),
-        "option" => Err(crate::tr!("неизвестный параметр «{name}»; есть: {}", "unknown option «{name}»; there are: {}", OPTIONS.join(", "))),
+        "option" => Err(crate::tr!("неизвестный параметр «{name}»; есть: {}", "unknown option “{name}”; there are: {}", OPTIONS.join(", "))),
         "menu" if !name.is_empty() && name.contains('.') && name.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'.') => Ok(()),
-        "menu" => Err(crate::tr!("«{name}»: ожидается id команды меню, например edit.undo", "«{name}»: a menu command id is expected, for example edit.undo")),
-        _ => Err(crate::tr!("«{target}»: ожидается tool:…, panel:…, menu:… или option:…", "«{target}»: tool:…, panel:…, menu:… or option:… expected")),
+        "menu" => Err(crate::tr!("«{name}»: ожидается id команды меню, например edit.undo", "“{name}”: a menu command id is expected, for example edit.undo")),
+        _ => Err(crate::tr!("«{target}»: ожидается tool:…, panel:…, menu:… или option:…", "“{target}”: tool:…, panel:…, menu:… or option:… expected")),
     }
 }
 
@@ -185,7 +185,7 @@ pub fn category(category: &Category, dir_name: Option<&str>) -> Vec<Issue> {
             "id",
             crate::tr!(
                 "«{}»: только строчные латинские буквы, цифры и «-», до {ID_MAX} символов",
-                "«{}»: only lowercase Latin letters, digits and «-», up to {ID_MAX} characters",
+                "“{}”: only lowercase Latin letters, digits and “-”, up to {ID_MAX} characters",
                 category.id
             ),
         ));
@@ -194,7 +194,7 @@ pub fn category(category: &Category, dir_name: Option<&str>) -> Vec<Issue> {
         && dir != category.id
     {
         issues
-            .push(Issue::error("id", crate::tr!("id «{}» не совпадает с именем папки «{dir}»", "id «{}» does not match the folder name «{dir}»", category.id)));
+            .push(Issue::error("id", crate::tr!("id «{}» не совпадает с именем папки «{dir}»", "id “{}” does not match the folder name “{dir}”", category.id)));
     }
     title(&mut issues, "title", &category.title);
     if let Some(kanji) = &category.kanji
@@ -231,7 +231,7 @@ pub fn lesson(lesson: &Lesson, dir: Option<&Path>, category_id: Option<&str>) ->
             "id",
             crate::tr!(
                 "«{}»: ожидается <категория>.<имя>, латиница, цифры и «-»",
-                "«{}»: <category>.<name> is expected, Latin letters, digits and «-»",
+                "“{}”: <category>.<name> is expected, Latin letters, digits and “-”",
                 lesson.id
             ),
         ));
@@ -242,7 +242,7 @@ pub fn lesson(lesson: &Lesson, dir: Option<&Path>, category_id: Option<&str>) ->
             "id",
             crate::tr!(
                 "урок «{}» лежит в категории «{category}», id должен начинаться с «{category}.»",
-                "lesson «{}» is in the «{category}» category, its id must start with «{category}.»",
+                "lesson “{}” is in the “{category}” category, its id must start with “{category}.”",
                 lesson.id
             ),
         ));
@@ -269,7 +269,7 @@ pub fn lesson(lesson: &Lesson, dir: Option<&Path>, category_id: Option<&str>) ->
     }
     for (i, required) in lesson.requires.iter().enumerate() {
         if !is_lesson_id(required) {
-            issues.push(Issue::error(format!("requires[{i}]"), crate::tr!("«{required}» — не id урока", "«{required}» is not a lesson id")));
+            issues.push(Issue::error(format!("requires[{i}]"), crate::tr!("«{required}» — не id урока", "“{required}” is not a lesson id")));
         } else if *required == lesson.id {
             issues.push(Issue::error(format!("requires[{i}]"), crate::i18n::pick("урок не может требовать сам себя", "a lesson cannot require itself")));
         }
@@ -325,13 +325,13 @@ fn file(issues: &mut Vec<Issue>, dir: Option<&Path>, field: &str, path: &str, ex
         return false;
     }
     if !paths::has_extension(path, extensions) {
-        issues.push(Issue::error(field, crate::tr!("«{path}»: нужен файл {}", "«{path}»: a {} file is needed", extensions.join(", "))));
+        issues.push(Issue::error(field, crate::tr!("«{path}»: нужен файл {}", "“{path}”: a {} file is needed", extensions.join(", "))));
         return false;
     }
     if let Some(dir) = dir
         && !paths::resolve(dir, path).is_ok_and(|p| p.is_file())
     {
-        issues.push(Issue::error(field, crate::tr!("файл «{path}» не найден", "file «{path}» not found")));
+        issues.push(Issue::error(field, crate::tr!("файл «{path}» не найден", "file “{path}” not found")));
         return false;
     }
     true
@@ -361,7 +361,7 @@ fn task(issues: &mut Vec<Issue>, lesson: &Lesson, dir: Option<&Path>) {
             if parse_hex(&canvas.background).is_none() {
                 issues.push(Issue::error(
                     "task.canvas.background",
-                    crate::tr!("«{}»: ожидается цвет #rrggbb", "«{}»: a #rrggbb colour is expected", canvas.background),
+                    crate::tr!("«{}»: ожидается цвет #rrggbb", "“{}”: a #rrggbb colour is expected", canvas.background),
                 ));
             }
         }
@@ -375,9 +375,9 @@ fn task(issues: &mut Vec<Issue>, lesson: &Lesson, dir: Option<&Path>) {
     for (i, step) in task.steps.iter().enumerate() {
         let field = format!("task.steps[{i}]");
         if !is_slug(&step.id) {
-            issues.push(Issue::error(format!("{field}.id"), crate::tr!("«{}»: латиница, цифры и «-»", "«{}»: Latin letters, digits and «-»", step.id)));
+            issues.push(Issue::error(format!("{field}.id"), crate::tr!("«{}»: латиница, цифры и «-»", "“{}”: Latin letters, digits and “-”", step.id)));
         } else if !ids.insert(step.id.as_str()) {
-            issues.push(Issue::error(format!("{field}.id"), crate::tr!("шаг «{}» уже есть", "step «{}» already exists", step.id)));
+            issues.push(Issue::error(format!("{field}.id"), crate::tr!("шаг «{}» уже есть", "step “{}” already exists", step.id)));
         }
         if step.text.trim().is_empty() {
             issues.push(Issue::error(format!("{field}.text"), crate::i18n::pick("текст шага пустой", "the step text is empty")));
@@ -388,7 +388,7 @@ fn task(issues: &mut Vec<Issue>, lesson: &Lesson, dir: Option<&Path>) {
         if step.checks.is_empty() {
             issues.push(Issue::warning(
                 format!("{field}.checks"),
-                crate::i18n::pick("без проверок шаг засчитывается кнопкой «Готово»", "without checks the step counts with the «Done» button"),
+                crate::i18n::pick("без проверок шаг засчитывается кнопкой «Готово»", "without checks the step counts with the “Done” button"),
             ));
         }
         for (j, c) in step.checks.iter().enumerate() {
@@ -485,7 +485,7 @@ fn check(issues: &mut Vec<Issue>, field: &str, check: &Check, dir: Option<&Path>
             if canonical_tool(tool).is_none() {
                 issues.push(Issue::error(
                     format!("{field}.tool"),
-                    crate::tr!("нет такого инструмента PhotoCraft: «{tool}»", "PhotoCraft has no such tool: «{tool}»"),
+                    crate::tr!("нет такого инструмента PhotoCraft: «{tool}»", "PhotoCraft has no such tool: “{tool}”"),
                 ));
             }
         }
@@ -570,7 +570,7 @@ fn check(issues: &mut Vec<Issue>, field: &str, check: &Check, dir: Option<&Path>
 
 fn colour(issues: &mut Vec<Issue>, field: &str, color: &str) {
     if parse_hex(color).is_none() {
-        issues.push(Issue::error(field, crate::tr!("«{color}»: ожидается цвет #rrggbb", "«{color}»: a #rrggbb colour is expected")));
+        issues.push(Issue::error(field, crate::tr!("«{color}»: ожидается цвет #rrggbb", "“{color}”: a #rrggbb colour is expected")));
     }
 }
 

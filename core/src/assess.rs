@@ -272,10 +272,10 @@ fn evaluate(kind: &CheckKind, context: &Context, snapshot: &Snapshot) -> Verdict
             let current = state.tool.as_deref().and_then(canonical_tool);
             let name = tool_label(wanted);
             let fail = match current {
-                Some(c) => crate::tr!("Выберите инструмент «{name}» — сейчас выбран «{}».", "Pick the «{name}» tool — «{}» is selected now.", tool_label(c)),
-                None => crate::tr!("Выберите инструмент «{name}».", "Pick the «{name}» tool."),
+                Some(c) => crate::tr!("Выберите инструмент «{name}» — сейчас выбран «{}».", "Pick the “{name}” tool — “{}” is selected now.", tool_label(c)),
+                None => crate::tr!("Выберите инструмент «{name}».", "Pick the “{name}” tool."),
             };
-            verdict(current == Some(wanted), crate::tr!("Инструмент «{name}».", "Tool «{name}»."), fail, None)
+            verdict(current == Some(wanted), crate::tr!("Инструмент «{name}».", "Tool “{name}”."), fail, None)
         }
         CheckKind::Brush { size, hardness, opacity } => {
             let Some(brush) = state.brush else {
@@ -344,7 +344,7 @@ fn document_check(kind: &CheckKind, doc: &DocumentState, state: &EditorState) ->
                     && layer_type.as_ref().is_none_or(|k| l.kind.eq_ignore_ascii_case(k))
             });
             match found {
-                Some(l) => (true, crate::tr!("Слой «{}».", "Layer «{}».", l.name), Some(l.opacity)),
+                Some(l) => (true, crate::tr!("Слой «{}».", "Layer “{}”.", l.name), Some(l.opacity)),
                 None => (false, crate::tr!("Нет слоя{}.", "No layer{}.", describe_layer(name.as_deref(), *visible, opacity.as_ref())), None),
             }
         }
@@ -431,7 +431,7 @@ fn document_check(kind: &CheckKind, doc: &DocumentState, state: &EditorState) ->
 fn describe_layer(name: Option<&str>, visible: Option<bool>, opacity: Option<&Range>) -> String {
     let mut parts = Vec::new();
     if let Some(n) = name {
-        parts.push(format!(" «{n}»"));
+        parts.push(format!(" {}", crate::i18n::quote(n)));
     }
     match visible {
         Some(true) => parts.push(crate::tr!(", видимого", ", visible")),

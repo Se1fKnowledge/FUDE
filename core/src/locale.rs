@@ -139,7 +139,7 @@ pub fn check(dir: &Path, lesson: &Lesson) -> Vec<crate::validate::Issue> {
             Ok(o) => {
                 let script = lesson.guide.script.as_ref().and_then(|s| crate::guide::load(&dir.join(s)).ok());
                 for k in o.unused(lesson, script.as_ref()) {
-                    issues.push(Issue::warning(&name, crate::tr!("«{k}» нет в уроке — устаревшая строка?", "«{k}» is not in the lesson — a stale entry?")));
+                    issues.push(Issue::warning(&name, crate::tr!("«{k}» нет в уроке — устаревшая строка?", "“{k}” is not in the lesson — a stale entry?")));
                 }
             }
         }
