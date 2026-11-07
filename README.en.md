@@ -11,8 +11,8 @@ A diploma project (4th year).
   <img src="design/app-home-dark-en.png" alt="Home in the dark «Sumi» theme" width="49%">
 </p>
 <p align="center">
-  <img src="design/app-guide.png" alt="Lesson: the guide draws in the editor embedded in the FUDE window (Russian interface)" width="49%">
-  <img src="design/app-practice.png" alt="Practice: the PhotoCraft editor inside the FUDE window, task steps and auto-check on the right (Russian interface)" width="49%">
+  <img src="design/app-guide-en.png" alt="Lesson: the guide draws in the editor embedded in the FUDE window" width="49%">
+  <img src="design/app-practice-en.png" alt="Practice: the PhotoCraft editor inside the FUDE window, task steps and auto-check on the right" width="49%">
 </p>
 <p align="center">
   <img src="design/app-lessons-en.png" alt="Lesson catalog by category" width="49%">
