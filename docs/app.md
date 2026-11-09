@@ -204,9 +204,9 @@ cd app && npm run check                                       # типы Svelte 
 | [`ci.yml`](../.github/workflows/ci.yml) | каждый push в `main` и `SelfKnowledge`, каждый pull request | `npm run check`, тесты интерфейса, сборка интерфейса, `cargo fmt --check`, clippy с `-D warnings`, `cargo test --workspace` |
 | [`build.yml`](../.github/workflows/build.yml) | push в `main` и `SelfKnowledge` (новый push отменяет прежнюю сборку), теги `v*`, вручную (Actions → Build → Run workflow — когда файл есть в `main`) | собирает PhotoCraft в релизе и установщики FUDE с редактором внутри; выкладывает артефакт `FUDE-windows-x64`: установщики `.exe` и `.msi` плюс переносная версия `FUDE-portable-windows-x64.zip` (`fude.exe`, `photocraft.exe`, `lessons/`) |
 
-Тег вида `v0.1.0` дополнительно создаёт релиз на GitHub с этими файлами:
+Тег вида `v1.0.0` дополнительно создаёт релиз на GitHub с этими файлами:
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+git tag v1.0.0
+git push origin v1.0.0
 ```

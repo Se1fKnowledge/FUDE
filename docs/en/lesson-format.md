@@ -262,7 +262,7 @@ my-lessons.fude
 # fude-package.toml
 format = 1
 title = "Мои уроки акварели"
-created_by = "FUDE 0.1.0"
+created_by = "FUDE 1.0.0"
 categories = ["watercolor"]
 ```
 

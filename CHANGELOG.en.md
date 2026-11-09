@@ -4,7 +4,7 @@
 
 Format: newest first. Only finished versions reach `main`.
 
-## 0.1.0 — November 9, 2026
+## 1.0.0 — November 9, 2026
 
 The first finished version: the app, the editor, 12 built-in lessons, Windows installers.
 

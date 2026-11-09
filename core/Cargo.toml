@@ -1,6 +1,6 @@
 [package]
 name = "fude-core"
-version = "0.1.0"
+version = "1.0.0"
 description = "FUDE lesson core: lesson format, library, validation, .fude packages, authoring, guides, hints and task assessment"
 edition.workspace = true
 license.workspace = true

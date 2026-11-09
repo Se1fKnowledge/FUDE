@@ -9,7 +9,7 @@
 | `main` | finished versions only; we never commit to it directly |
 | `SelfKnowledge` | development; all changes go here |
 
-A finished version reaches `main` by merging `SelfKnowledge` (preferably through a pull request on GitHub), after all the tests in [testing.md](testing.md) pass. We mark a version with a tag, for example `v0.1.0`, and record it in [CHANGELOG.md](../../CHANGELOG.md).
+A finished version reaches `main` by merging `SelfKnowledge` (preferably through a pull request on GitHub), after all the tests in [testing.md](testing.md) pass. We mark a version with a tag, for example `v1.0.0`, and record it in [CHANGELOG.md](../../CHANGELOG.md).
 
 ## Commits
 
