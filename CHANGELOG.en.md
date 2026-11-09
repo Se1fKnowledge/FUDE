@@ -2,9 +2,11 @@
 
 [Русский](CHANGELOG.md) · **English**
 
-Format: newest first. Versions will appear once the first finished build reaches `main`.
+Format: newest first. Only finished versions reach `main`.
 
-## Unreleased (the `SelfKnowledge` branch)
+## 0.1.0 — November 9, 2026
+
+The first finished version: the app, the editor, 12 built-in lessons, Windows installers.
 
 ### Added
 
