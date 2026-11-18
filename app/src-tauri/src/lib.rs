@@ -15,6 +15,7 @@ pub mod practice;
 pub mod progress;
 pub mod state;
 pub mod studio;
+pub mod tour;
 pub mod window;
 
 use std::path::{Path, PathBuf};
@@ -70,6 +71,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         scratch_db: Mutex::new(db::Db::in_memory(learn::now())?),
         editor: Mutex::new(None),
         practice: Mutex::new(None),
+        tour: Mutex::new(None),
         guide_cancel: Arc::new(AtomicBool::new(false)),
         recording: Mutex::new(None),
         layout: Mutex::new(state::Layout::new(host)),
@@ -122,6 +124,10 @@ pub fn run() {
             play::practice_hide_hint,
             play::practice_confirm,
             play::practice_stop,
+            tour::tour_overview,
+            tour::tour_start,
+            tour::tour_poll,
+            tour::tour_stop,
             play::practice_hint_key,
             studio::studio,
             studio::studio_category_create,

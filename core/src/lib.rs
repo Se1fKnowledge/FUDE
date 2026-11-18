@@ -22,6 +22,7 @@ pub mod model;
 pub mod package;
 pub mod paths;
 pub mod record;
+pub mod tour;
 pub mod validate;
 
 pub use error::{Error, Result};

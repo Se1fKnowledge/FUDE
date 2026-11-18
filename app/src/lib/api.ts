@@ -460,6 +460,50 @@ export interface Problem {
 
 // ---------------------------------------------------------------- calls
 
+// ------------------------------------------------------------------ editor tour
+
+export type TourStepState = 'pending' | 'done' | 'skipped';
+
+export interface TourStepView {
+	id: string;
+	title: string;
+	learned: string;
+	key: string | null;
+	state: TourStepState;
+}
+
+export interface TourChapter {
+	id: string;
+	title: string;
+	short: string;
+	summary: string;
+	minutes: number;
+	steps: TourStepView[];
+	state: 'done' | 'started' | 'new';
+}
+
+export interface TourOverview {
+	chapters: TourChapter[];
+	current: string | null;
+	steps: number;
+	minutes: number;
+	done: number;
+}
+
+export interface TourView {
+	chapter: string;
+	title: string;
+	index: number;
+	total: number;
+	steps: TourStepView[];
+	done: boolean;
+	finished: boolean;
+	outside: number;
+	seconds: number;
+	picture: string | null;
+	next: { id: string; title: string } | null;
+}
+
 export const api = {
 	boot: () => invoke<Boot>('boot'),
 	setLang: (lang: 'ru' | 'en') => invoke<void>('set_lang', { lang }),
@@ -479,6 +523,10 @@ export const api = {
 	editorArea: (rect: { x: number; y: number; width: number; height: number } | null) => invoke<void>('editor_area', { rect }),
 	guidePlay: (id: string) => invoke<void>('guide_play', { id }),
 	guideStop: () => invoke<void>('guide_stop'),
+	tourOverview: () => invoke<TourOverview>('tour_overview'),
+	tourStart: (chapter: string) => invoke<TourView>('tour_start', { chapter }),
+	tourPoll: () => invoke<TourView>('tour_poll'),
+	tourStop: () => invoke<void>('tour_stop'),
 	practiceStart: (id: string) => invoke<{ attempt: number; steps: StepView[] }>('practice_start', { id }),
 	practicePreview: (dir: string) => invoke<{ attempt: number; steps: StepView[] }>('practice_preview', { dir }),
 	practiceCheck: () => invoke<CheckResult>('practice_check'),

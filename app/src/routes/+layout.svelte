@@ -28,7 +28,7 @@
 	});
 
 	// The lesson path takes the whole window, like the mockup screens 06–08.
-	const focus = $derived(/^\/(lesson|practice|result)\/|^\/studio\/edit/.test(page.url.pathname));
+	const focus = $derived(/^\/(lesson|practice|result)\/|^\/studio\/edit|^\/editor\/tour\//.test(page.url.pathname));
 
 	// Leaving the lesson path closes the editor it opened.
 	$effect(() => {

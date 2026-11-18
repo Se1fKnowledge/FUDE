@@ -1,0 +1,80 @@
+id = "window"
+title = "Окно редактора"
+short = "Окно"
+summary = "Пять зон окна PhotoCraft: меню, параметры инструмента, инструменты, холст и панели."
+minutes = 2
+
+[en]
+title = "The editor window"
+short = "Window"
+summary = "Five zones of the PhotoCraft window: menus, tool options, tools, the canvas and the panels."
+
+[[steps]]
+id = "menu"
+title = "Меню"
+body = "Здесь собраны все команды редактора: десять списков, от «Файл» до «Справка». Открывать их пока не нужно."
+task = "Проведите курсором по строке меню"
+learned = "Находить меню"
+target = "menu"
+hover = 0.6
+  [steps.en]
+  title = "Menus"
+  body = "Every command of the editor lives here, in ten lists from File to Help. No need to open them yet."
+  task = "Move the pointer along the menu bar"
+  learned = "Find the menus"
+
+[[steps]]
+id = "options"
+title = "Параметры инструмента"
+body = "Эта полоса меняется вместе с инструментом. У кисти здесь размер, режим, непрозрачность и нажим."
+task = "Проведите курсором по полосе параметров"
+learned = "Находить параметры инструмента"
+target = "options"
+hover = 0.6
+  [steps.en]
+  title = "Tool options"
+  body = "This bar changes with the tool. For the brush it holds size, mode, opacity and flow."
+  task = "Move the pointer along the options bar"
+  learned = "Find the tool options"
+
+[[steps]]
+id = "toolbar"
+title = "Инструменты"
+body = "Кисть, ластик, выделение, заливка и другие. Похожие инструменты собраны в одну ячейку."
+task = "Проведите курсором по панели инструментов"
+learned = "Находить инструменты"
+target = "toolbar"
+hover = 0.6
+  [steps.en]
+  title = "Tools"
+  body = "Brush, eraser, selection, fill and more. Similar tools share one cell."
+  task = "Move the pointer along the toolbar"
+  learned = "Find the tools"
+
+[[steps]]
+id = "canvas"
+title = "Холст"
+body = "Лист, на котором вы рисуете. Тёмное поле вокруг него в рисунок не входит."
+task = "Проведите курсором по холсту"
+learned = "Отличать лист от поля вокруг"
+target = "canvas"
+hover = 0.6
+  [steps.en]
+  title = "Canvas"
+  body = "The sheet you draw on. The dark field around it is not part of the picture."
+  task = "Move the pointer over the canvas"
+  learned = "Tell the sheet from the field around it"
+
+[[steps]]
+id = "dock"
+title = "Панели"
+body = "Цвет, свойства и слои. Панели показывают состояние рисунка и помогают им управлять."
+task = "Проведите курсором по панелям справа"
+learned = "Находить панели"
+target = "dock"
+hover = 0.6
+  [steps.en]
+  title = "Panels"
+  body = "Colour, properties and layers. Panels show the state of the picture and help you manage it."
+  task = "Move the pointer over the panels on the right"
+  learned = "Find the panels"

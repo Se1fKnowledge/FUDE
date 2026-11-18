@@ -216,8 +216,9 @@ pub async fn practice_preview(app: AppHandle, dir: String) -> AppResult<Practice
 
 pub(crate) fn start(state: &AppState, lesson: fude_core::model::Lesson, dir: &std::path::Path, preview: bool) -> AppResult<PracticeStart> {
     state.guide_cancel.store(true, Ordering::SeqCst);
-    // Locks are taken practice → editor → db everywhere; here the old practice goes first.
+    // Locks are taken practice → tour → editor → db everywhere; here the old practice goes first.
     *lock(&state.practice) = None;
+    *lock(&state.tour) = None;
     let practice = {
         let mut guard = state.editor_for(dir)?;
         let editor = guard.as_mut().ok_or_else(|| AppError::msg(fude_core::i18n::pick("редактор не запущен", "the editor is not running")))?;

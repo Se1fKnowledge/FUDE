@@ -1,0 +1,138 @@
+id = "brush"
+title = "Кисть"
+short = "Кисть"
+summary = "Выбираем кисть, задаём размер и жёсткость, проводим первый мазок и пробуем полупрозрачную кисть."
+minutes = 4
+
+[en]
+title = "Brush"
+short = "Brush"
+summary = "Pick the brush, set its size and hardness, make the first stroke and try a translucent brush."
+
+# The chapter starts from a known brush on a tool that is not the brush, so every step has
+# something to do.
+[[setup]]
+method = "ui.set"
+params = { tool = "Brush" }
+[[setup]]
+method = "engine.execute"
+params = { command = "tools.setBrush", params = { size = 20.0, hardness = 1.0, opacity = 1.0, flow = 1.0 } }
+[[setup]]
+method = "ui.set"
+params = { tool = "Move" }
+
+[[steps]]
+id = "pick"
+title = "Кисть"
+body = "Главный инструмент рисования. Оставляет мазок тем цветом, который выбран внизу панели инструментов."
+task = "Нажмите на кисть на панели инструментов"
+learned = "Выбирать кисть"
+key = "B"
+target = "tool:Brush"
+keys = ["B"]
+  [steps.en]
+  title = "Brush"
+  body = "The main drawing tool. It leaves a stroke in the colour chosen at the bottom of the toolbar."
+  task = "Click the brush on the toolbar"
+  learned = "Pick the brush"
+  [[steps.checks]]
+  kind = "tool"
+  tool = "Brush"
+  [[steps.leaves]]
+  method = "ui.set"
+  params = { tool = "Brush" }
+
+[[steps]]
+id = "size"
+title = "Размер кисти"
+body = "Размер — диаметр отпечатка кисти в пикселях. Сейчас он 20. Клавиша ] делает кисть крупнее, [ — мельче."
+task = "Сделайте кисть не меньше 40 пикселей: нажимайте ]"
+learned = "Менять размер кисти"
+key = "[  ]"
+target = "options"
+keys = ["[", "]"]
+  [steps.en]
+  title = "Brush size"
+  body = "Size is the diameter of the brush tip in pixels. It is 20 now. The ] key makes the brush larger, [ smaller."
+  task = "Make the brush at least 40 pixels: press ]"
+  learned = "Change the brush size"
+  [[steps.checks]]
+  kind = "brush"
+  size = { min = 40 }
+  [[steps.leaves]]
+  method = "engine.execute"
+  params = { command = "tools.setBrush", params = { size = 40.0 } }
+
+[[steps]]
+id = "hardness"
+title = "Жёсткость кисти"
+body = "Жёсткость — это край мазка: у жёсткой кисти он чёткий, у мягкой тает. Shift+[ делает кисть мягче, Shift+] жёстче."
+task = "Смягчите кисть до 50 % или ниже: нажимайте Shift+["
+learned = "Менять жёсткость кисти"
+key = "Shift+["
+target = "options"
+keys = ["[", "]"]
+  [steps.en]
+  title = "Brush hardness"
+  body = "Hardness is the edge of the stroke: crisp for a hard brush, melting for a soft one. Shift+[ softens the brush, Shift+] hardens it."
+  task = "Soften the brush to 50% or lower: press Shift+["
+  learned = "Change the brush hardness"
+  [[steps.checks]]
+  kind = "brush"
+  hardness = { max = 0.5 }
+  [[steps.leaves]]
+  method = "engine.execute"
+  params = { command = "tools.setBrush", params = { hardness = 0.5 } }
+
+[[steps]]
+id = "stroke"
+title = "Первый мазок"
+body = "Зажмите левую кнопку мыши на листе и ведите. Кисть оставляет след, пока кнопка нажата."
+task = "Проведите мазок в верхней половине листа"
+learned = "Проводить мазок"
+target = "canvas"
+  [steps.en]
+  title = "The first stroke"
+  body = "Hold the left mouse button on the sheet and drag. The brush leaves a trail while the button is down."
+  task = "Make a stroke in the top half of the sheet"
+  learned = "Make a stroke"
+  [[steps.checks]]
+  kind = "coverage"
+  region = [0.0, 0.0, 1.0, 0.5]
+  changed = { min = 0.004 }
+
+[[steps]]
+id = "opacity"
+title = "Непрозрачность мазка"
+body = "Непрозрачность решает, насколько мазок просвечивает. Щёлкните по числу рядом со словом «Непрозрачность», введите 40 и нажмите Enter."
+task = "Сделайте непрозрачность 60 % или меньше"
+learned = "Менять непрозрачность мазка"
+target = "options"
+  [steps.en]
+  title = "Stroke opacity"
+  body = "Opacity decides how much the stroke shows through. Click the number next to Opacity, type 40 and press Enter."
+  task = "Set the opacity to 60% or less"
+  learned = "Change the stroke opacity"
+  [[steps.checks]]
+  kind = "brush"
+  opacity = { max = 0.6 }
+  [[steps.leaves]]
+  method = "engine.execute"
+  params = { command = "tools.setBrush", params = { opacity = 0.6 } }
+
+[[steps]]
+id = "translucent"
+title = "Полупрозрачный мазок"
+body = "Прозрачная кисть кладёт цвет слоями: один проход светлее, два прохода темнее."
+task = "Проведите мазок в нижней половине листа"
+learned = "Рисовать полупрозрачной кистью"
+target = "canvas"
+  [steps.en]
+  title = "A translucent stroke"
+  body = "A translucent brush lays colour in layers: one pass is lighter, two passes are darker."
+  task = "Make a stroke in the bottom half of the sheet"
+  learned = "Paint with a translucent brush"
+  [[steps.checks]]
+  kind = "coverage"
+  region = [0.0, 0.5, 1.0, 0.5]
+  changed = { min = 0.004 }

@@ -15,6 +15,7 @@
 	const items: { href: string; label: string; icon: IconName; seed: number }[] = [
 		{ href: '/', label: tk('Главная'), icon: 'home', seed: 11 },
 		{ href: '/lessons', label: tk('Уроки'), icon: 'book', seed: 12 },
+		{ href: '/editor', label: tk('Редактор'), icon: 'window', seed: 17 },
 		{ href: '/achievements', label: tk('Достижения'), icon: 'trophy', seed: 13 },
 		{ href: '/activity', label: tk('Активность'), icon: 'grid', seed: 14 },
 		{ href: '/stats', label: tk('Статистика'), icon: 'chart', seed: 15 },

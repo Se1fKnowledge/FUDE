@@ -30,6 +30,8 @@ pub struct AppState {
     pub scratch_db: Mutex<Db>,
     pub editor: Mutex<Option<Editor>>,
     pub practice: Mutex<Option<Practice>>,
+    /// A chapter of the editor tour running in the editor. Lock order: practice → tour → editor → db.
+    pub tour: Mutex<Option<crate::tour::TourRun>>,
     pub guide_cancel: Arc<AtomicBool>,
     /// A guide being recorded in the editor.
     pub recording: Mutex<Option<crate::author::Recorder>>,

@@ -1,0 +1,104 @@
+id = "eraser"
+title = "Ластик и отмена"
+short = "Ластик"
+summary = "Стираем часть мазка ластиком, отменяем последнее действие и возвращаем его."
+minutes = 2
+
+[en]
+title = "Eraser and undo"
+short = "Eraser"
+summary = "Erase part of a stroke, undo the last action and bring it back."
+
+# A black band across the middle of the sheet to erase from.
+[[setup]]
+method = "ui.set"
+params = { tool = "Brush" }
+[[setup]]
+method = "engine.execute"
+params = { command = "tools.setBrush", params = { size = 60.0, hardness = 1.0, opacity = 1.0, flow = 1.0 } }
+[[setup]]
+method = "engine.execute"
+params = { command = "paint.stroke", params = { color = "#16161A", points = [[200.0, 400.0, 1.0], [400.0, 400.0, 1.0], [600.0, 400.0, 1.0], [800.0, 400.0, 1.0], [1000.0, 400.0, 1.0]] } }
+[[setup]]
+method = "ui.set"
+params = { tool = "Move" }
+
+[[steps]]
+id = "pick"
+title = "Ластик"
+body = "Стирает нарисованное. На фоновом слое он оставляет цвет бумаги, на обычном слое — прозрачность."
+task = "Нажмите на ластик на панели инструментов"
+learned = "Выбирать ластик"
+key = "E"
+target = "tool:Eraser"
+keys = ["E"]
+  [steps.en]
+  title = "Eraser"
+  body = "Erases what is drawn. On the background layer it leaves the paper colour, on a normal layer transparency."
+  task = "Click the eraser on the toolbar"
+  learned = "Pick the eraser"
+  [[steps.checks]]
+  kind = "tool"
+  tool = "Eraser"
+  [[steps.leaves]]
+  method = "ui.set"
+  params = { tool = "Eraser" }
+
+[[steps]]
+id = "erase"
+title = "Стираем"
+body = "Ластик работает как кисть: зажмите кнопку мыши и ведите по полосе."
+task = "Сотрите кусок чёрной полосы посередине листа"
+learned = "Стирать часть рисунка"
+target = "canvas"
+  [steps.en]
+  title = "Erasing"
+  body = "The eraser works like the brush: hold the mouse button and drag along the band."
+  task = "Erase a piece of the black band in the middle of the sheet"
+  learned = "Erase part of a drawing"
+  [[steps.checks]]
+  kind = "coverage"
+  region = [0.15, 0.4, 0.7, 0.2]
+  changed = { max = 0.3 }
+  [[steps.leaves]]
+  method = "engine.execute"
+  params = { command = "paint.stroke", params = { color = "#FFFFFF", points = [[500.0, 400.0, 1.0], [600.0, 400.0, 1.0], [700.0, 400.0, 1.0]] } }
+
+[[steps]]
+id = "undo"
+title = "Отмена"
+body = "Ctrl+Z отменяет последнее действие. Та же команда есть в меню «Редактирование»."
+task = "Отмените стирание: нажмите Ctrl+Z"
+learned = "Отменять действие"
+key = "Ctrl+Z"
+target = "menu"
+keys = ["Z"]
+  [steps.en]
+  title = "Undo"
+  body = "Ctrl+Z undoes the last action. The same command is in the Edit menu."
+  task = "Undo the erasing: press Ctrl+Z"
+  learned = "Undo an action"
+  [[steps.checks]]
+  kind = "history"
+  can_redo = true
+  [[steps.leaves]]
+  method = "engine.execute"
+  params = { command = "edit.undo" }
+
+[[steps]]
+id = "redo"
+title = "Повтор"
+body = "Отменённое действие можно вернуть: Ctrl+Shift+Z."
+task = "Верните стирание: нажмите Ctrl+Shift+Z"
+learned = "Возвращать отменённое"
+key = "Ctrl+Shift+Z"
+target = "menu"
+keys = ["Z"]
+  [steps.en]
+  title = "Redo"
+  body = "An undone action can be brought back: Ctrl+Shift+Z."
+  task = "Bring the erasing back: press Ctrl+Shift+Z"
+  learned = "Redo what was undone"
+  [[steps.checks]]
+  kind = "history"
+  can_redo = false

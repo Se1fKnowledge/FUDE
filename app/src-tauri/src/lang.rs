@@ -39,7 +39,7 @@ pub fn set_lang(state: State<'_, AppState>, lang: String) -> AppResult<()> {
 }
 
 /// Journal wordings in both languages; `{}` is the part that stays (a quoted name, a number).
-const JOURNAL: [(&str, &str); 9] = [
+const JOURNAL: [(&str, &str); 12] = [
     ("Начат урок «{}»", "Started the lesson “{}”"),
     ("Получено достижение «{}»", "Achievement received “{}”"),
     ("Пройден урок «{}»", "Lesson done “{}”"),
@@ -49,6 +49,9 @@ const JOURNAL: [(&str, &str); 9] = [
     ("+{} · подсказок: {}", "+{} · hints: {}"),
     ("уроков: {}", "lessons: {}"),
     ("Мастерская", "Workshop"),
+    ("Пройдена глава путеводителя «{}»", "Tour chapter done “{}”"),
+    ("шагов: {}, пропущено: {}", "steps: {}, skipped: {}"),
+    ("шагов: {}", "steps: {}"),
 ];
 
 /// `text` matched against a pattern with `{}` holes: the hole contents, in order.
@@ -100,6 +103,10 @@ pub fn names(state: &AppState) -> Vec<(String, String)> {
                 out.push((raw.title, en));
             }
         }
+    }
+    let chapters = |lang| i18n::with_lang(lang, fude_core::tour::builtin);
+    for (r, e) in chapters(Lang::Ru).into_iter().zip(chapters(Lang::En)) {
+        out.push((r.title, e.title));
     }
     let facts = crate::progress::Facts { attempts: &[], lessons: &[], today: crate::learn::now().date(), user_lessons: 0 };
     let none = std::collections::HashMap::new();

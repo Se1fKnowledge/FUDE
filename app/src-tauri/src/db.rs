@@ -58,6 +58,13 @@ CREATE TABLE IF NOT EXISTS setting (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS tour_step (
+    chapter TEXT NOT NULL,
+    step TEXT NOT NULL,
+    state TEXT NOT NULL,
+    at TEXT NOT NULL,
+    PRIMARY KEY (chapter, step)
+);
 ";
 
 pub fn fmt(t: NaiveDateTime) -> String {
@@ -196,6 +203,21 @@ impl Db {
 
     pub fn set_setting(&self, key: &str, value: &str) -> AppResult<()> {
         self.conn.execute("INSERT INTO setting (key, value) VALUES (?1, ?2) ON CONFLICT (key) DO UPDATE SET value = ?2", params![key, value])?;
+        Ok(())
+    }
+
+    /// Steps of the editor tour the student has done or skipped: `(chapter, step)` → state.
+    pub fn tour_steps(&self) -> AppResult<HashMap<(String, String), String>> {
+        let mut stmt = self.conn.prepare("SELECT chapter, step, state FROM tour_step")?;
+        let rows = stmt.query_map([], |r| Ok(((r.get(0)?, r.get(1)?), r.get(2)?)))?;
+        Ok(rows.collect::<Result<_, _>>()?)
+    }
+
+    pub fn set_tour_step(&self, chapter: &str, step: &str, state: &str, now: NaiveDateTime) -> AppResult<()> {
+        self.conn.execute(
+            "INSERT INTO tour_step (chapter, step, state, at) VALUES (?1, ?2, ?3, ?4) ON CONFLICT (chapter, step) DO UPDATE SET state = ?3, at = ?4",
+            params![chapter, step, state, fmt(now)],
+        )?;
         Ok(())
     }
 
