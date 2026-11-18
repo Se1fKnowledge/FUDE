@@ -4,6 +4,20 @@
 
 Format: newest first. Only finished versions reach `main`.
 
+## Unreleased
+
+### Added
+
+- The lesson editor tour ([docs/en/app.md](docs/en/app.md#the-lesson-editor-tour)): a band in the workshop starts a corridor of 18 steps in which the author builds a lesson of their own — the card, theory, the task, a hint with an oval on the canvas, a check area, saving. Each step lights one place of the studio; the rest is dimmed and takes no clicks; beside it is a card with a description and a small task that counts by the draft itself. The “As the student sees it” panel shows the result through the student's eyes at once: the catalog tile, the row in the lesson list, the task steps, the hint with a ghost line, the check message. The last step opens the real student screen with PhotoCraft, followed by a closing card. A step can be skipped, the tour goes on from where it stopped, and Alt+← and Alt+→ drive it.
+- The lesson editor handbook (`/studio/reference`): 12 sections on the workshop and the studio and a table of hotkeys; each section has a screenshot with numbered dots and a description of every function. The screenshots are separate for the Russian and the English interface.
+- The “Editor” section and the PhotoCraft tour for the student ([docs/en/app.md](docs/en/app.md#the-photocraft-tour)): three chapters — “The editor window”, “Brush”, “Eraser”, 15 steps. The editor itself dims the window, lights the right place, shows the step card and lets no press land elsewhere; a step counts by the pointer's time over the place or by the same checks lessons use. A chapter taken up halfway and a skipped step put the editor in the state the next step needs (the brush in hand, its size). It gives no experience.
+- Editor: the control channel methods `tour.set`, `tour.poll`, `tour.clear` for the lit place and the step card ([docs/en/editor.md](docs/en/editor.md)).
+
+### Fixed
+
+- Workshop and studio: “Delete?” and “Leave without saving?” now really ask. In a Tauri window `window.confirm` returns a promise, so a lesson or a category was deleted without a question, and unsaved edits were lost when leaving the studio.
+- Studio: the “Card in the catalog” tile in “Lesson” mode took the light text colour of the dark studio, and the lesson title on it was barely readable.
+
 ## 1.0.0 — November 9, 2026
 
 The first finished version: the app, the editor, 12 built-in lessons, Windows installers.

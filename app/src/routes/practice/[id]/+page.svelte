@@ -14,7 +14,9 @@
 	const id = $derived(page.params.id ?? '');
 	// «Глазами ученика» from the studio: the draft in this folder, nothing recorded.
 	const previewDir = $derived(page.url.searchParams.get('preview'));
-	const backHref = $derived(previewDir ? `/studio/edit?dir=${encodeURIComponent(previewDir)}` : `/lesson/${id}`);
+	// The lesson-editor tour ends on this screen and gets its closing card back in the studio.
+	const fromTour = $derived(page.url.searchParams.get('tour') === '1');
+	const backHref = $derived(previewDir ? `/studio/edit?dir=${encodeURIComponent(previewDir)}${fromTour ? '&tour=done' : ''}` : `/lesson/${id}`);
 	let previewDone = $state(false);
 
 	let view = $state<LessonView | null>(null);
@@ -245,7 +247,7 @@
 	{#if previewDir}
 		<div class="preview-bar" role="status">
 			<Icon name="eye" size={16} />
-			<span>{previewDone ? t('Все шаги пройдены — так урок закончится у ученика.') : t('Глазами ученика: так урок пройдёт ученик. Прогресс и статистика не записываются.')}</span>
+			<span>{previewDone ? t('Все шаги пройдены — так урок закончится у ученика.') : fromTour ? t('Ваш урок глазами ученика. Нажмите «Подсказка» — на листе появится ваш овал. Прогресс не записывается.') : t('Глазами ученика: так урок пройдёт ученик. Прогресс и статистика не записываются.')}</span>
 			<a class="preview-back" href={backHref} onclick={leave}>{t('К редактированию')}</a>
 		</div>
 	{/if}

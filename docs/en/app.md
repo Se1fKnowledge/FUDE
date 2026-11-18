@@ -79,6 +79,9 @@ The `FUDE_DATA_DIR` environment variable replaces this folder entirely — for c
 | Workshop: own categories and lessons, `.fude` import and export | `/studio` | — |
 | Lesson studio: texts, the guide on timeline tracks, the task with ghost lines and a live check | `/studio/edit?dir=…` | page “04 · Редактор уроков” |
 | Through the student's eyes: a draft lesson as the student sees it, without recording progress | `/practice/<id>?preview=<folder>` | 04 · E6 |
+| Lesson editor handbook: every function of the workshop and the studio, with screenshots | `/studio/reference` | — |
+| Editor: the chapters of the PhotoCraft tour | `/editor` | 06 · Tour and handbook |
+| A chapter of the PhotoCraft tour: the editor with a lit place and a step card | `/editor/tour/<chapter>` | 06 · G2–G5 |
 
 ## How practice works
 
@@ -146,7 +149,29 @@ Checks and preview:
 - In “Through the student's eyes” mode a **“What the check sees”** panel under the step lists each check of the current step with its message; the student does not see it.
 - The interface map shows PhotoCraft tools as icons.
 
-Ctrl+S saves; leaving the studio with unsaved edits asks for confirmation.
+Ctrl+S saves; leaving the studio with unsaved edits asks for confirmation. The questions “Leave without saving?” and “Delete?” are asked with a system dialog through `@tauri-apps/plugin-dialog`: in a Tauri window `window.confirm` returns a promise, not an answer, so a condition like `if (!confirm(…))` used to let the action through without asking.
+
+## The lesson editor tour
+
+The band at the top of the workshop starts the tour: the author builds a lesson of their own, one lit place per step. A draft named “My first lesson” is created in the author's first category (or in a new “My lessons”) and opens in the studio with `?tour=1`.
+
+- **The corridor.** Everything but the lit place is dimmed and takes no clicks (`StudioTour.svelte`: four shades around the place, found by its `data-tour` attribute). Beside it is the step card: what the place is, a small task and its state. A step counts when the draft itself has changed — the title, the step text, the number of ghost lines, the number of checks, the save counter; the conditions are in `lib/studio/tour.ts`.
+- **As the student sees it.** Under the card is a panel with what the student will get, and it changes while the author types or draws: the catalog tile, the row in the lesson list, the steps panel, the hint with the sheet and the ghost line, the check message on the untouched task. In the theory step the editor and the student's page beside it are lit together.
+- **The route**: 18 steps in six chapters — the lesson card, theory, the task, a hint, a check, “Through the student's eyes”. “Back”, “Skip” and “Next” are on the card and on Alt+← and Alt+→. A step opens the mode, section and tab of the studio it needs, so after a skip or a break the place is always on screen.
+- **The end.** The last step is the “Through the student's eyes” button: the real practice screen with PhotoCraft opens, where the hint draws the author's oval. “Back to editing” returns the author to the studio and to a closing card with a link to the handbook.
+- Where the author stopped is kept in `localStorage` (`fude-studio-tour`): the tour goes on from the same step on the same draft, and a finished one can be taken again.
+
+## The lesson editor handbook
+
+The page `/studio/reference` describes every function of the workshop and the studio: 12 sections (the workshop, the studio window, three sections of “Lesson” mode, two of “Guide”, four of “Task”, “Through the student's eyes”) and a table of hotkeys. A section has a screenshot with numbered dots and a list of “name — what it does”; a click enlarges the screenshot. The content is in `lib/studio/reference.ts`, the screenshots in `lib/studio/shots/<language>/` (WebP, separate sets for the Russian and the English interface). It opens from the tour band in the workshop and from the tour's closing card.
+
+## The PhotoCraft tour
+
+The “Editor” section (`/editor`) is a tour of the PhotoCraft window for the student. Three chapters: “The editor window” (the five zones of the window), “Brush” (size, hardness, a stroke, opacity) and “Eraser” (erase, undo, redo). It gives no experience.
+
+- The highlight, the dimming, the step card and the ban on clicks outside the lit place are drawn by the editor itself: the `tour.set`, `tour.poll` and `tour.clear` methods of the control channel ([editor.md](editor.md)). So the tour works both inside the FUDE window and with a separate editor window.
+- Chapters are TOML files in `core/tour/`, built into the app (`fude_core::tour`). A step either waits for the pointer to stay over the place (`hover`, seconds) or is checked with the same checks as lesson steps (`checks`: the tool, brush settings, a painted area). English text is in the `en` sub-tables. A step that changes the editor has `leaves` — calls that leave the editor as the finished step would (the brush in hand, size 40): a chapter taken up again halfway on a fresh editor replays them for the steps already done, and a skipped step runs its own, so the next step always has something to work on.
+- The backend (`src-tauri/src/tour.rs`) polls the editor three times a second, marks steps in the `tour_step` table and writes the start and the end of a chapter to the journal. A step can be skipped; a finished chapter can be taken again.
 
 ## Experience, ranks, skills
 
@@ -169,7 +194,9 @@ app/
 │   ├── lib/checks.ts        check kinds for the lesson editor
 │   ├── lib/shortcuts.ts     practice keys: F1 hint, Ctrl+Enter check
 │   ├── lib/editor-slot.ts   the place for the embedded editor, the mode choice
-│   ├── lib/studio/          the lesson studio: canvas, guide tracks, interface map, inspectors
+│   ├── lib/studio/          the lesson studio: canvas, guide tracks, interface map, inspectors,
+│   │                        the studio tour (tour.ts, StudioTour.svelte) and the handbook
+│   │                        (reference.ts, screenshots in shots/)
 │   ├── lib/components/      sidebar, splash, seal, difficulty, area picker…
 │   └── routes/              screens
 └── src-tauri/               backend (Rust)
@@ -182,6 +209,7 @@ app/
     ├── src/play.rs          guide and practice commands
     ├── src/studio.rs        workshop and package commands
     ├── src/author.rs        studio: live check, hint in the editor, guide recording
+    ├── src/tour.rs          the PhotoCraft tour: chapter steps, polling the editor, marks
     ├── src/lang.rs          language: storage, the editor, the journal in the interface language
     └── tests/real_editor.rs all guides in the real PhotoCraft
 ```
@@ -189,9 +217,9 @@ app/
 ## Tests
 
 ```bash
-cargo test -p fude-app                                        # backend, 52 tests (with a fake editor)
+cargo test -p fude-app                                        # backend, 58 tests (with a fake editor)
 cargo test -p fude-app --test real_editor -- --ignored        # 12 guides in the real PhotoCraft
-cd app && npm test                                            # interface, 67 tests
+cd app && npm test                                            # interface, 74 tests
 cd app && npm run check                                       # Svelte and TypeScript types
 ```
 

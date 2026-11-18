@@ -2,12 +2,13 @@
 	import { quote, t } from '#lib/i18n.svelte.ts';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { open, save } from '@tauri-apps/plugin-dialog';
+	import { confirm, open, save } from '@tauri-apps/plugin-dialog';
 	import { api, errorText, type Accent, type ImportReport, type PackageInfo, type Problem, type Studio } from '#lib/api.ts';
 	import Hanko from '#lib/components/Hanko.svelte';
 	import Icon from '#lib/components/Icon.svelte';
 	import { count } from '#lib/format.ts';
 	import { refreshSession } from '#lib/session.svelte.ts';
+	import { STEPS, finished, rememberIndex, savedDir } from '#lib/studio/tour.ts';
 
 	let studio = $state<Studio | null>(null);
 	let problems = $state<Problem[]>([]);
@@ -34,6 +35,31 @@
 	}
 
 	onMount(load);
+
+	// «Путеводитель по редактору уроков»: the author builds a lesson of their own in the studio.
+	// The draft the tour last worked on is opened again; otherwise a new one is made, in the
+	// author's first category or in a new «Мои уроки».
+	let startingTour = $state(false);
+	async function startTour() {
+		if (startingTour) return;
+		startingTour = true;
+		error = '';
+		try {
+			let dir = savedDir();
+			if (dir) dir = await api.draft(dir).then(() => dir, () => null);
+			if (dir && finished()) rememberIndex(dir, 0);
+			if (!dir) {
+				const categoryDir = studio?.categories[0]?.dir ?? (await api.categoryCreate(t('Мои уроки'), '習', 'ai', t('Уроки, которые я собираю сам')));
+				dir = await api.lessonCreate(categoryDir, t('Мой первый урок'), 1);
+				rememberIndex(dir, 0);
+				await refreshSession();
+			}
+			goto(`/studio/edit?dir=${encodeURIComponent(dir)}&tour=1`);
+		} catch (e) {
+			error = errorText(e);
+			startingTour = false;
+		}
+	}
 
 	async function run(action: () => Promise<unknown>, done?: string) {
 		error = '';
@@ -108,7 +134,7 @@
 	}
 
 	async function removeDir(dir: string, what: string) {
-		if (!confirm(t('Удалить {what}? Это нельзя отменить.', { what }))) return;
+		if (!(await confirm(t('Удалить {what}? Это нельзя отменить.', { what }), { kind: 'warning' }))) return;
 		await run(() => api.remove(dir), t('Удалено.'));
 	}
 
@@ -124,6 +150,18 @@
 		</div>
 		<button class="btn btn-primary" onclick={pickPackage}><Icon name="download" size={18} /> {t('Импортировать урок')}</button>
 	</header>
+
+	<section class="tour-band">
+		<Icon name="route" size={22} />
+		<div>
+			<p class="label">{t('Путеводитель по редактору уроков')}</p>
+			<p class="body-s">{t('Соберите свой первый урок шаг за шагом: карточка, теория, задание, подсказка и проверка. Рядом видно, что получит ученик. {n} шагов, около 10 минут.', { n: STEPS.length })}</p>
+		</div>
+		<span class="tour-acts">
+			<a class="btn btn-quiet" href="/studio/reference"><Icon name="book" size={18} /> {t('Справочник')}</a>
+			<button class="btn btn-primary" onclick={startTour} disabled={startingTour}>{finished() ? t('Пройти заново') : savedDir() ? t('Продолжить путеводитель') : t('Пройти путеводитель')}</button>
+		</span>
+	</section>
 
 	{#if error}<div class="banner warn" role="alert"><Icon name="alert" size={18} /> <span>{error}</span></div>{/if}
 	{#if message}<div class="banner ok" role="status"><Icon name="check" size={18} /> <span>{message}</span></div>{/if}
@@ -246,6 +284,27 @@
 </div>
 
 <style>
+	.tour-band {
+		display: grid;
+		grid-template-columns: auto minmax(0, 1fr) auto;
+		align-items: center;
+		gap: 16px;
+		padding: 16px 20px;
+		margin-bottom: 20px;
+		border-radius: 12px;
+		background: var(--ai-100);
+		color: var(--ai-700);
+	}
+
+	.tour-acts {
+		display: flex;
+		gap: 8px;
+	}
+
+	.tour-band .label {
+		color: var(--ai-900);
+	}
+
 	.layout {
 		display: grid;
 		grid-template-columns: minmax(0, 1fr) 340px;

@@ -105,15 +105,15 @@
 			<p class="where">{t('Шаг {n} из {of}', { n: step + 1, of: lesson.task.steps.length })}</p>
 		</div>
 		<div class="tabs" role="tablist">
-			<button role="tab" aria-selected={tab === 'text'} onclick={() => (tab = 'text')}>{t('Текст')}</button>
-			<button role="tab" aria-selected={tab === 'hint'} onclick={() => (tab = 'hint')}>{t('Подсказка')}</button>
+			<button role="tab" data-tour="tab-text" aria-selected={tab === 'text'} onclick={() => (tab = 'text')}>{t('Текст')}</button>
+			<button role="tab" data-tour="tab-hint" aria-selected={tab === 'hint'} onclick={() => (tab = 'hint')}>{t('Подсказка')}</button>
 			<button role="tab" aria-selected={tab === 'checks'} onclick={() => (tab = 'checks')}>
 				{t('Проверки {n}', { n: s.checks.length })}{#if badChecks}<span class="warn-dot" aria-label={t('есть проблемы')}></span>{/if}
 			</button>
 		</div>
 
 		{#if tab === 'text'}
-			<label class="field">{t('Что сделать ученику')} <textarea rows="3" bind:value={lesson.task.steps[step].text} placeholder={t('Создайте новый слой для тени')}></textarea></label>
+			<label class="field" data-tour="step-text">{t('Что сделать ученику')} <textarea rows="3" bind:value={lesson.task.steps[step].text} placeholder={t('Создайте новый слой для тени')}></textarea></label>
 			<p class="note">{t('Шаг без проверок засчитывается, когда ученик нажмёт «Готово».')}</p>
 			<div class="row">
 				<button class="quiet" onclick={() => onmovestep(-1)} disabled={step === 0}>{t('Выше')}</button>
@@ -122,7 +122,7 @@
 				<button class="quiet danger" onclick={onremovestep}><Icon name="trash" size={14} /> {t('Удалить шаг')}</button>
 			</div>
 		{:else if tab === 'hint'}
-			<label class="field">{t('Текст подсказки')}
+			<label class="field" data-tour="hint-text">{t('Текст подсказки')}
 				<textarea rows="2" value={s.hint?.text ?? ''} oninput={(e) => setHintText(e.currentTarget.value)} placeholder={t('Мягкой кистью проведите тень по линиям')}></textarea>
 			</label>
 			<div class="field">

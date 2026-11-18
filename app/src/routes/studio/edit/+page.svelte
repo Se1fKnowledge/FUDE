@@ -3,12 +3,14 @@
 	import { onDestroy, onMount } from 'svelte';
 	import { beforeNavigate, goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { open } from '@tauri-apps/plugin-dialog';
+	import { confirm, open } from '@tauri-apps/plugin-dialog';
 	import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 	import { api, errorText, type CheckProof, type DraftDetail, type GuideEvent, type GuideScript, type Issue, type Lesson, type LessonCard, type RecordTick, type Region, type Shape, type Step } from '#lib/api.ts';
 	import { defaultCheck, stepId } from '#lib/checks.ts';
 	import Icon from '#lib/components/Icon.svelte';
 	import LessonTile from '#lib/components/LessonTile.svelte';
+	import StudioTour from '#lib/studio/StudioTour.svelte';
+	import { finish as finishTour, words, type TourSnap } from '#lib/studio/tour.ts';
 	import { editorSlot, preferEmbedded } from '#lib/editor-slot.ts';
 	import { count } from '#lib/format.ts';
 	import StudioCanvas, { type CanvasTool, type DemoStroke, type RegionMark } from '#lib/studio/StudioCanvas.svelte';
@@ -35,6 +37,7 @@
 	let saving = $state(false);
 	let savedAt = $state('');
 	let dirty = $state(false);
+	let saves = $state(0);
 	let loaded = false;
 
 	type Mode = 'lesson' | 'guide' | 'task';
@@ -151,6 +154,7 @@
 			if (!s.steps.length) delete lesson.guide.script;
 			else lesson.guide.script ??= 'guide.json';
 			dirty = false;
+			saves += 1;
 			savedAt = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
 			return true;
 		} catch (e) {
@@ -492,8 +496,34 @@
 
 	async function preview() {
 		if (!lesson || !(await save())) return;
-		goto(`/practice/${encodeURIComponent(lesson.id)}?preview=${encodeURIComponent(dir)}`);
+		// The tour ends on this button: the student's screen is its last stop.
+		const fromTour = touring && !tourFinished;
+		if (fromTour) finishTour(dir);
+		goto(`/practice/${encodeURIComponent(lesson.id)}?preview=${encodeURIComponent(dir)}${fromTour ? '&tour=1' : ''}`);
 	}
+
+	// ---------------------------------------------------------------- the lesson-editor tour
+	// «Путеводитель по редактору уроков» from the workshop opens the studio with ?tour=1.
+	// The student's screen it ends on sends the author back with ?tour=done, for the closing card.
+	const tourFinished = page.url.searchParams.get('tour') === 'done';
+	let touring = $state(tourFinished || page.url.searchParams.get('tour') === '1');
+	const tourSnap = $derived<TourSnap>({
+		mode,
+		section,
+		tab,
+		tool,
+		title: lesson?.title ?? '',
+		summary: lesson?.summary ?? '',
+		difficulty: lesson?.difficulty ?? 1,
+		theoryWords: words(theory),
+		stepText: step?.text ?? '',
+		hintText: step?.hint?.text ?? '',
+		shapes: step?.hint?.shapes?.length ?? 0,
+		checks: step?.checks.length ?? 0,
+		saves
+	});
+	// What the newest canvas check says about an untouched sheet: the student's first message.
+	const tourCheckMessage = $derived(proofs.findLast((p) => p.step === step?.id && p.canvas && p.onTask && !p.onTask.passed)?.onTask?.message ?? '');
 
 	// ---------------------------------------------------------------- keys and lifecycle
 	function onkeydown(e: KeyboardEvent) {
@@ -536,9 +566,19 @@
 		}
 	}
 
-	// Leaving with unsaved edits asks first: the studio keeps nothing it has not saved.
-	beforeNavigate(({ cancel }) => {
-		if (dirty && !saving && !confirm(t('В уроке есть несохранённые изменения. Уйти без сохранения?'))) cancel();
+	// Leaving with unsaved edits asks first: the studio keeps nothing it has not saved. The
+	// question is asynchronous, so the move is stopped and made again after a «yes».
+	let leaving = false;
+	beforeNavigate((nav) => {
+		if (!dirty || saving || leaving || nav.willUnload) return;
+		nav.cancel();
+		const to = nav.to?.url;
+		if (!to) return;
+		void confirm(t('В уроке есть несохранённые изменения. Уйти без сохранения?'), { kind: 'warning' }).then((yes) => {
+			if (!yes) return;
+			leaving = true;
+			void goto(to);
+		});
 	});
 
 	onMount(async () => {
@@ -668,9 +708,9 @@
 		</div>
 		<span class="grow"></span>
 		<div class="modes" role="tablist" aria-label={t('Режим студии')}>
-			<button role="tab" aria-selected={mode === 'lesson'} onclick={() => (mode = 'lesson')}>{t('Урок')}</button>
-			<button role="tab" aria-selected={mode === 'guide'} onclick={() => (mode = 'guide')}>{t('Гайд')}</button>
-			<button role="tab" aria-selected={mode === 'task'} onclick={() => (mode = 'task')}>{t('Задание')}</button>
+			<button role="tab" data-tour="mode-lesson" aria-selected={mode === 'lesson'} onclick={() => (mode = 'lesson')}>{t('Урок')}</button>
+			<button role="tab" data-tour="mode-guide" aria-selected={mode === 'guide'} onclick={() => (mode = 'guide')}>{t('Гайд')}</button>
+			<button role="tab" data-tour="mode-task" aria-selected={mode === 'task'} onclick={() => (mode = 'task')}>{t('Задание')}</button>
 		</div>
 		<span class="grow"></span>
 		<span class="saved" aria-live="polite">{saving ? t('Сохраняем…') : dirty ? t('Есть несохранённые изменения') : savedAt ? t('Сохранено · {time}', { time: savedAt }) : ''}</span>
@@ -679,8 +719,8 @@
 		{:else if mode === 'task'}
 			<button class="btn-o" onclick={showHintInEditor} disabled={!step?.hint}>{t('Показать в PhotoCraft')}</button>
 		{/if}
-		<button class="btn-q" onclick={preview} disabled={!lesson?.task.steps.length}>{t('Глазами ученика')}</button>
-		<button class="btn-p" onclick={save} disabled={saving || !lesson}>{t('Сохранить')}</button>
+		<button class="btn-q" data-tour="preview" onclick={preview} disabled={!lesson?.task.steps.length}>{t('Глазами ученика')}</button>
+		<button class="btn-p" data-tour="save" onclick={save} disabled={saving || !lesson}>{t('Сохранить')}</button>
 	</header>
 
 	{#if error}<p class="error" role="alert"><Icon name="alert" size={16} /> {error}</p>{/if}
@@ -692,7 +732,7 @@
 				{#if mode === 'lesson'}
 					<p class="sec">{t('Разделы урока')}</p>
 					{#each [['about', t('Описание и карточка'), t('как урок выглядит в каталоге')], ['theory', t('Теория'), count(theory.trim().split(/\s+/).filter(Boolean).length, ['слово', 'слова', 'слов'])], ['quiz', t('Вопросы после теории'), count(lesson.quiz?.length ?? 0, ['вопрос', 'вопроса', 'вопросов'])]] as [key, name, meta] (key)}
-						<button class="item" class:on={section === key} onclick={() => (section = key as LessonSection)}>
+						<button class="item" data-tour="section-{key}" class:on={section === key} onclick={() => (section = key as LessonSection)}>
 							<span class="item-name">{name}</span><span class="item-meta">{meta}</span>
 						</button>
 					{/each}
@@ -791,12 +831,12 @@
 						</div>
 						<div class="tools" role="toolbar" aria-label={t('Инструменты автора')}>
 							{#each tools as tl (tl.id)}
-								<button class="tool" class:on={activeTool === tl.id} onclick={() => (mode === 'guide' ? (guideTool = tl.id) : (tool = tl.id))} title="{tl.label} · {tl.key}" aria-label={tl.label}>
+								<button class="tool" data-tour="tool-{tl.id}" class:on={activeTool === tl.id} onclick={() => (mode === 'guide' ? (guideTool = tl.id) : (tool = tl.id))} title="{tl.label} · {tl.key}" aria-label={tl.label}>
 									<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d={tl.svg} /></svg>
 								</button>
 							{/each}
 						</div>
-						<div class="paper-wrap" class:panning={activeTool === 'hand'} bind:this={wrap} bind:clientWidth={wrapW} bind:clientHeight={wrapH} onwheel={wheel} onpointerdown={panDown} onpointermove={panMove} onpointerup={() => (pan = null)} role="presentation">
+						<div class="paper-wrap" data-tour="canvas" class:panning={activeTool === 'hand'} bind:this={wrap} bind:clientWidth={wrapW} bind:clientHeight={wrapH} onwheel={wheel} onpointerdown={panDown} onpointermove={panMove} onpointerup={() => (pan = null)} role="presentation">
 							<div class="paper-inner">
 							<StudioCanvas
 								{scale}
@@ -907,6 +947,29 @@
 		</div>
 	{/if}
 </div>
+
+{#if touring && lesson && !live}
+	<StudioTour
+		{dir}
+		snap={tourSnap}
+		{card}
+		brief={lesson.task.brief}
+		steps={lesson.task.steps.map((s) => s.text)}
+		{stepIndex}
+		hintText={step?.hint?.text ?? ''}
+		shapes={step?.hint?.shapes ?? []}
+		canvas={{ w: size.w, h: size.h, background: lesson.task.canvas?.background ?? '#FFFFFF', image: taskImage }}
+		checkMessage={tourCheckMessage}
+		finished={tourFinished}
+		onplace={(place) => {
+			if (place.mode) mode = place.mode;
+			if (place.section) section = place.section as LessonSection;
+			if (place.tab) tab = place.tab;
+			if (place.tool) tool = place.tool as CanvasTool;
+		}}
+		onexit={() => (touring = false)}
+	/>
+{/if}
 
 {#if mapFor && lesson}
 	<InterfaceMap
@@ -1586,7 +1649,9 @@
 		padding: 24px;
 	}
 
+	/* The tile is a piece of the paper catalog: it takes the catalog's ink, not the studio's. */
 	.card-preview {
+		color: var(--ink-900);
 		pointer-events: none;
 	}
 

@@ -13,15 +13,15 @@ November 7, 2026, Windows 11, Rust 1.99.1:
 
 | Set | Command | Result |
 |---|---|---|
-| lesson core and lessons | `cargo test -p fude-core` (from the root) | 112 passed, 0 failed |
-| app backend | `cargo test -p fude-app` | 52 passed, 0 failed |
+| lesson core and lessons | `cargo test -p fude-core` (from the root) | 117 passed, 0 failed |
+| app backend | `cargo test -p fude-app` | 58 passed, 0 failed |
 | guides in the real PhotoCraft | `cargo test -p fude-app --test real_editor -- --ignored` | 12 of 12 guides solve their tasks |
-| interface | `cd app && npm test` | 67 passed, 0 failed |
+| interface | `cd app && npm test` | 74 passed, 0 failed |
 | interface types | `cd app && npm run check` | 0 errors, 0 warnings |
 | clippy | `cargo clippy --workspace --all-targets --locked -- -D warnings` | no warnings |
 | format | `cargo fmt --all --check` | no differences |
 | editor engine | `cargo test -p photocraft-engine --lib` | 2178 passed, 0 failed, 14 skipped |
-| editor interface | `cargo test -p photocraft-ui-egui --lib` | 3809 passed, 0 failed, 18 skipped |
+| editor interface | `cargo test -p photocraft-ui-egui --lib` | 3814 passed, 0 failed, 18 skipped |
 | editor clippy | `cargo clippy -p photocraft-engine -p photocraft-ui-egui --lib --tests -- -D warnings` | no warnings |
 | editor control channel | `cargo test -p photocraft-ui-egui --lib control::tests::journal_read` | passes |
 
@@ -53,6 +53,7 @@ The set runs in under two seconds after the build.
 | `hint` | 9 | ghost shapes land on a separate translucent layer and return the student to their layer; each shape has its own colour, width and opacity; an arrow has its head at the tip; dashing cuts a line into dashes and goes round corners; a “drawn in” line is drawn in ten pieces with pauses and reaches the end, the pieces cover the line without gaps; an ellipse is closed and stays inside its frame; hint layers are found inside groups too |
 | `record` | 4 | the author's recording becomes guide steps: a tool — a highlight, a brush — actions, each stroke separately with its brush and pressure, long pauses are shortened, forbidden commands are skipped and named; the colour follows the foreground; a long stroke is thinned to the guide limit keeping its end; undos are not recorded by default, and pauses can be kept as they are |
 | `control` | 4 | `engine.execute` calls; a task with a picture opens through the read root; a blank canvas is created and tinted |
+| `tour` | 5 | the built-in chapters of the PhotoCraft tour parse, go in order and light only known places; a step has exactly one condition — pointer time or checks; unknown fields are an error; the English text replaces the Russian one as a whole, and without it the Russian stays; a step the next one builds on (tool, brush) says how to leave the editor (`leaves`) |
 | `assess` | 20 | the `ui.inspect` reply is parsed; each state and canvas check passes and fails with a clear message; transparent counts as white; a task picture of another size is scaled; large areas are sampled; a passed step stays passed, steps go in order; **the live check** (`prove`): a check that passes on the untouched task too is told from a working one and gets a threshold between the two readings; a canvas check cannot be proven without a reference |
 | `authoring` | 3 | Russian titles are transliterated into ids; repeats are numbered; the new lesson template is valid |
 | `i18n` | 2 | `tr!` picks the text by language and fills in values; the language changes for one thread without disturbing tests next to it; the codes `ru`, `en`, `en-US` |
@@ -78,6 +79,7 @@ The set runs in under two seconds after the build.
 | `progress` | 10 | experience for difficulty, independence and repeats; ranks 10 kyu → 1 dan; streaks from today or yesterday; days, minutes, days without hints; skills and their value at the start of a period; independence; experience by week; lesson locks; achievements from facts; a greeting by the hour |
 | `editor` | 12 | the channel client passes `auth`, matches replies by `id` and skips others'; a wrong token is rejected; tokens are random; a clear error if there is no editor; the editor is looked for next to `fude.exe` and in the `photocraft/` folder; the channel line from stderr gives the port or the reason of a refusal; **starting with a fake editor** (the test binary restarted in the role of PhotoCraft): connecting to the port the editor reported, and calls; a refusal to open the channel — at once, without waiting; exiting at start; a silent editor — by timeout; a dropped connection (PhotoCraft closes an idle one) is reopened once, while the editor's own refusals are not retried |
 | `author` | 3 | guide recording: a tool change and new journal entries are read once, the start mark goes after what was already recorded; the brush and colour come from `ui.inspect`; an old editor without `journal.read` is named clearly |
+| `tour` | 6 | a chapter against a fake editor: a pointer step counts by the time over the place, a checked step by the editor state; “Back”, “Skip” and “Next” from the card; step marks survive a restart, a finished chapter starts over; after an editor restart the card is set again; the journal entry is in the interface language; a chapter taken up halfway puts back what the done steps left, and a skipped step leaves the editor as if done |
 | `practice` | 2 | an attempt against a fake editor: a check, a hint (counted once, the hint layer and the return to the student's layer), removing the hint layer, the outcome with experience and similarity, the journal; manual steps and no extra snapshots |
 | `learn` | 3 | the Russian date; sensei's advice points to a lesson with hints or to a weak skill; the first day |
 | `state` | 3 | lesson pictures become `data:` addresses, including from subfolders, paths do not leave the lesson folder; types by extension, case-insensitive |
@@ -95,6 +97,7 @@ The set runs in under two seconds after the build.
 | `editor-slot.test.ts` | 5 | by default the editor is in the FUDE window, the choice is remembered and survives blocked storage; the rectangle in physical pixels with rounding; the editor place is sent once, then only on change, and cleared when leaving the page; a backend refusal does not break the page |
 | `studio/studio.test.ts` | 13 | ghost lines: simplifying a freehand line, shapes from dragging, areas within the canvas, the default style and saving only differences, hit testing and moving, the arrowhead, a guide stroke → a ghost line; guide tracks: step times, captions until the next one, stroke and action clips, the frame and caption at the playhead, edits (pause, order, insert, delete), Russian names of commands and targets, parsing `guide.json`, clock time; the interface map: searching targets by name and id |
 | `studio/studio2.test.ts` | 7 | edit history: undo and redo, a new edit dropping redo, the history limit; shape handles: the ends of a straight line and an arrow, the corners of an oval from the opposite corner, a freehand line has no handles; “drawn in” in the style; the task steps track: neighbouring guide steps merge into a clip, the start time of a task step; splitting: a stroke splits in two with a shared point, another step into actions and a pause, a too-short one is not split |
+| `studio/tour.test.ts` | 7 | the lesson editor tour: steps are unique and go by chapters, each has a place to light; no step is done before the author acts; a field step needs a real edit, not the text it started with; drawing counts new lines and checks, saving a new save; the card sits beside the lit place and never over it |
 | `i18n.test.ts` | 7 | every `t(…)` and `tk(…)` string has an English entry with the same placeholders; every word in `count()` has English forms; the dictionary has no extra entries; no Russian text outside `t()`; placeholders and the Russian fallback |
 | `api.test.ts` | 2 | the error text from a Rust string, from an `Error` or a fallback; commands are called by their Rust names |
 

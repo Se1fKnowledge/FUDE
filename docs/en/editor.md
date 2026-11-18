@@ -105,6 +105,18 @@ Tests: `brand::tests::*` (a 128 px tile with rounded corners, one texture), `app
 
 PhotoCraft is translated into 22 languages and keeps the choice in the `interface.language` setting. Every time FUDE starts the editor and every time its own language changes, it sends `prefs.set {"path": "interface.language", "value": "ru" | "en"}` through the control channel, so the editor's menus and panels are always in FUDE's language. The editor's code did not need to change for this.
 
+### 8. The tour: a lit place and a step card
+
+The PhotoCraft tour ([app.md](app.md#the-photocraft-tour)) walks the student through the editor window. Three methods were added to the control channel for it ([`tour.rs`](../../photocraft/crates/ui-egui/src/tour.rs), described in [`control-protocol.md`](../../photocraft/docs/control-protocol.md)):
+
+| Method | What it does |
+|---|---|
+| `tour.set {target, title, body, task, status, done, buttons, block, keys, toast}` | shows a step: dims the window, leaves the `target` place lit, puts a card with the text, the task and the buttons beside it |
+| `tour.poll` | returns what happened since the last call: the card buttons pressed, the number of presses outside the lit place, the time the pointer spent over it |
+| `tour.clear` | removes the tour |
+
+Places name themselves while they are drawn: `menu`, `options`, `toolbar`, `tool:<Tool>`, `canvas`, `dock`, `status` ([`panels.rs`](../../photocraft/crates/ui-egui/src/panels.rs), [`canvas.rs`](../../photocraft/crates/ui-egui/src/canvas.rs)). The dimming lies under popups, the card above them. With `block: true` mouse presses and keys outside the lit place and the card are dropped before the interface sees them; a list opened from the lit place and a focused text field stay usable, and the keys in `keys` pass (with Shift too: `[` arrives as `{`). What to do on a step and when it is done is decided by FUDE: the editor only shows and reports.
+
 ## How to update PhotoCraft from the original repository
 
 FUDE's changes are separate commits, so they can be carried over to a new version:

@@ -55,10 +55,10 @@
 {#if section === 'about'}
 	<div class="sheet">
 		<h2>{t('Описание и карточка')}</h2>
-		<label class="field">{t('Название')} <input type="text" bind:value={lesson.title} maxlength="120" /></label>
-		<label class="field">{t('Кратко — строка на карточке')} <textarea rows="2" bind:value={lesson.summary}></textarea></label>
+		<label class="field" data-tour="field-title">{t('Название')} <input type="text" bind:value={lesson.title} maxlength="120" /></label>
+		<label class="field" data-tour="field-summary">{t('Кратко — строка на карточке')} <textarea rows="2" bind:value={lesson.summary}></textarea></label>
 		<div class="grid3">
-			<label class="field">{t('Сложность')}
+			<label class="field" data-tour="field-difficulty">{t('Сложность')}
 				<select bind:value={lesson.difficulty}>
 					{#each LEVELS as [v, l] (v)}<option value={v}>{v} — {l}</option>{/each}
 				</select>
@@ -82,7 +82,7 @@
 		<label class="field">{t('Что нужно сделать в задании')} <textarea rows="2" bind:value={lesson.task.brief}></textarea></label>
 	</div>
 {:else if section === 'theory'}
-	<div class="split">
+	<div class="split" data-tour="theory">
 		<div class="source">
 			<div class="toolbar" role="toolbar" aria-label={t('Оформление текста')}>
 				<button onclick={() => format('**', '**')} aria-label={t('Жирный')}><b>{t('Ж')}</b></button>
