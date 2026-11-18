@@ -481,6 +481,21 @@ fn dispatch(app: &mut PhotocraftApp, ctx: &egui::Context, req: &ControlRequest) 
             ok(serde_json::to_value(items).unwrap_or_default())
         }
         "ui.inspect" => ok(inspect(app, ctx)),
+        // FUDE build: the host's guided tour (`tour`): one lit place, a card beside it, input
+        // held to both. `tour.poll` hands over what the student did since the last call.
+        "tour.set" => match crate::tour::set(app, p) {
+            Ok(()) => {
+                ctx.request_repaint();
+                ok(Value::Null)
+            }
+            Err(e) => err(e),
+        },
+        "tour.clear" => {
+            crate::tour::clear(app);
+            ctx.request_repaint();
+            ok(Value::Null)
+        }
+        "tour.poll" => ok(crate::tour::poll(app)),
         // The engine's journal of executed commands from `from` on, for a host that records what
         // the user does (FUDE turns it into a lesson guide). `next` is where the following read
         // starts; at most `limit` entries (500 by default) per read.

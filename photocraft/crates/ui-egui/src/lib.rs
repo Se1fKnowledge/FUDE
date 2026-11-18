@@ -240,6 +240,7 @@ pub(crate) mod tool_memory;
 mod tool_reset;
 mod tool_shortcuts;
 pub mod touch_twins;
+pub mod tour;
 pub mod transform_fx;
 pub mod transform_tex;
 pub mod transform_tool;
@@ -803,6 +804,8 @@ pub struct PhotocraftApp {
     /// FUDE build: the window sits inside the FUDE window (`ui.set {"hostEmbedded": true}`), so
     /// it draws no caption buttons and neither drags, maximizes nor resizes itself: FUDE places it.
     pub host_embedded: bool,
+    /// FUDE build: the guided tour the host app is showing, if any (`tour`).
+    pub tour: Option<tour::Tour>,
     /// Last window title sent to the OS (`ViewportCommand::Title`, see `panels::sync_window_title`):
     /// sent again only when it changes, so idle frames don't spam the backend.
     last_window_title: String,
@@ -1074,6 +1077,7 @@ impl PhotocraftApp {
             integrated_titlebar: false,
             custom_titlebar: false,
             host_embedded: false,
+            tour: None,
             last_window_title: String::new(),
             fonts_ready: false,
             last_canvas_rect: egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(800.0, 600.0)),
@@ -2378,6 +2382,8 @@ impl eframe::App for PhotocraftApp {
         if cfg!(any(target_os = "windows", target_os = "linux")) && self.session.prefs().enhanced_controls.zoom_with_trackpad_pinch {
             wheel_nav::fold_legacy_pinch(ctx, raw_input);
         }
+        // FUDE tour: the student's own input is held to the lit place; the control channel's isn't.
+        tour::filter_input(self, ctx, raw_input);
         raw_input.events.extend(self.take_synthetic_step());
         // After the control channel's own events (`ui.type`) join the OS's, before any widget.
         widgets::cap_text_events(&mut raw_input.events);
@@ -2501,6 +2507,8 @@ impl eframe::App for PhotocraftApp {
         if self.custom_titlebar && !self.host_embedded {
             titlebar::resize_zones(ui);
         }
+        // FUDE tour: over everything drawn above.
+        tour::show(self, &ctx);
         // A device lost while drawing this frame: switch to the CPU canvas before the next one.
         gpu_status::check(self, &ctx);
         // The Brush Preset picker's view (its gear's card parts and the footer scale) is
