@@ -76,10 +76,10 @@ The `FUDE_DATA_DIR` environment variable replaces this folder entirely — for c
 | Achievements: the rank path 10 kyu → 1 dan, seals | `/achievements` | 03 |
 | Activity: a year in ink strokes, streaks, the week, the journal | `/activity` | 04 |
 | Statistics: skill profile, growth, experience, independence, sensei's advice | `/stats` | 05 |
-| Workshop: own categories and lessons, `.fude` import and export | `/studio` | — |
+| Workshop: own categories and lessons, `.fude` import and export, entry to the tour and the handbook | `/studio` | 07 · S1 |
 | Lesson studio: texts, the guide on timeline tracks, the task with ghost lines and a live check | `/studio/edit?dir=…` | page “04 · Редактор уроков” |
 | Through the student's eyes: a draft lesson as the student sees it, without recording progress | `/practice/<id>?preview=<folder>` | 04 · E6 |
-| Lesson editor handbook: every function of the workshop and the studio, with screenshots | `/studio/reference` | — |
+| Lesson editor handbook: every function of the workshop and the studio, with screenshots | `/studio/reference` | 07 · H1–H3 |
 | Editor: the chapters of the PhotoCraft tour | `/editor` | 06 · Tour and handbook |
 | A chapter of the PhotoCraft tour: the editor with a lit place and a step card | `/editor/tour/<chapter>` | 06 · G2–G5 |
 
@@ -153,6 +153,8 @@ Ctrl+S saves; leaving the studio with unsaved edits asks for confirmation. The q
 
 ## The lesson editor tour
 
+Mockup — page “07 · Путеводитель по студии и справочник” in Figma, frames S1–S7: the entry from the workshop, the steps “Lesson title”, “Theory text”, “Oval on the canvas” and “Check area” with the “As the student sees it” panel, the closing card and the “Through the student's eyes” screen. The step card is the “Путеводитель студии/Карточка шага” component with the “Ждёт” and “Готово” states.
+
 The band at the top of the workshop starts the tour: the author builds a lesson of their own, one lit place per step. A draft named “My first lesson” is created in the author's first category (or in a new “My lessons”) and opens in the studio with `?tour=1`.
 
 - **The corridor.** Everything but the lit place is dimmed and takes no clicks (`StudioTour.svelte`: four shades around the place, found by its `data-tour` attribute). Beside it is the step card: what the place is, a small task and its state. A step counts when the draft itself has changed — the title, the step text, the number of ghost lines, the number of checks, the save counter; the conditions are in `lib/studio/tour.ts`.
@@ -163,11 +165,11 @@ The band at the top of the workshop starts the tour: the author builds a lesson 
 
 ## The lesson editor handbook
 
-The page `/studio/reference` describes every function of the workshop and the studio: 12 sections (the workshop, the studio window, three sections of “Lesson” mode, two of “Guide”, four of “Task”, “Through the student's eyes”) and a table of hotkeys. A section has a screenshot with numbered dots and a list of “name — what it does”; a click enlarges the screenshot. The content is in `lib/studio/reference.ts`, the screenshots in `lib/studio/shots/<language>/` (WebP, separate sets for the Russian and the English interface). It opens from the tour band in the workshop and from the tour's closing card.
+Mockup — frames H1–H3 of the same page “07”: the contents with a section and a numbered snapshot, the hotkeys and the enlarged snapshot. The page `/studio/reference` describes every function of the workshop and the studio: 12 sections (the workshop, the studio window, three sections of “Lesson” mode, two of “Guide”, four of “Task”, “Through the student's eyes”) and a table of hotkeys. A section has a screenshot with numbered dots and a list of “name — what it does”; a click enlarges the screenshot. The content is in `lib/studio/reference.ts`, the screenshots in `lib/studio/shots/<language>/` (WebP, separate sets for the Russian and the English interface). It opens from the tour band in the workshop and from the tour's closing card.
 
 ## The PhotoCraft tour
 
-The “Editor” section (`/editor`) is a tour of the PhotoCraft window for the student. Three chapters: “The editor window” (the five zones of the window), “Brush” (size, hardness, a stroke, opacity) and “Eraser” (erase, undo, redo). It gives no experience.
+The “Editor” section (`/editor`) is a tour of the PhotoCraft window for the student; mockup — page “06 · Путеводитель и справочник” (G1 — the chapter list, G2–G4 — steps, G5 — the chapter end). Three chapters: “The editor window” (the five zones of the window), “Brush” (size, hardness, a stroke, opacity) and “Eraser” (erase, undo, redo). It gives no experience.
 
 - The highlight, the dimming, the step card and the ban on clicks outside the lit place are drawn by the editor itself: the `tour.set`, `tour.poll` and `tour.clear` methods of the control channel ([editor.md](editor.md)). So the tour works both inside the FUDE window and with a separate editor window.
 - Chapters are TOML files in `core/tour/`, built into the app (`fude_core::tour`). A step either waits for the pointer to stay over the place (`hover`, seconds) or is checked with the same checks as lesson steps (`checks`: the tool, brush settings, a painted area). English text is in the `en` sub-tables. A step that changes the editor has `leaves` — calls that leave the editor as the finished step would (the brush in hand, size 40): a chapter taken up again halfway on a fresh editor replays them for the steps already done, and a skipped step runs its own, so the next step always has something to work on.

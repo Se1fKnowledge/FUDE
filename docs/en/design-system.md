@@ -165,6 +165,8 @@ Cards: 16 px corners, a soft shadow **without a border** (a border plus a shadow
 
 **States:** 09 Home — first day · 10 Editor — auto-check failed · 11 Result — try again · 12 Lesson — the video did not load · 13 Editor — did not start.
 
+**Tours and handbook:** page “06 · Путеводитель и справочник” — the student's tour of the PhotoCraft window (G1–G5) and a concept of a PhotoCraft handbook for the next version (R1–R3); page “07 · Путеводитель по студии и справочник” — the workshop (S1), the author's tour of the lesson editor (S2–S7) and the lesson editor handbook (H1–H3). The shade around the lit place is ink `#06070B` at 70 % opacity, the ring is `ai/300` at 2 px with an 8 px glow, the step card is `ai/700`, the “As the student sees it” panel is `paper/base`.
+
 All screens show one consistent student state (Sunday, October 25, 2026: a 14-day streak, lesson 3 “A sphere's cast shadow” in progress), so the numbers do not contradict each other.
 
 ## Motion
